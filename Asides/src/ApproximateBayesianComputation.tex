@@ -1,0 +1,87 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[margin=1in, paperwidth=8.3in, paperheight=11.7in]{geometry}
+\usepackage{amsmath,amsfonts,fancyhdr,bbm,graphicx,tikz}
+\usetikzlibrary{automata,positioning}
+\graphicspath{ {img/} }
+\usepackage[section,nohyphen]{DomH}
+\headertitle{Approximate Bayesian Computation}
+
+\begin{document}
+
+\setcounter{section}{1}
+
+\title{Approximate Bayesian Computation}
+\author{Dom Hutchinson}
+\date{\today}
+\maketitle
+
+\section*{Intro to ABC}
+
+\begin{definition}{Approximate Bayesian Computation (ABC)}
+  \textit{Approximate Bayesian Computation (ABC)} is a family of computational methods for estimating the posterior of model parameters for \textit{Generative Models}. \textit{Generative Models} are models which can be simulated from but we do not have an explicit definition for their posterior $f(x|\theta)$ (i.e. most IRL systems).
+\end{definition}
+
+\begin{proposition}{Motivating Idea}
+  \par Consider a set of observations $\mathbf{y}:=(y_1,\dots,y_n)$ where each $y_i\in\reals^m$ is high dimensional. Let $s(\cdot):\reals^m\to\reals^p$ be a mapping (known as a \textit{Summary Statistic}) from the observed data to some lower dimension $p$.
+  \par \textit{ABC} aims to infer the joint distribution of parameter $\theta$ and general summary statistics $\mathbf{s}$, given the observed summary statistics $\mathbf{s}_{obs}:=s(\mathbf{y})$
+  \[ p_\epsilon(\theta,\mathbf{s}|\mathbf{s}_{obs})\propto\pi_0(\theta)f(s|\theta)K_\epsilon(\|\mathbf{s}-\mathbf{s}_{obs}\|) \]
+  where $\pi_0(\theta)$ is the prior for parameter $\theta$, $f(\mathbf{s}|\theta)$ is the likelihood of the summary statistics, $K_\epsilon(\cdot)$ is a kernel function scaling parameter $\epsilon$ and $\|\cdot\|$ is a distance measure (e.g. Euclidean).\footnote{$f(s|\theta)$ is the only one of these features which is not specified by the user, and thus what we need to ``learn''.}
+  \par From this joint distribution the posterior for parameter $\theta$, given the observed summary statistics $\mathbf{s}_{obs}:=s(\mathbf{y})$, can be calculated as
+  \[ p_\epsilon(\theta|\mathbf{s}_{obs})=\int p_\epsilon(\theta,\mathbf{s}|\mathbf{s}_{obs})d\mathbf{s} \]
+  Monte-Carlo Algorithms can be used to sample from this posterior $p_\epsilon(\theta|\mathbf{s}_{obs})$ without having to explicitly state the likelihood $f(\mathbf{s}|\theta)$. \textit{Numerical Integration} methods can then be used to evaluate the integral\footnote{See \textit{Monte-Carlo Integration} methods: \textit{Uniform Sampling}, \textit{Importance Sampling}}.
+\end{proposition}
+
+\begin{proposition}{Setup of ABC}
+  Consider having the following:
+  \begin{itemize}
+    \item A set of observations $\mathbf{y}:=(y_1,\dots,y_n)$ where each $y_i$ is high-dimensional.
+    \item A map $s(\cdot)$ which maps the high-dimensional observed data to a lower dimension.
+    \item A parameter $\theta$ which we wish to find the posterior for.
+    \item A prior $\pi_0(\theta)$ for the parameter $\theta$.
+    \item A kernel $K_\epsilon(\cdot)$ and a distance measure $\|\cdot\|$.
+  \end{itemize}
+\end{proposition}
+
+\begin{proposition}{ABC Algorithm - Simple, Online}
+  Consider the setup in \texttt{Proposition 1.2}. Here is a simple, online algorithm for ABC
+  \begin{enumerate}
+    \item Sample a set of parameters from the prior $\theta_t\sim\pi_0(\theta)$.
+    \item Simulate summary statistic values $\mathbf{s}_t$ from the implicit likelihood\footnote{Run the system with the sampled parameters} $f(\mathbf{s}|\theta_t)$ for the summary statistics given the sample parameter value.
+    \item Reject the sample summary statistic value $\mathbf{s}_t$ with probability $K_\epsilon(\|\mathbf{s}_t-\mathbf{s}_{obs})$ where ${\mathbf{s}_{obs}=s(\mathbf{y})}$.
+    \item Repeat steps i)-iii) until a total of $M$ simulated values have been accepted.
+  \end{enumerate}
+  Our final sample contains a set of summary statistics a long with the parameter values which produced them. This data can be used to approximate the posterior for the parameter values.
+\end{proposition}
+
+\section*{Decisions}
+
+\begin{remark}{Decisions}
+  When implementing ABC there are several decisions to make, including:
+  \begin{itemize}
+    \item What kernel $K_\epsilon(\cdot)$ to use.
+    \item What summary statistics $s(\cdot)$ to use.
+    \item Do we even need summary statistics?
+    \item How long to sample for?
+  \end{itemize}
+\end{remark}
+
+\begin{proposition}{Kernels $K_\epsilon(\cdot)$}
+  A \textit{Kernel} is used to determine with what probability to accept a sample, given it is a certain distance away from observed data. Here are some common kernels
+  \begin{itemize}
+    \item \textit{Uniform Kernel} $K_\epsilon(\|\mathbf{s}-\mathbf{s}_{obs}\|):=\indexed\{\|\mathbf{s}-\mathbf{s}_{obs}\|\leq\epsilon\}$ which accepts simulated values if they are within $\epsilon$ of observed data.
+    \item \textit{Epanechnikov Kernel} $K(\|\mathbf{s}-\mathbf{s}_{obs}\|):=\frac34(1-\|\mathbf{s}-\mathbf{s}_{obs}\|^2)$ for $\|\mathbf{s}-\mathbf{s}_{obs}\|\in[0,1]$
+    \item \textit{Gaussian Kernel} $K(\|\mathbf{s}-\mathbf{s}_{obs}\|):=\frac1{\sqrt{2\pi}}e^{-\frac12\|\mathbf{s}-\mathbf{s}_{obs}\|^2}$
+  \end{itemize}
+\end{proposition}
+
+\begin{proposition}{Summary Statistics $s(\cdot)$}
+  See \texttt{SummaryStatisticSelection.pdf}
+\end{proposition}
+
+\begin{proposition}{How long to sample for}
+  The algorithm given in \texttt{Proposition 1.3} runs the algorithm until a sufficiently large sample has been produced. This is not ideal as the algorithm will run for an unknown period of time and is dependent upon the kernel $K_\epsilon(\cdot)$ which has been defined.
+  \par Alternatively, all simulated values could be kept and then all but the best $M$\footnote{$M$ closest to $\s_\text{obs}$.} are discarded.
+\end{proposition}
+
+\end{document}
