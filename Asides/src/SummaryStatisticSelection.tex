@@ -1,0 +1,254 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[margin=1in, paperwidth=8.3in, paperheight=11.7in]{geometry}
+\usepackage{amsmath,amsfonts,fancyhdr,bbm,graphicx,tikz}
+\usetikzlibrary{automata,positioning}
+\graphicspath{ {img/} }
+\usepackage[section,nohyphen]{DomH}
+\headertitle{Summary Statistic Selection}
+
+\begin{document}
+
+\setcounter{section}{1}
+
+\title{Summary Statistic Selection}
+\author{Dom Hutchinson}
+\date{\today}
+\maketitle
+
+\section*{Summary Statistics}
+
+  \begin{definition}{Summary Statistics $s(\cdot)$}
+    \textit{Summary Statistics} are a projection of high-dimensional data to a lower dimensional space.
+    \[ s(\cdot):\reals^m\to\reals^n\quad\text{where }m>n \]
+    This is aimed to be done in such a way that as much information is retained as possible (ie the summary is as accurate as possible). The lower dimensional projection is important to make ABC computationally tractable.
+    \par The trade-off here is between computational requirements and data retention. As data is lost posterior accuracy and stability decreases.
+  \end{definition}
+
+  \begin{proposition}{Common Summary Statistics}
+    Typically summary statistics describe the following
+    \begin{itemize}
+      \item centre of the data (e.g. mean)
+      \item spread of the data (e.g. variance)
+      \item shape of the data (e.g. pearson's skew)
+      \item dependence of different data fields (e.g correlation)
+    \end{itemize}
+  \end{proposition}
+
+  \begin{remark}{Reduced Dimension}
+    Suppose we have $N$ samples of each of $M$ dimension, so all the data is represented by a matrix $\X\in\reals^{N\times M}$\footnote{ie We sampled $M$ different properties $n$ times}. If we were to just use the: mean, variance and pearson's skew to summarise each property, then the summarised data would only require a $\reals^{3\times M}$ matrix\footnote{3 values per property} which is: fixed size regardless of $N$; and, significantly smaller than $\reals^{N\times M}$.
+    \par The question is whether these three properties are sufficiently to make valid/inciteful inferences from.
+  \end{remark}
+
+\section*{Approximate Sufficiency}
+
+  \begin{proposition}{Approximate Sufficiency (AS)}
+    \textit{Approximate Sufficiency} is the practice of finding the subset of summary statistics (from a larger set) which satisfy some optimality condition. This is done by identifying a large set of summary statistics $S$ and then finding a subset $S'\subset S$ which is approximately as good as the superset $S$. There are several measures of sufficiency.
+  \end{proposition}
+
+  \begin{proposition}{Approach to AS}
+    A typical approach to AS is to do the following
+    \begin{enumerate}
+      \item Choose a measure of sufficient $M(\cdot)$.
+      \item Start with an empty set $S'=\emptyset$.
+      \item Keep adding summary statistics $s\in S/S'$ to $S'$ until $M(S')$ is no longer satisfied.
+    \end{enumerate}
+    This approach has limitations since the final subset $S'$ depends on the order in which summary statistics are added. Finding a way to order the elements of $S$ would help this.
+  \end{proposition}
+
+\subsection*{Sufficiency}
+
+  \begin{remark}{Distinguishing Models}
+    If two models have the same sufficient statistics it is impossible to distinguish between them.
+  \end{remark}
+
+  \begin{definition}{Classical Sufficiency}
+    Let $X\sim f(\cdot;\theta)$ and $T(X)$ be a summary statistic of $X$. $T(X)$ is a \textit{sufficient statistic} for $\theta$ if
+    \[ \prob(X|T(X),\theta)=\prob(X|T(X)) \]
+    ie the conditional distribution for $X$, given the summary statistic $T(X)$, is independent of $\theta$.
+    \par This can be read intuitively that $T(X)$ captures all the information the sample $X$ contains about the parameter $\theta$. (A lossless data-compression).
+  \end{definition}
+
+  \begin{example}{Sufficient Statistic - Bernoulli Distribution}
+    Let $X\sim\text{Bern}(p)$ with $p\in[0,1]$ unknown and $\x$ be $n$ independent samples of $X$. Note that
+    \[\begin{array}{rrl}
+      f_X(x)&:=&p^x(1-p)^{1-x}\\
+      \implies f_\X(\x)&=&\prod_{i=1}^nf_X(x_i)\text{ by independence of samples}\\
+      &=&p^{\sum x_i}(1-p)^{n-\sum x_i}
+    \end{array}\]
+    Consider the summary statistic $T(\x):=\sum x_i$. Note that $T(\X)$ is only one dimensional (rather than $n$) and ${T(\X)\sim\text{Binomial}(n,p)}$. Thus
+    \[\begin{array}{rcl}
+      f_T(T(\x))&=&{T(\x)\choose n}p^{T(\x)}(1-p)^{n-T(\x)}\\
+      f_{\X,T}(\x,T(\x))&=&p^{T(\x)}(1-p)^{n-T(\x)}
+    \end{array}\]
+    Now consider the conditional distribution of $\X$ given the summary statistic $T(\X)$.
+    \[\begin{array}{rcl}
+      f_{\X|T(\X)}(\x|T(\x))&=&\dfrac{f_{\X,T(\X)}(\x)}{f_{T(\X)}(\x)}\\
+      &=&\dfrac{p^{T(\x)}(1-p)^{n-T(\x)}}{{T(\x)\choose n}p^{T(\X)}(1-p)^{n-T(\X)}}\\
+      &=&\dfrac1{{T(\x)\choose n}}
+    \end{array}\]
+    The conditional distribution of $\X$ given $T(\X)$ is independent of $p$, thus $T(\X)$ is a sufficient statistic for $p$.
+  \end{example}
+
+  \begin{example}{Sufficient Statistic - Gaussian Distribution with Unknown Mean}
+    Let $X\sim\text{Normal}(\mu,\sigma^2_0)$ where $\mu\in\reals$ is unknown and $\sigma^2_0\in\reals$ is known, and $\x$ be $n$ independent observations of $X$. Note that
+    \[\begin{array}{rrl}
+      f_X(x)&:=&\frac1{\sqrt{2\pi\sigma^2_0}}\exp\left\{-\frac1{2\sigma_0^2}(x-\mu)^2\right\}\\
+      \implies f_\X(\x)&=&\prod_{i=1}^nf_X(x_i)\text{ by independence of samples}\\
+      &=&(2\pi\sigma_0^2)^{-n/2}\exp\left\{-\frac1{2\sigma_0^2}\sum(x_i-\mu)^2\right\}
+    \end{array}\]
+    Consider the following formulation of the distribution of $\X$ with an arbitrary term $t$ introduced
+    \[\begin{array}{rcl}
+      f_\X(\x,t)&=&(2\pi\sigma_0^2)^{-n/2}\exp\left\{-\frac1{2\sigma_0^2}\sum(x_i+t-t-\mu)^2\right\}\\
+      &=&(2\pi\sigma_0^2)^{-n/2}\exp\left\{-\frac1{2\sigma_0^2}\sum((x_i-t)-(\mu-t))^2\right\}\\
+      &=&(2\pi\sigma_0^2)^{-n/2}\exp\left\{-\frac1{2\sigma_0^2}\sum\left[(x_i-t)^2+(\mu-t)^2-2(\mu-t)(x_i-t)\right]\right\}\\
+      &=&(2\pi\sigma_0^2)^{-n/2}\exp\left\{-\frac1{2\sigma_0^2}\sum(x_i-t)^2\right\}\cdot\exp\left\{-\frac1{2\sigma_0^2}\sum(\mu-t)^2\right\}\cdot\exp\left\{-\frac1{2\sigma_0^2}\sum-2(\mu-t)(x_i-t)\right\}\\
+      &=&(2\pi\sigma_0^2)^{-n/2}\exp\left\{-\frac1{2\sigma_0^2}\sum(x_i-t)^2\right\}\cdot\exp\left\{-\frac{n}{2\sigma_0^2}(\mu-t)^2\right\}\cdot\exp\left\{-\frac{-2(\mu-t)}{2\sigma_0^2}\sum(x_i-t)\right\}\\
+      &=&(2\pi\sigma_0^2)^{-n/2}\exp\left\{-\frac1{2\sigma_0^2}\sum(x_i-t)^2\right\}\cdot\exp\left\{-\frac{n}{2\sigma_0^2}(\mu-t)^2\right\}\cdot\exp\left\{-\frac{-2(\mu-t)}{2\sigma_0^2}\left[\left(\sum x_i\right)-nt\right])\right\}\\
+    \end{array}\]
+    The third exponential disappears if $t:=\frac1nx_i$ (the sample mean). Consider the summary statistic $T(\X):=\frac1n\sum X_i$ meaning $T(\X)\sim\text{Normal}(\mu,\frac1n\sigma_0^2)$ by the Central Limit Theorem.
+    \par The following are the marginal distribution for $T(\X)$ and the joint distribution of $\X$ and $T(\X)$.
+    \[\begin{array}{rcl}
+      f_{T(\X)}(T(\x))&=&\sqrt{\frac{n}{2\pi\sigma_0^2}}e^{-\frac{n}{2\sigma_0^2}(\mu-T(\x))^2}=n^{1/2}(2\pi\sigma_0^2)^{-1/2}\exp\left\{-\frac{n}{2\sigma_0^2}(\mu-T(\x))^2\right\}\\
+      f_{\X,T(\X)}(\x,T(\x))&=&(2\pi\sigma_0^2)^{-n/2}\exp\left\{-\frac1{2\sigma_0^2}\sum(x_i-T(\x))^2\right\}\cdot\exp\left\{-\frac{n}{2\sigma_0^2}(\mu-T(\x))^2\right\}\\
+    \end{array}\]
+    Now consider the conditional distribution of $\X$ given the summary statistic $T(\X)$.
+    \[\begin{array}{rcl}
+      f_{\X|T(\X)}(\x|T(\x))&=&\dfrac{f_{\X,T(\X)}(\x,T(\x))}{f_{T(\X)}(T(\x))}\\
+      &=&\dfrac{(2\pi\sigma_0^2)^{-n/2}\exp\left\{-\frac1{2\sigma_0^2}\sum(x_i-T(\x))^2\right\}\cdot\exp\left\{-\frac{n}{2\sigma_0^2}(\mu-T(\x))^2\right\}}{n^{1/2}(2\pi\sigma_0^2)^{-1/2}\exp\left\{-\frac{n}{2\sigma_0^2}(\mu-T(\x))^2\right\}}\\
+      &=&n^{-1/2}(2\pi\sigma_0^2)^{-n/2}\exp\left\{-\frac1{2\sigma_0^2}\sum(x_i-T(\x))^2\right\}
+    \end{array}\]
+    The conditional distribution of $\X$ given $T(\X)$ is independent of $\mu$, thus $T(\X)$ is a sufficient statistic for $\mu$.
+  \end{example}
+
+\subsection*{Minimal Sufficiency}
+
+  \begin{definition}{Minimal Sufficiency}
+    A sufficient statistic $T(X)$ is \textit{Minimally Sufficient} if it can be represented as a function of any other sufficient statistic $S(X)$.
+    \[ \exists f\text{ st }T(X)=f(S(X)) \]
+  \end{definition}
+
+  \begin{example}{Minimal Sufficient Statistics}
+    TODO
+    % e.g. The sample sum $T(X):=\sum_{i=1}^nX_i$ is a \textit{Minimially Sufficient} version of the same mean $S(X):=\frac1n\sum_{i=1}^nX_i$ since $T(X)=f(S(X))$ where $f(x):=nx$.
+  \end{example}
+
+\subsection*{Fisher-Neyman Factorisation Theorem}
+
+  \begin{theorem}{Fisher-Neyman Factorisation Theorem}
+    If $X\sim f(\cdot;\theta)$ then $T(X)$ is sufficient for $\theta$ iff there exists non-negative functions $g(\cdot;\theta),h(\cdot)$ st
+    \[ f(X;\theta)=h(X)g(T(X);\theta) \]
+    This shows that the data $X$ only interacts with the parameter $\theta$ through the sufficient summary statistics $T(X)$.
+  \end{theorem}
+
+  \begin{proof}{Fisher-Neyman Factorisation Theorem}
+    TODO
+  \end{proof}
+
+  \begin{remark}{Usefulness of Fisher-Neyman Factorisation Theorem}
+    In \texttt{Example 1.1}  and \texttt{Example 1.2} we had to guess at a definition of $T(\X)$ which produced a sufficient statistic. The \textit{Fisher-Neyman Factorisation Theorem} removes a lot of that guesswork, in place of a more formulaic approach to finding sufficient statistics (as shown in \texttt{Example 1.4} \& \texttt{Example 1.5}).
+  \end{remark}
+
+  \begin{example}{Sufficient Statistic - Bernoulli Distribution {\textbackslash}w FNF Theorem}
+    Let $X\sim\text{Bern}(p)$ with $p\in[0,1]$ unknown and $\x$ be $n$ independent samples of $X$. Note that
+    \[\begin{array}{rrl}
+      f_X(x)&:=&p^x(1-p)^{1-x}\\
+      \implies f_\X(\x)&=&\prod_{i=1}^nf_X(x_i)\text{ by independence of samples}\\
+      &=&p^{\sum x_i}(1-p)^{n-\sum x_i}
+    \end{array}\]
+    Note that we can factorise $f_\X(\x)$ as $f_\X(\x)=h(\X)g(\sum X_i|p)$ where
+    \[\begin{array}{rcl}
+      h(\X)&:=&1\\
+      g(\sum X_i|p)&:=&p^{\sum X_i}(1-p)^{n-\sum X_i}\\
+      \Leftrightarrow g(T(\X)|p)&=&p^{T(\X)}(1-p)^{n-T(\X)}\text{ where }T(\X):=\sum X_i
+    \end{array}\]
+    Notice that $h(\cdot)$ is independent of the unknown parameter $p$ and that $g(\cdot|p)$ only interacts with $p$ through the summary statistic $T(\X)$. Thus by the \textit{Fisher-Neyman Factorisation Theorem} $T(\X):=\sum X_i$ is a sufficient statistic for $p$.
+  \end{example}
+
+  \begin{example}{Sufficient Statistic - Gaussian Distribution {\textbackslash}w FNF Theorem}
+    Let $X\sim\text{Normal}(\mu,\sigma^2_0)$ where $\mu\in\reals$ is unknown and $\sigma^2_0\in\reals$ is known, and $\x$ be $n$ independent observations of $X$. Note that
+    \[\begin{array}{rrl}
+      f_X(x)&:=&\frac1{\sqrt{2\pi\sigma^2_0}}\exp\left\{-\frac1{2\sigma_0^2}(x-\mu)^2\right\}\\
+      \implies f_\X(\x)&=&\prod_{i=1}^nf_X(x_i)\text{ by independence of samples}\\
+      &=&(2\pi\sigma_0^2)^{-n/2}\exp\left\{-\frac1{2\sigma_0^2}\sum(x_i-\mu)^2\right\}
+    \end{array}\]
+    Consider the following formulation of the distribution of $\X$ with an arbitrary term $t$ introduced
+    \[\begin{array}{rcl}
+      f_\X(\x,t)&=&(2\pi\sigma_0^2)^{-n/2}\exp\left\{-\frac1{2\sigma_0^2}\sum(x_i+t-t-\mu)^2\right\}\\
+      &=&(2\pi\sigma_0^2)^{-n/2}\exp\left\{-\frac1{2\sigma_0^2}\sum((x_i-t)-(\mu-t))^2\right\}\\
+      &=&(2\pi\sigma_0^2)^{-n/2}\exp\left\{-\frac1{2\sigma_0^2}\sum\left[(x_i-t)^2+(\mu-t)^2-2(\mu-t)(x_i-t)\right]\right\}\\
+      &=&(2\pi\sigma_0^2)^{-n/2}\exp\left\{-\frac1{2\sigma_0^2}\sum(x_i-t)^2\right\}\cdot\exp\left\{-\frac1{2\sigma_0^2}\sum(\mu-t)^2\right\}\cdot\exp\left\{-\frac1{2\sigma_0^2}\sum-2(\mu-t)(x_i-t)\right\}\\
+      &=&(2\pi\sigma_0^2)^{-n/2}\exp\left\{-\frac1{2\sigma_0^2}\sum(x_i-t)^2\right\}\cdot\exp\left\{-\frac{n}{2\sigma_0^2}(\mu-t)^2\right\}\cdot\exp\left\{-\frac{-2(\mu-t)}{2\sigma_0^2}\sum(x_i-t)\right\}\\
+      &=&(2\pi\sigma_0^2)^{-n/2}\exp\left\{-\frac1{2\sigma_0^2}\sum(x_i-t)^2\right\}\cdot\exp\left\{-\frac{n}{2\sigma_0^2}(\mu-t)^2\right\}\cdot\exp\left\{-\frac{-2(\mu-t)}{2\sigma_0^2}\left[\left(\sum x_i\right)-nt\right])\right\}\\
+    \end{array}\]
+    The third exponential disappears if $t:=\frac1nx_i$ (the sample mean). Define $T(\X):=\frac1n\sum X_i$, thus
+    \[ f_\X(\x)=(2\pi\sigma_0^2)^{-n/2}\exp\left\{-\frac1{2\sigma_0^2}\sum(x_i-T(\x))^2\right\}\cdot\exp\left\{-\frac{n}{2\sigma_0^2}(\mu-T(\x))^2\right\} \]
+    Note that we can factorise this expression $f_\X(\x)$ as ${f_\X(\x)=h(\X)g(T(\X)|\mu)}$ where ${T(\X):=\frac1n\sum X_i}$ and
+    \[\begin{array}{rcl}
+      h(\X)&=&(2\pi\sigma_0^2)^{-n/2}\exp\left\{-\frac1{2\sigma_0^2}\sum(X_i-T(\X))^2\right\}\\
+      g(T(\X)|\mu)&=&\exp\left\{-\frac{n}{2\sigma_0^2}(\mu-T(\X))^2\right\}
+    \end{array}\]
+    Notice that $h(\cdot)$ is independent of the unknown parameter $\mu$ and that $g(\cdot|\mu)$ only interacts with $\mu$ through the summary statistic $T(\X)$. Thus by the \textit{Fisher-Neyman Factorisation Theorem} $T(\X):=\frac1n\sum X_i$ is a sufficient statistic for $\mu$.
+  \end{example}
+
+\subsection*{Bayesian Sufficiency}
+
+  \begin{definition}{Bayesian Sufficiency\footnote{https://en.wikipedia.org/wiki/Sufficient_statistic\#Bayesian_sufficiency}}
+    In a Bayesian Setting, a summary statistic $T(X)$ of $X\sim f(\cdot;\theta)$ is sufficient if for (almost) all $x\in X$
+    \[ \prob(\theta|X=x)=\prob(\theta|T(X)=T(x)) \]
+    ie the posterior for $\theta$ given the true model $X$ is the same as the posterior for $\theta$ given the summary statistic $T(X)$ (for almost all $x\in X$).
+  \end{definition}
+
+\subsection*{$\epsilon$-Approximate Sufficiency}
+
+  \begin{remark}{Approximate Sufficiency}
+    Approximate sufficiency concerns sets of summary statistics, rather than a single statistic. We are looking for a set of statistics which are approximate sufficient, while no individual statistic in the set is.
+    \par This can be used when the distribution is not explicitly known (and can only be approximated)?
+  \end{remark}
+
+  \begin{remark}{Motivation}
+    Suppose we have a set of summary statistics $\{T_1,\dots,T_n\}$ for parameter $\theta$, we only want to add a new statistic $T_{n+1}$ to this set if it offers a substantial amount of new information about $\theta$. We can consider the likelihoods of these sets of statistics
+    \[\begin{array}{rcl}
+      \prob(T_1,\dots,T_n,T_{n+1}|\theta)&=&\prob(T_{n+1}|T_1,\dots,T_n,\theta)\prob(T_1,\dots,T_n|\theta)
+    \end{array}\]
+    Note that if $T_1,\dots,T_n$ where already sufficient then $\prob(T_{n+1}|T_1,\dots,T_n,\theta)$ would be independent of $\theta$ (ie not contribute to inference about $\theta$).
+    \par \textit{$\epsilon$-Approximate Sufficiency} defines when the set $\{T_1,\dots,T_n\}$ is to be consider sufficient and no new summary statistics need to added to the set.
+  \end{remark}
+
+  \begin{definition}{Score $\delta_{n+1}$\footnote{\label{fn_ASSaBC}Joyce, P., \& Marjoram, P. (2008). Approximately sufficient statistics and Bayesian computation \textit{Statistical applications in genetics and molecular biology, 7(1).}}}
+    Let $\{T_1,\dots,T_n\}$ be a set of summary statistics for parameters $\theta$ and $T_{n+1}$ be a statistic which we consider adding to the set.
+    \par The \textit{Score} $\delta_{n+1}$ of the new statistic $T_{n+1}$ relative to the set $\{T_1,\dots,T_n\}$ is defined as
+    \[ \delta_{n+1}:=\sup_\theta\ln\big[\prob(T_{n+1}|T_1,\dots,T_n,\theta)\big]-\inf_\theta\ln\big[\prob(T_{n+1}|T_1,\dots,T_n,\theta)\big] \]
+    \textit{Score} $\delta_{n+1}$ is a measure of how much new information $T_{n+1}$ introduces
+  \end{definition}
+
+  \begin{definition}{$\epsilon$-Approximate Sufficiency \textsuperscript{$\ref{fn_ASSaBC}$}}
+    Let $\{T_1,\dots,T_n\}$ be a set of summary statistics for parameter $\theta$ and $T_{n+1}$ be a statistic which we consider adding to the set.
+    \par The set $\{T_1,\dots,T_n\}$ is \textit{$\epsilon$-Sufficient} to the new statistic $T_{n+1}$, if the score of $T_{n+1}$ relative to $\{T_1,\dots,T_n\}$ is no-greater than some $\epislon$
+    \[ \delta_{n+1}\leq\epsilon \]
+    If $T_{n+1}=\X$, the whole data set and $\epsilon=0$ then this is the same as the definition for sufficiency.
+  \end{definition}
+
+  \begin{remark}{Adding Statistics}
+    Consider a large set of statistics $T:=\{T_1,\dots,T_n\}$. To find a sufficient subset $T'$ of $T$ the following process can be used
+    \begin{enumerate}
+      \item Define $T'=\emptyset$.
+      \item Calculate the score of each
+      \item Let $\delta_\text{max}=\max_{t\in T}\text{Score}(t,T')$.
+      \item Let $T_\text{max}=\argmax_{t\in T}\text{Score}(t,T')$.
+      \item If $(\delta_\text{max}>\epsilon)$:
+      \begin{itemize}
+        \item $T'=T'\cup T_\text{max}$.
+      \end{itemize}
+      \item Repeat ii)-v) until no statistics have a score greater than $\epsilon$.
+    \end{enumerate}
+    This approach is deterministic wrt which statistics end up in the final $T'$. Another, stochastic, approach is to uniformly at random at one of the statistics with a score greater than $\epsilon$ to $T'$ each iteration.
+  \end{remark}
+
+\section*{Non-Linear Projection}
+
+\section*{Do we need Summary Statistics?}
+
+\subsection*{Minimum Distance ABC}
+
+\end{document}
