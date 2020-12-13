@@ -153,7 +153,7 @@ class ExponentialModel(Model):
         float: value of response variable
         """
         # if (type(x)!=list or len(x)!=1): return None
-
+        # print("{}*exp({}*{}) = {}".format(self.params[0],x[0],self.params[1],self.params[0]*exp(x[0]*self.params[1])))
         return self.params[0]*exp(x[0]*self.params[1])
 
     def __str__(self):

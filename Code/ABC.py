@@ -6,7 +6,7 @@ Set of observed summary statistic values
 
 from scipy import stats
 import matplotlib.pyplot as plt
-from Models import LinearModel
+from Models import LinearModel,ExponentialModel
 import numpy as np
 
 def uniform_kernel(x:float,epsilon:float) -> bool:
@@ -15,7 +15,7 @@ def uniform_kernel(x:float,epsilon:float) -> bool:
 def l2_norm(s:(float),s_obs:(float)) -> float:
     return sum([(x-y)**2 for (x,y) in zip(s,s_obs)])**.5
 
-def abc_fixed_sample_size(sample_size=1000,theta_star=None,priors=None,n_obs=100,epsilon=.1,var_ranges=[(0,100)]):
+def abc_fixed_sample_size(sample_size=1000,model=None,priors=None,n_obs=100,epsilon=.1,var_ranges=[(0,100)]):
     """
     Approximate Bayesian Computation which terminates when a sufficient number of samples have been accepted.
     A LinearModel with two parameters is used.
@@ -33,22 +33,25 @@ def abc_fixed_sample_size(sample_size=1000,theta_star=None,priors=None,n_obs=100
     """
 
     DESIRED_SAMPLE_SIZE=sample_size
-    THETA_STAR = theta_star if (theta_star) else (stats.uniform(0,100).rvs(1)[0],stats.uniform(0,10).rvs(1)[0])
+    THETA_STAR=model.params if (model) else (stats.uniform(0,100).rvs(1)[0],stats.uniform(0,10).rvs(1)[0])
+    MODEL_STAR=model if (model) else LinearModel(2,THETA_STAR)
     N_OBS=n_obs
     EPSILON=epsilon
     SAMPLES=[]
 
+    model_t=LinearModel(2,[0,0]) if (type(MODEL_STAR)==LinearModel) else ExponentialModel([0,0])
+
     # define true model
-    lm=LinearModel(2,THETA_STAR)
-    print("True Model - {}\n".format(str(lm)))
+    print("True Model - {}\n".format(str(MODEL_STAR)))
 
     # generate observations from target model
     x_sampler=stats.uniform(var_ranges[0][0],var_ranges[0][1])
     x_obs=x_sampler.rvs(N_OBS)
-    s_obs=[lm.calc([x]) for x in x_obs]
+    x_obs.sort()
+    s_obs=[MODEL_STAR.calc([x]) for x in x_obs]
 
     # define priors for parameters
-    pi_0=priors[0] if (priors) else stats.uniform(THETA_STAR[0]-20,40)
+    pi_0=priors[0] if (priors) else stats.uniform(THETA_STAR[0]-5,10)
     pi_1=priors[1] if (priors) else stats.uniform(THETA_STAR[1]-5,10)
 
     i=0 # count total number of samples
@@ -58,9 +61,9 @@ def abc_fixed_sample_size(sample_size=1000,theta_star=None,priors=None,n_obs=100
         theta_t=(pi_0.rvs(1)[0],pi_1.rvs(1)[0]) # sample a single value from each parameter-prior
 
         # simulate values
-        lm_t=LinearModel(2,theta_t) # model with sample parameters
+        model_t.params=theta_t
         x_t=x_sampler.rvs(1) # make multiple samples from theorised model
-        s_t=[lm_t.calc([x]) for x in x_t]
+        s_t=[model_t.calc([x]) for x in x_t]
 
         # plt.scatter(x_t,s_t)
         # plt.show()
@@ -118,11 +121,11 @@ def abc_fixed_sample_size(sample_size=1000,theta_star=None,priors=None,n_obs=100
     axs[2].set_ylabel("Response Variable")
 
     # plot predicted model
-    lm_hat=LinearModel(2,theta_hat)
-    s_hat=[lm_hat.calc([x]) for x in x_obs]
+    model_hat=LinearModel(2,theta_hat) if (type(MODEL_STAR)==LinearModel) else ExponentialModel(theta_hat)
+    s_hat=[model_hat.calc([x]) for x in x_obs]
     axs[2].plot(x_obs,s_hat,c="red")
 
-    print("Best Model - {}".format(str(lm_hat)))
+    print("Best Model - {}".format(str(model_hat)))
 
     plt.get_current_fig_manager().window.state('zoomed')
     plt.show()
