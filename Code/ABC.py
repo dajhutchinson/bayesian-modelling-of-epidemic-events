@@ -6,7 +6,7 @@ Set of observed summary statistic values
 
 from scipy import stats
 import matplotlib.pyplot as plt
-from Models import Model,LinearModel,ExponentialModel
+from Models import Model,LinearModel,ExponentialModel,GeneralLinearModel
 import numpy as np
 
 def uniform_kernel(x:float,epsilon:float) -> bool:
@@ -78,11 +78,11 @@ def __plot_2d_samples(ax:plt.Axes,accepted_samples:[([float],float)],observation
     x_obs=[x[0] for x in observations]
     s_obs=[x[1] for x in observations]
 
-    ax.scatter(x_obs,s_obs,label="Observations")
+    ax.scatter(x_obs,s_obs,c="red",label="Observations")
 
     # plot predicted model
     s_hat=[model_hat.calc(x) for x in x_obs]
-    ax.plot(x_obs,s_hat,c="red",label="Predicted Model")
+    ax.plot(x_obs,s_hat,c="orange",label="Predicted Model")
     ax.legend()
 
     return ax
@@ -141,7 +141,7 @@ def abc_fixed_sample_size(sample_size=1000,model=None,priors=None,n_obs=100,epsi
 
     PARAMETERS
     sample_size(int) = desired sample size (default=1,000).
-    theta_star((int,int)) = parameters of the true model (default=each chosen uniformly at random from [0,10]).
+    model (Model) = implicit model to fit for.
     priors(stats.distribution,stats.distribution) = Priors to use for model parameters (default=+/-3 uniform around true value).
     n_obs (int)= Number of observations from true model used (default=100).
     epsilon (float) = Acceptable values from kernel (default=.1).
@@ -162,13 +162,15 @@ def abc_fixed_sample_size(sample_size=1000,model=None,priors=None,n_obs=100,epsi
     # define priors for parameters
     PRIORS=priors if (priors) else [stats.uniform(THETA_STAR[i]-8,25) for i in range(model.n_params)]
 
-    model_t=LinearModel(MODEL_STAR.n_params,[1 for _ in range(MODEL_STAR.n_params)]) if (type(MODEL_STAR)==LinearModel) else ExponentialModel([1,1])
+    model_t=MODEL_STAR.blank_copy()
+
     # define true model
     print("True Model - {}\n".format(str(MODEL_STAR)))
 
     # generate observations from target model
     x_samplers=[stats.uniform(r[0],r[1]) for r in VAR_RANGES]
     x_obs=[[sampler.rvs(1)[0] for sampler in x_samplers] for _ in range(N_OBS)]
+    if (MODEL_STAR.n_vars==1): x_obs=sorted(x_obs,key=(lambda x:x[0]))
     s_obs=[MODEL_STAR.calc(x) for x in x_obs]
 
     i=0 # count total number of samples
@@ -192,43 +194,11 @@ def abc_fixed_sample_size(sample_size=1000,model=None,priors=None,n_obs=100,epsi
 
     print("\n")
 
-    # # best fit model
-    # theta_hat=[np.mean([s[0][i] for s in SAMPLES]) for i in range(MODEL_STAR.n_params)] # posterior sample mean
-    # model_hat=LinearModel(MODEL_STAR.n_params,theta_hat) if (type(MODEL_STAR)==LinearModel) else ExponentialModel(theta_hat)
-    #
-    # n_plots=MODEL_STAR.n_params
-    # if (n_plots)<=3: n_plots+=1
-    # fig=plt.figure()
-    # plt.subplots_adjust(left=.05,right=.95,bottom=.05,top=.95)
-    #
-    # # plot parameter results
-    # for i in range(MODEL_STAR.n_params):
-    #     theta_i_samples=[x[0][i] for x in SAMPLES]
-    #     ax=fig.add_subplot(1,n_plots,i+1)
-    #     __plot_posterior(ax,"Theta_{}".format(i),THETA_STAR[i],theta_i_samples,PRIORS[i])
-    #
-    # # 2d plot
-    # if (MODEL_STAR.n_vars==1):
-    #     ax=fig.add_subplot(1,n_plots,n_plots)
-    #     accepted_samples=[x[1] for x in SAMPLES]
-    #     observations=list(zip(x_obs,s_obs))
-    #     __plot_2d_samples(ax,accepted_samples,observations,model_hat)
-    #
-    # # 2d plot
-    # elif (MODEL_STAR.n_vars==2):
-    #     ax=fig.add_subplot(1,n_plots,n_plots,projection="3d")
-    #     accepted_samples=[x[1] for x in SAMPLES]
-    #     observations=list(zip(x_obs,s_obs))
-    #     __plot_3d_samples(ax,accepted_samples,observations,model_hat,MODEL_STAR,VAR_RANGES)
-    #
-    # print("Best Model - {}".format(str(model_hat)))
-    #
-    # plt.get_current_fig_manager().window.state('zoomed')
-    # plt.show()
-
     # best fit model
     theta_hat=[np.mean([s[0][i] for s in SAMPLES]) for i in range(MODEL_STAR.n_params)] # posterior sample mean
-    model_hat=LinearModel(MODEL_STAR.n_params,theta_hat) if (type(MODEL_STAR)==LinearModel) else ExponentialModel(theta_hat)
+    model_hat=MODEL_STAR.blank_copy()
+    model_hat.params=theta_hat
+    # model_hat=LinearModel(MODEL_STAR.n_params,theta_hat) if (type(MODEL_STAR)==LinearModel) else ExponentialModel(theta_hat)
 
     # plot results
     observations=list(zip(x_obs,s_obs))

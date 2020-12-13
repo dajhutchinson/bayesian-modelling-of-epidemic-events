@@ -14,6 +14,10 @@ class Model():
         self.n_vars= None # number of variables
         self.params=None # [float] of parameter values
 
+    def blank_copy(self) -> "Model":
+        raise Exception("`blank_copy` not implemented")
+        return Model()
+
     def calc(self,x:[float]) -> float:
         """
         Calculate value of response variable, given values of the predictor variables x
@@ -104,6 +108,10 @@ class LinearModel(Model):
 
         return self.params[0]+sum([x[i]*self.params[i+1] for i in range(self.n_vars)])
 
+    def blank_copy(self) -> "LinearModel":
+        temp_params=[1 for _ in range(self.n_params)]
+        return LinearModel(self.n_params,temp_params,self.var_names)
+
     def __str__(self):
         """
         print model
@@ -157,8 +165,26 @@ class ExponentialModel(Model):
         # print("{}*exp({}*{}) = {}".format(self.params[0],x[0],self.params[1],self.params[0]*exp(x[0]*self.params[1])))
         return self.params[0]*exp(x[0]*self.params[1])
 
+    def blank_copy(self) -> "ExponentialModel":
+        temp_params=[1 for _ in range(self.n_params)]
+        return ExponentialModel(temp_params,self.var_names)
+
     def __str__(self):
         """
         print model
         """
         return "{:.5f}*exp({:.5f}*{})".format(self.params[0],self.params[1],self.var_names[0])
+
+class GeneralLinearModel(Model):
+
+    def __init__(self,n_params,n_vars,func,theta_star):
+        if (n_params!=len(theta_star)): raise Exception("Incorrect number of parameters provided `(n_params!=len(theta_star))`")
+        self.n_params=n_params
+        self.n_vars  =n_vars
+        self.func= func
+        self.params=theta_star
+        self.calc=lambda x: self.func(x,self.params)
+
+    def blank_copy(self) -> "GeneralLinearModel":
+        temp_params=[1 for _ in range(self.n_params)]
+        return GeneralLinearModel(self.n_params,self.n_vars,self.func,temp_params)
