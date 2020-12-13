@@ -10,7 +10,6 @@ em=ExponentialModel([1,2],["age"])
 # priors=[stats.uniform(.5,1),stats.uniform(1.5,1)]
 # abc_fixed_sample_size(100,model=em,priors=priors,epsilon=.1,var_ranges=[(0,1)])
 
-# abc_fixed_sample_size(100,epsilon=1)
-
-abc_fixed_sample_size(100,model=lm_3,epsilon=20)
-abc_fixed_sample_size(1000,model=lm_4,epsilon=10)
+abc_fixed_sample_size(100,model=lm_2,epsilon=5)
+abc_fixed_sample_size(100,model=lm_3,epsilon=10)
+abc_fixed_sample_size(100,model=lm_4,epsilon=40)
