@@ -1,3 +1,7 @@
+"""
+TODO
+- add noise
+"""
 from math import exp
 from matplotlib import pyplot as plt
 import numpy as np
@@ -75,7 +79,7 @@ class LinearModel(Model):
 
         self.n_params=n
         self.n_vars=n-1
-        self.params=params
+        self.params=[float(p) for p in params]
 
         self.var_names=var_names
         if (var_names):
@@ -95,9 +99,9 @@ class LinearModel(Model):
         RETURNS
         float: value of response variable
         """
-        if (len(x)!=self.n_params-1): return None # -1 due to bias term
+        if (len(x)!=self.n_vars): return None
 
-        return self.params[0]+sum([x[i]+self.params[i+1] for i in range(self.n_params-1)])
+        return self.params[0]+sum([x[i]*self.params[i+1] for i in range(self.n_vars)])
 
     def __str__(self):
         """
@@ -105,12 +109,12 @@ class LinearModel(Model):
         """
         print_str=""
         if (self.params[0]!=0):
-            print_str=str(self.params[0])
+            print_str="{:.5f}".format(self.params[0])
         for i in range(1,self.n_params):
             if (self.params[i]!=0):
                 sign=self.params[i]/abs(self.params[i])
                 print_str+="-" if (sign==-1) else "+"
-                print_str+=str(abs(self.params[i]))+"*"+self.var_names[i-1]
+                print_str+="{:.5f}*{}".format(abs(self.params[i]),self.var_names[i-1])
         return print_str
 
 class ExponentialModel(Model):
@@ -129,7 +133,7 @@ class ExponentialModel(Model):
         if (len(params)!=2):
             raise Exception("Wrong number of parameters provided. (len(params)!=2)")
 
-        self.params=params
+        self.params=[float(p) for p in params]
 
         if (var_names):
             if not (type(var_names)==list and len(var_names)==1 and type(var_names[0])==str):
@@ -156,4 +160,4 @@ class ExponentialModel(Model):
         """
         print model
         """
-        return "{}*exp({}*{})".format(self.params[0],self.params[1],self.var_names[0])
+        return "{:.5f}*exp({:.5f}*{})".format(self.params[0],self.params[1],self.var_names[0])
