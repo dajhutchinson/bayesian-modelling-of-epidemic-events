@@ -19,7 +19,7 @@ def l2_norm(s:(float),s_obs:(float)) -> float:
    PLOTTING
 """
 
-def __plot_results(fig:plt.Figure,model_hat:Model,model_star:Model,samples:[([float],([float],float))],priors:["stats.distribution"],var_ranges:[(float,float)],observations:[([float],float)]):
+def __plot_results(fig:plt.Figure,model_hat:Model,model_star:Model,samples:[([float],([float],float))],priors:["stats.distribution"],var_ranges:[(float,float)],observations:[([float],float)],plot_truth=True):
 
     n_plots=model_star.n_params
     if (n_plots)<=3: n_plots+=1
@@ -29,24 +29,24 @@ def __plot_results(fig:plt.Figure,model_hat:Model,model_star:Model,samples:[([fl
     for i in range(model_star.n_params):
         theta_i_samples=[x[0][i] for x in samples]
         ax=fig.add_subplot(1,n_plots,i+1)
-        __plot_posterior(ax,"Theta_{}".format(i),model_star.params[i],theta_i_samples,priors[i])
+        __plot_posterior(ax,"Theta_{}".format(i),model_star.params[i],theta_i_samples,priors[i],plot_truth)
 
     accepted_samples=[x[1] for x in samples]
     # 2d plot
     if (model_star.n_vars==1):
         ax=fig.add_subplot(1,n_plots,n_plots)
-        __plot_2d_samples(ax,accepted_samples,observations,model_hat)
+        __plot_2d_samples(ax,accepted_samples,observations,model_hat,plot_truth)
 
     # 2d plot
     elif (model_star.n_vars==2):
         ax=fig.add_subplot(1,n_plots,n_plots,projection="3d")
-        __plot_3d_samples(ax,accepted_samples,observations,model_hat,model_star,var_ranges)
+        __plot_3d_samples(ax,accepted_samples,observations,model_hat,model_star,var_ranges,plot_truth)
 
     plt.get_current_fig_manager().window.state('zoomed')
     plt.show()
     pass
 
-def __plot_posterior(ax:plt.Axes,name:str,theta_star:float,theta_samples:[float],prior:"stats.Distribution") -> plt.Axes:
+def __plot_posterior(ax:plt.Axes,name:str,theta_star:float,theta_samples:[float],prior:"stats.Distribution",plot_truth=True) -> plt.Axes:
 
     print("{}\nTrue {:.5f}\nMean {:.5f}\nMedian {:.5f}\n".format(name,theta_star,np.mean(theta_samples),np.median(theta_samples)))
 
@@ -56,7 +56,7 @@ def __plot_posterior(ax:plt.Axes,name:str,theta_star:float,theta_samples:[float]
     x=np.linspace(prior.ppf(0.01),prior.ppf(0.99), 100)
     ax.plot(x,prior.pdf(x), 'k-', lw=2, label='Prior')
 
-    ax.vlines(theta_star,ymin=0,ymax=ax.get_ylim()[1],colors="red",label="Truth")
+    if (plot_truth): ax.vlines(theta_star,ymin=0,ymax=ax.get_ylim()[1],colors="red",label="Truth")
     ax.vlines(np.mean(theta_samples), ymin=0,ymax=ax.get_ylim()[1],colors="orange",label="Prediction")
     ax.set_xlabel("{}".format(name))
     ax.legend()
@@ -64,7 +64,7 @@ def __plot_posterior(ax:plt.Axes,name:str,theta_star:float,theta_samples:[float]
     return ax
 
 # plot of samples accepted
-def __plot_2d_samples(ax:plt.Axes,accepted_samples:[([float],float)],observations:[([float],float)],model_hat:Model) -> plt.Axes:
+def __plot_2d_samples(ax:plt.Axes,accepted_samples:[([float],float)],observations:[([float],float)],model_hat:Model,plot_truth=True) -> plt.Axes:
     ax.set_title("Accepted Samples")
     ax.set_xlabel("Predictor Variable")
     ax.set_ylabel("Response Variable")
@@ -88,7 +88,7 @@ def __plot_2d_samples(ax:plt.Axes,accepted_samples:[([float],float)],observation
     return ax
 
 # plot of samples accepted
-def __plot_3d_samples(ax:plt.Axes,accepted_samples:[([float],float)],observations:[([float],float)],model_hat:Model,model_star:Model,var_ranges:[(float,float)]) -> plt.Axes:
+def __plot_3d_samples(ax:plt.Axes,accepted_samples:[([float],float)],observations:[([float],float)],model_hat:Model,model_star:Model,var_ranges:[(float,float)],plot_truth=True) -> plt.Axes:
     ax.set_title("Accepted Samples")
     ax.set_xlabel("Predictor Var. 1")
     ax.set_ylabel("Predictor Var. 2")
@@ -117,9 +117,10 @@ def __plot_3d_samples(ax:plt.Axes,accepted_samples:[([float],float)],observation
     c1=ax.plot_surface(X1,X2,S_hat,color="orange",label="Predicted Model")
 
     # plot best model
-    S_star=[[model_star.calc([x1,x2]) for x2 in x2s] for x1 in x1s]
-    S_star=np.array(S_star)
-    c2=ax.plot_surface(X1,X2,S_star,color="red",label="True Model")
+    if (plot_truth):
+        S_star=[[model_star.calc([x1,x2]) for x2 in x2s] for x1 in x1s]
+        S_star=np.array(S_star)
+        c2=ax.plot_surface(X1,X2,S_star,color="red",label="True Model")
 
     # prevents error when plotting legend
     c1._facecolors2d=c1._facecolors3d
@@ -134,35 +135,45 @@ def __plot_3d_samples(ax:plt.Axes,accepted_samples:[([float],float)],observation
 """
    ABC
 """
-def abc_fixed_sample_size(sample_size=1000,model=None,priors=None,n_obs=100,epsilon=.1,var_ranges=None) -> Model:
+def abc_fixed_sample_size(sample_size=1000,true_model=None,fitting_model=None,priors=None,n_obs=100,epsilon=.1,var_ranges=None) -> Model:
     """
     Approximate Bayesian Computation which terminates when a sufficient number of samples have been accepted.
     A LinearModel with two parameters is used.
 
     PARAMETERS
     sample_size(int) = desired sample size (default=1,000).
-    model (Model) = implicit model to fit for.
-    priors(stats.distribution,stats.distribution) = Priors to use for model parameters (default=+/-3 uniform around true value).
+    true_model (Model) = implicit model to fit for.
+    fitting_model (Model) = the model you wish to fit to the true model (parameters are irrelevant).
+    priors(stats.distribution,stats.distribution) = Priors to use for model parameters of `fitting_model` (default=+/-3 uniform around true value).
     n_obs (int)= Number of observations from true model used (default=100).
     epsilon (float) = Acceptable values from kernel (default=.1).
-    var_ranges ([(int,int)]) = Range of each predictor variable in model (default=(0,100) for all variables).
+    var_ranges ([(int,int)]) = Range of each predictor variable in `fitting_model` (default=(0,100) for all variables).
 
     RETURNS
     Model = Model fitted by the algorithm
     """
+    # verify inputs
+    if (var_ranges) and (len(var_ranges)!=fitting_model.n_vars): raise Exception("Incorrect number of `var_ranges` provided. (Exp={})".format(fitting_model.n_vars))
+    if (priors) and (len(priors)!=fitting_model.n_params): raise Exception("Incorrect number of `priors` provided. (Exp={})".format(fitting_model.n_params))
 
     DESIRED_SAMPLE_SIZE=sample_size
-    THETA_STAR=model.params if (model) else (stats.uniform(0,100).rvs(1)[0],stats.uniform(0,10).rvs(1)[0])
-    MODEL_STAR=model if (model) else LinearModel(2,THETA_STAR)
-    VAR_RANGES=var_ranges if (var_ranges) else [(0,100) for _ in range(model.n_vars)]
+    THETA_STAR=true_model.params if (true_model) else (stats.uniform(0,100).rvs(1)[0],stats.uniform(0,10).rvs(1)[0])
+    MODEL_STAR=true_model if (true_model) else LinearModel(2,THETA_STAR)
+    VAR_RANGES=var_ranges if (var_ranges) else [(0,100) for _ in range(fitting_model.n_vars)]
     N_OBS=n_obs
     EPSILON=epsilon
     SAMPLES=[]
 
     # define priors for parameters
-    PRIORS=priors if (priors) else [stats.uniform(THETA_STAR[i]-8,25) for i in range(model.n_params)]
+    PRIORS=priors if (priors) else [stats.uniform(THETA_STAR[i]-8,25) for i in range(fitting_model.n_params)]
 
-    model_t=MODEL_STAR.blank_copy()
+    # model we are going to fit
+    if (fitting_model):
+        plot_truth=False
+        model_t=fitting_model.blank_copy()
+    else:
+        plot_truth=True
+        model_t=MODEL_STAR.blank_copy()
 
     # define true model
     print("True Model - {}\n".format(str(MODEL_STAR)))
@@ -195,15 +206,14 @@ def abc_fixed_sample_size(sample_size=1000,model=None,priors=None,n_obs=100,epsi
     print("\n")
 
     # best fit model
-    theta_hat=[np.mean([s[0][i] for s in SAMPLES]) for i in range(MODEL_STAR.n_params)] # posterior sample mean
-    model_hat=MODEL_STAR.blank_copy()
+    theta_hat=[np.mean([s[0][i] for s in SAMPLES]) for i in range(fitting_model.n_params)] # posterior sample mean
+    model_hat=model_t.blank_copy()
     model_hat.params=theta_hat
-    # model_hat=LinearModel(MODEL_STAR.n_params,theta_hat) if (type(MODEL_STAR)==LinearModel) else ExponentialModel(theta_hat)
 
     # plot results
     observations=list(zip(x_obs,s_obs))
     fig=plt.figure()
-    __plot_results(fig,model_hat,MODEL_STAR,SAMPLES,PRIORS,VAR_RANGES,observations)
+    __plot_results(fig,model_hat,MODEL_STAR,SAMPLES,PRIORS,VAR_RANGES,observations,plot_truth)
 
     print("Best Model - {}".format(str(model_hat)))
 
