@@ -1,7 +1,7 @@
 """
 TODO
 - add noise
-- General model
+- Assess fit of two models
 """
 from math import exp
 from matplotlib import pyplot as plt

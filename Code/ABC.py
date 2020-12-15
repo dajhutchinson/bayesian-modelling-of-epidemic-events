@@ -133,56 +133,12 @@ def __plot_3d_samples(ax:plt.Axes,accepted_samples:[([float],float)],observation
     return ax
 
 """
-   ABC
+    SAMPLING STAGE
 """
-def abc_fixed_sample_size(sample_size=1000,true_model=None,fitting_model=None,priors=None,n_obs=100,epsilon=.1,var_ranges=None) -> Model:
-    """
-    Approximate Bayesian Computation which terminates when a sufficient number of samples have been accepted.
-    A LinearModel with two parameters is used.
 
-    PARAMETERS
-    sample_size(int) = desired sample size (default=1,000).
-    true_model (Model) = implicit model to fit for.
-    fitting_model (Model) = the model you wish to fit to the true model (parameters are irrelevant).
-    priors(stats.distribution,stats.distribution) = Priors to use for model parameters of `fitting_model` (default=+/-3 uniform around true value).
-    n_obs (int)= Number of observations from true model used (default=100).
-    epsilon (float) = Acceptable values from kernel (default=.1).
-    var_ranges ([(int,int)]) = Range of each predictor variable in `fitting_model` (default=(0,100) for all variables).
+def sample_stage_fixed_sample_size(DESIRED_SAMPLE_SIZE:int,EPSILON:float,x_obs:[[float]],s_obs:[float],PRIORS:["stats.Distribution"],x_samplers:["stats.Distribution"],model_t:Model) -> [([float],float)]:
 
-    RETURNS
-    Model = Model fitted by the algorithm
-    """
-    # verify inputs
-    if (var_ranges) and (len(var_ranges)!=fitting_model.n_vars): raise Exception("Incorrect number of `var_ranges` provided. (Exp={})".format(fitting_model.n_vars))
-    if (priors) and (len(priors)!=fitting_model.n_params): raise Exception("Incorrect number of `priors` provided. (Exp={})".format(fitting_model.n_params))
-
-    DESIRED_SAMPLE_SIZE=sample_size
-    THETA_STAR=true_model.params if (true_model) else (stats.uniform(0,100).rvs(1)[0],stats.uniform(0,10).rvs(1)[0])
-    MODEL_STAR=true_model if (true_model) else LinearModel(2,THETA_STAR)
-    VAR_RANGES=var_ranges if (var_ranges) else [(0,100) for _ in range(fitting_model.n_vars)]
-    N_OBS=n_obs
-    EPSILON=epsilon
     SAMPLES=[]
-
-    # define priors for parameters
-    PRIORS=priors if (priors) else [stats.uniform(THETA_STAR[i]-8,25) for i in range(fitting_model.n_params)]
-
-    # model we are going to fit
-    if (fitting_model):
-        plot_truth=False
-        model_t=fitting_model.blank_copy()
-    else:
-        plot_truth=True
-        model_t=MODEL_STAR.blank_copy()
-
-    # define true model
-    print("True Model - {}\n".format(str(MODEL_STAR)))
-
-    # generate observations from target model
-    x_samplers=[stats.uniform(r[0],r[1]) for r in VAR_RANGES]
-    x_obs=[[sampler.rvs(1)[0] for sampler in x_samplers] for _ in range(N_OBS)]
-    if (MODEL_STAR.n_vars==1): x_obs=sorted(x_obs,key=(lambda x:x[0]))
-    s_obs=[MODEL_STAR.calc(x) for x in x_obs]
 
     i=0 # count total number of samples
     # Sample-Rejection Stage
@@ -204,9 +160,109 @@ def abc_fixed_sample_size(sample_size=1000,true_model=None,fitting_model=None,pr
         print("({:,}) {:,}/{:,}".format(i,len(SAMPLES),DESIRED_SAMPLE_SIZE),end="\r") # update user on sampling process
 
     print("\n")
+    return SAMPLES
+
+def sample_stage_best_samples(num_runs:int,sample_size:int,x_obs:[[float]],s_obs:[float],PRIORS:["stats.Distribution"],x_samplers:["stats.Distribution"],model_t:Model) -> [([float],float)]:
+
+    SAMPLES=[None for _ in range(sample_size)]
+
+    # Sample-Rejection Stage
+    for i in range(num_runs):
+        # sample parameters
+        theta_t=[pi_i.rvs(1)[0] for pi_i in PRIORS] # sample a single value from each parameter-prior
+
+        # simulate values
+        model_t.params=theta_t
+        x_t=[sampler.rvs(1)[0] for sampler in x_samplers] # make multiple samples from theorised model
+        s_t=model_t.calc(x_t) # add response variable
+
+        # accept-reject
+        norm_vals=[l2_norm(x_i+[s_i],x_t+[s_t]) for (x_i,s_i) in zip (x_obs,s_obs)]
+        best_norm=min(norm_vals)
+
+        # insert into samples
+        for j in range(max(0,sample_size-i-1,sample_size)):
+
+            if (SAMPLES[j]==None) or (SAMPLES[j][0]>best_norm):
+                if (j>0): SAMPLES[j-1]=SAMPLES[j]
+                SAMPLES[j]=(best_norm,(theta_t,(x_t,s_t)))
+
+        print("({:,})".format(i),end="\r") # update user on sampling process
+
+    print("\n")
+
+    # remove norm value from SAMPLES
+    SAMPLES=[x[1] for x in SAMPLES]
+
+    return SAMPLES
+
+"""
+   ABC
+"""
+def abc_general(true_model=None,fitting_model=None,priors=None,n_obs=100,var_ranges=None,sampling_details={"sampling_method":"best_samples","sample_size":1000,"num_runs":10000}) -> Model:
+    """
+    Approximate Bayesian Computation which terminates when a sufficient number of samples have been accepted.
+    A LinearModel with two parameters is used.
+
+    PARAMETERS
+    sample_size(int) = desired sample size (default=1,000).
+    true_model (Model) = implicit model to fit for.
+    fitting_model (Model) = the model you wish to fit to the true model (parameters are irrelevant).
+    priors(stats.distribution,stats.distribution) = Priors to use for model parameters of `fitting_model` (default=+/-3 uniform around true value).
+    n_obs (int)= Number of observations from true model used (default=100).
+    epsilon (float) = Acceptable values from kernel (default=.1).
+    var_ranges ([(int,int)]) = Range of each predictor variable in `fitting_model` (default=(0,100) for all variables).
+
+    RETURNS
+    Model = Model fitted by the algorithm
+    """
+    # model we are going to fit
+    THETA_STAR=true_model.params if (true_model) else (stats.uniform(0,100).rvs(1)[0],stats.uniform(0,10).rvs(1)[0])
+    MODEL_STAR=true_model if (true_model) else LinearModel(2,THETA_STAR)
+    if (fitting_model):
+        plot_truth=False
+        model_t=fitting_model.blank_copy()
+    else:
+        plot_truth=True
+        model_t=MODEL_STAR.blank_copy()
+
+    # verify inputs
+    if (var_ranges) and (len(var_ranges)!=fitting_model.n_vars): raise Exception("Incorrect number of `var_ranges` provided. (Exp={})".format(fitting_model.n_vars))
+    if (priors) and (len(priors)!=fitting_model.n_params): raise Exception("Incorrect number of `priors` provided. (Exp={})".format(fitting_model.n_params))
+
+    VAR_RANGES=var_ranges if (var_ranges) else [(0,100) for _ in range(model_t.n_vars)]
+    N_OBS=n_obs
+
+    # define priors for parameters
+    PRIORS=priors if (priors) else [stats.uniform(THETA_STAR[i]-8,25) for i in range(model_t.n_params)]
+
+    # define true model
+    print("True Model - {}\n".format(str(MODEL_STAR)))
+
+    # generate observations from target model
+    x_samplers=[stats.uniform(r[0],r[1]) for r in VAR_RANGES]
+    x_obs=[[sampler.rvs(1)[0] for sampler in x_samplers] for _ in range(N_OBS)]
+    if (MODEL_STAR.n_vars==1): x_obs=sorted(x_obs,key=(lambda x:x[0]))
+    s_obs=[MODEL_STAR.calc(x) for x in x_obs]
+
+    # perform sampling
+    if (sampling_details["sampling_method"]=="best_samples"):
+        SAMPLE_SIZE=sampling_details["sample_size"]
+        NUM_RUNS=   sampling_details["num_runs"]
+
+        SAMPLES=sample_stage_best_samples(NUM_RUNS,SAMPLE_SIZE,x_obs,s_obs,PRIORS,x_samplers,model_t)
+
+    elif (sampling_details["sampling_method"]=="fixed_number"):
+        SAMPLE_SIZE=sampling_details["sample_size"]
+        EPSILON=    sampling_details["epsilon"]
+
+        SAMPLES=sample_stage_fixed_sample_size(SAMPLE_SIZE,EPSILON,x_obs,s_obs,PRIORS,x_samplers,model_t)
+
+    else:
+        raise Exception("Must specify valid sampling details")
 
     # best fit model
-    theta_hat=[np.mean([s[0][i] for s in SAMPLES]) for i in range(fitting_model.n_params)] # posterior sample mean
+    theta_hat=[np.mean([s[0][i] for s in SAMPLES]) for i in range(model_t.n_params)] # posterior sample mean
     model_hat=model_t.blank_copy()
     model_hat.params=theta_hat
 
