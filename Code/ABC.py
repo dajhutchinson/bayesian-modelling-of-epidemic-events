@@ -20,7 +20,10 @@ def l2_norm(s:(float),s_obs:(float)) -> float:
 """
 
 def __plot_results(fig:plt.Figure,model_hat:Model,model_star:Model,samples:[([float],([float],float))],priors:["stats.distribution"],var_ranges:[(float,float)],observations:[([float],float)],plot_truth=True):
-
+    """
+    DESCRIPTION
+    Produces plots for parameter posteriors and model fit (if <=2 variables).
+    """
     n_plots=model_star.n_params
     if (n_plots)<=3: n_plots+=1
     plt.subplots_adjust(left=.05,right=.95,bottom=.05,top=.95)
@@ -47,7 +50,21 @@ def __plot_results(fig:plt.Figure,model_hat:Model,model_star:Model,samples:[([fl
     pass
 
 def __plot_posterior(ax:plt.Axes,name:str,theta_star:float,theta_samples:[float],prior:"stats.Distribution",plot_truth=True) -> plt.Axes:
+    """
+    DESCRIPTION
+    plot the posterior for a given parameter.
 
+    PARAMETERS
+    ax (plt.Axes) - Axes to produce plot on.
+    name(str) - Name of parameter (theta_0 etc.)
+    theta_star(float) - True value of parameter
+    theta_samples([float]) - List of all samples of parameter which were accepted.
+    prior(stats.Distribution) - Prior used to sample parameter.
+    plot_true(bool) - Whether to plot the true parameter value.
+
+    RETURNS
+    plt.Axes - The axis which plot was made on.
+    """
     print("{}\nTrue {:.5f}\nMean {:.5f}\nMedian {:.5f}\n".format(name,theta_star,np.mean(theta_samples),np.median(theta_samples)))
 
     ax.set_title("Posterior for {}".format(name))
@@ -63,8 +80,21 @@ def __plot_posterior(ax:plt.Axes,name:str,theta_star:float,theta_samples:[float]
 
     return ax
 
-# plot of samples accepted
 def __plot_2d_samples(ax:plt.Axes,accepted_samples:[([float],float)],observations:[([float],float)],model_hat:Model,plot_truth=True) -> plt.Axes:
+    """
+    DESCRIPTION
+    plot the fitted model, observations and accepted samples for a fitted model with a single predictor variable.
+
+    PARAMETERS
+    ax (plt.Axes) - Axes to produce plot on.
+    accepted_samples([([float],float)]) - Details of samples which were accepted [([pred_var_values],response_var_value)].
+    observations([([float],float)]) - Observations made before sampling [([pred_var_values],response_var_value)].
+    model_hat(Model) - Fitted model.
+    plot_true(bool) - Whether to plot the true parameter value.
+
+    RETURNS
+    plt.Axes - The axis which plot was made on.
+    """
     ax.set_title("Accepted Samples")
     ax.set_xlabel("Predictor Variable")
     ax.set_ylabel("Response Variable")
@@ -87,8 +117,22 @@ def __plot_2d_samples(ax:plt.Axes,accepted_samples:[([float],float)],observation
 
     return ax
 
-# plot of samples accepted
 def __plot_3d_samples(ax:plt.Axes,accepted_samples:[([float],float)],observations:[([float],float)],model_hat:Model,model_star:Model,var_ranges:[(float,float)],plot_truth=True) -> plt.Axes:
+    """
+    DESCRIPTION
+    plot the fitted model, observations and accepted samples for a fitted model with two predictor variable.
+
+    PARAMETERS
+    ax (plt.Axes) - Axes to produce plot on.
+    accepted_samples([([float],float)]) - Details of samples which were accepted [([pred_var_values],response_var_value)].
+    observations([([float],float)]) - Observations made before sampling [([pred_var_values],response_var_value)].
+    model_hat(Model) - Fitted model.
+    model_star(Model) - True model.
+    plot_true(bool) - Whether to plot the true parameter value.
+
+    RETURNS
+    plt.Axes - The axis which plot was made on.
+    """
     ax.set_title("Accepted Samples")
     ax.set_xlabel("Predictor Var. 1")
     ax.set_ylabel("Predictor Var. 2")
@@ -136,8 +180,20 @@ def __plot_3d_samples(ax:plt.Axes,accepted_samples:[([float],float)],observation
     SAMPLING STAGE
 """
 
-def sample_stage_fixed_sample_size(DESIRED_SAMPLE_SIZE:int,EPSILON:float,x_obs:[[float]],s_obs:[float],PRIORS:["stats.Distribution"],x_samplers:["stats.Distribution"],model_t:Model) -> [([float],float)]:
+def __sample_stage_fixed_sample_size(DESIRED_SAMPLE_SIZE:int,EPSILON:float,x_obs:[[float]],s_obs:[float],PRIORS:["stats.Distribution"],x_samplers:["stats.Distribution"],model_t:Model) -> [([float],float)]:
+    """
+    DESCRIPTION
+    sample from parameter priors until a sufficient number of samples are close to observed parameters.
 
+    PARAMETERS
+    ax (plt.Axes) - Axes to produce plot on.
+    DESIRED_SAMPLE_SIZE (int) - Algorithm terminates after collection this many sample sufficient samples.
+    EPSILON (int) - How close a sample must be to observations to be accepted. (Use in `uniform_kernel()`)
+    ...
+
+    RETURNS
+    [([float],float)] - Samples collected ([pred_var_values],response_var_value)
+    """
     SAMPLES=[]
 
     i=0 # count total number of samples
@@ -162,12 +218,24 @@ def sample_stage_fixed_sample_size(DESIRED_SAMPLE_SIZE:int,EPSILON:float,x_obs:[
     print("\n")
     return SAMPLES
 
-def sample_stage_best_samples(num_runs:int,sample_size:int,x_obs:[[float]],s_obs:[float],PRIORS:["stats.Distribution"],x_samplers:["stats.Distribution"],model_t:Model) -> [([float],float)]:
+def __sample_stage_best_samples(NUM_RUNS:int,SAMPLE_SIZE:int,x_obs:[[float]],s_obs:[float],PRIORS:["stats.Distribution"],x_samplers:["stats.Distribution"],model_t:Model) -> [([float],float)]:
+    """
+    DESCRIPTION
+    make a defined number of samples and keep only the best n.
 
+    PARAMETERS
+    ax (plt.Axes) - Axes to produce plot on.
+    NUM_RUNS (int) - Number of samples to make
+    SAMPLE_SIZE (int) - Number of samples to keep
+    ...
+
+    RETURNS
+    [([float],float)] - Samples collected ([pred_var_values],response_var_value)
+    """
     SAMPLES=[None for _ in range(sample_size)]
 
     # Sample-Rejection Stage
-    for i in range(num_runs):
+    for i in range(NUM_RUNS):
         # sample parameters
         theta_t=[pi_i.rvs(1)[0] for pi_i in PRIORS] # sample a single value from each parameter-prior
 
@@ -181,7 +249,7 @@ def sample_stage_best_samples(num_runs:int,sample_size:int,x_obs:[[float]],s_obs
         best_norm=min(norm_vals)
 
         # insert into samples
-        for j in range(max(0,sample_size-i-1,sample_size)):
+        for j in range(max(0,SAMPLE_SIZE-i-1,SAMPLE_SIZE)):
 
             if (SAMPLES[j]==None) or (SAMPLES[j][0]>best_norm):
                 if (j>0): SAMPLES[j-1]=SAMPLES[j]
@@ -205,20 +273,21 @@ def abc_general(true_model=None,fitting_model=None,priors=None,n_obs=100,var_ran
     A LinearModel with two parameters is used.
 
     PARAMETERS
-    sample_size(int) = desired sample size (default=1,000).
-    true_model (Model) = implicit model to fit for.
-    fitting_model (Model) = the model you wish to fit to the true model (parameters are irrelevant).
-    priors(stats.distribution,stats.distribution) = Priors to use for model parameters of `fitting_model` (default=+/-3 uniform around true value).
-    n_obs (int)= Number of observations from true model used (default=100).
-    epsilon (float) = Acceptable values from kernel (default=.1).
-    var_ranges ([(int,int)]) = Range of each predictor variable in `fitting_model` (default=(0,100) for all variables).
+    true_model (Model) - implicit model to fit for.
+    fitting_model (Model) - the model you wish to fit to the true model (parameters are irrelevant).
+    priors(stats.distribution,stats.distribution) - Priors to use for model parameters of `fitting_model` (default=+/-3 uniform around true value).
+    n_obs (int) - Number of observations from true model used (default=100).
+    var_ranges ([(int,int)]) - Range of each predictor variable in `fitting_model` (default=(0,100) for all variables).
+    sampling_details (dict) - Specification of sampling method to use (see README.md)
 
     RETURNS
     Model = Model fitted by the algorithm
     """
-    # model we are going to fit
+    # define target model
     THETA_STAR=true_model.params if (true_model) else (stats.uniform(0,100).rvs(1)[0],stats.uniform(0,10).rvs(1)[0])
     MODEL_STAR=true_model if (true_model) else LinearModel(2,THETA_STAR)
+
+    # define model to fit
     if (fitting_model):
         plot_truth=False
         model_t=fitting_model.blank_copy()
@@ -226,18 +295,19 @@ def abc_general(true_model=None,fitting_model=None,priors=None,n_obs=100,var_ran
         plot_truth=True
         model_t=MODEL_STAR.blank_copy()
 
+    # define true model
+    print("True Model - {}\n".format(str(MODEL_STAR)))
+
     # verify inputs
     if (var_ranges) and (len(var_ranges)!=fitting_model.n_vars): raise Exception("Incorrect number of `var_ranges` provided. (Exp={})".format(fitting_model.n_vars))
     if (priors) and (len(priors)!=fitting_model.n_params): raise Exception("Incorrect number of `priors` provided. (Exp={})".format(fitting_model.n_params))
 
-    VAR_RANGES=var_ranges if (var_ranges) else [(0,100) for _ in range(model_t.n_vars)]
-    N_OBS=n_obs
-
     # define priors for parameters
     PRIORS=priors if (priors) else [stats.uniform(THETA_STAR[i]-8,25) for i in range(model_t.n_params)]
 
-    # define true model
-    print("True Model - {}\n".format(str(MODEL_STAR)))
+    # parameter sampling details
+    VAR_RANGES=var_ranges if (var_ranges) else [(0,100) for _ in range(model_t.n_vars)]
+    N_OBS=n_obs
 
     # generate observations from target model
     x_samplers=[stats.uniform(r[0],r[1]) for r in VAR_RANGES]
@@ -246,17 +316,15 @@ def abc_general(true_model=None,fitting_model=None,priors=None,n_obs=100,var_ran
     s_obs=[MODEL_STAR.calc(x) for x in x_obs]
 
     # perform sampling
-    if (sampling_details["sampling_method"]=="best_samples"):
+    if (sampling_details["sampling_method"]=="best_samples"): # keep only best
         SAMPLE_SIZE=sampling_details["sample_size"]
         NUM_RUNS=   sampling_details["num_runs"]
+        SAMPLES=__sample_stage_best_samples(NUM_RUNS,SAMPLE_SIZE,x_obs,s_obs,PRIORS,x_samplers,model_t)
 
-        SAMPLES=sample_stage_best_samples(NUM_RUNS,SAMPLE_SIZE,x_obs,s_obs,PRIORS,x_samplers,model_t)
-
-    elif (sampling_details["sampling_method"]=="fixed_number"):
+    elif (sampling_details["sampling_method"]=="fixed_number"): # keep all which fulfil criteria
         SAMPLE_SIZE=sampling_details["sample_size"]
         EPSILON=    sampling_details["epsilon"]
-
-        SAMPLES=sample_stage_fixed_sample_size(SAMPLE_SIZE,EPSILON,x_obs,s_obs,PRIORS,x_samplers,model_t)
+        SAMPLES=__sample_stage_fixed_sample_size(SAMPLE_SIZE,EPSILON,x_obs,s_obs,PRIORS,x_samplers,model_t)
 
     else:
         raise Exception("Must specify valid sampling details")
