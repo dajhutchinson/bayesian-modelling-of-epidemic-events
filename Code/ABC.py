@@ -77,7 +77,7 @@ def __plot_results(fig:plt.Figure,model_hat:Model,model_star:Model,THETA_SAMPLES
         ax=fig.add_subplot(1,n_plots,n_plots,projection="3d")
         __plot_3d_samples(ax,ACCEPTED_OBS,observations,model_hat,model_star,var_ranges,plot_truth)
 
-    plt.get_current_fig_manager().window.state('zoomed')
+    plt.get_current_fig_manager().window.state("zoomed")
     plt.show()
     pass
 

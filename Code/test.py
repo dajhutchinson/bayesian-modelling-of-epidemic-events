@@ -1,12 +1,13 @@
-from Models import LinearModel, ExponentialModel, GeneralLinearModel
+from Models import Model, LinearModel, ExponentialModel, GeneralLinearModel, ManyModels
 from scipy import stats
+from matplotlib import pyplot as plt
 import ABC
 
 lm_2=LinearModel(2,[1,2],["age"])
 lm_3=LinearModel(3,[1,2,3])
 lm_4=LinearModel(4,[10,20,30,40])
 
-lm_2_noise=LinearModel(2,[1,2],["age"],noise=1)
+lm_2_noise=LinearModel(2,[1,2],["age"],noise=.1)
 lm_3_noise=LinearModel(3,[1,2,3],noise=4)
 
 em=ExponentialModel([1,2],["age"])
@@ -81,3 +82,7 @@ sampling_details={"sampling_method":"multi_compare","sample_size":10,"num_runs":
 priors=[stats.uniform(0,2),stats.uniform(1,3)]
 ABC.abc_general(true_model=em_noise,sampling_details=sampling_details,priors=priors,var_ranges=[(0,3)])
 """
+
+mm=ManyModels(1,2,[em_noise,lm_2_noise])
+print(mm)
+mm.plot(noise=True,var_ranges=[(-1,3)])

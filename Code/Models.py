@@ -32,15 +32,23 @@ class Model():
         """
         raise Exception("`calc` method not implemented.")
 
-    def plot(self,var_ranges=None,noise=False):
+    def plot(self,ax=None,var_ranges=None,noise=False) -> plt.Axes:
         """
         Plot model
 
         PARAMS
+        ax (plt.Axes) - Axis to plot on (default=None) (if None then will perform plt.show())
         var_ranges ([(float,float)]) - Range of values for variables, to plot within (default=None)
         noise (bool) - Whether to include gaussian noise in plot (default=False)
+
+        RETURNS
+        plt.Axes - axis which plot was made on
         """
+        show=False
         if (self.n_vars<1 or self.n_vars>2): raise Exception("Only plot models with 1 or 2 variables.")
+        if (not ax):
+            ax=plt.axes() if (self.n_vars==1) else plt.axes(projection="3d")
+            show=True
 
         # prepare variable ranges
         if not (var_ranges):
@@ -57,10 +65,13 @@ class Model():
             xs=np.linspace(var_ranges[0][0],var_ranges[0][1],100)
             ys=[self.calc([x],noise) for x in xs]
 
-            if (noise==False): plt.plot(xs,ys)
-            else: plt.scatter(xs,ys)
+            if (noise==False): ax.plot(xs,ys)
+            else: ax.scatter(xs,ys)
 
-            plt.title(self.__str__())
+            ax.set_title(self.__str__())
+            ax.set_xlabel(self.var_names[0])
+            ax.set_ylabel("Response")
+
         elif (self.n_vars==2):
             x1s=np.linspace(var_ranges[0][0],var_ranges[0][1],100)
             x2s=np.linspace(var_ranges[1][0],var_ranges[1][1],100)
@@ -69,14 +80,16 @@ class Model():
             Z=[[self.calc([x1,x2],noise) for x2 in x2s] for x1 in x1s]
             Z=np.array(Z)
 
-            fig=plt.figure()
-            ax =plt.axes(projection='3d')
-
             if (noise==False): ax.plot_surface(X1,X2,Z,cmap="viridis", edgecolor="none")
             else: ax.scatter(X1,X2,Z,cmap="viridis",edgecolor="none")
 
             ax.set_title(self.__str__())
-        plt.show()
+            ax.set_xlabel(self.var_names[0])
+            ax.set_ylabel(self.var_names[1])
+
+        if (show): plt.show()
+
+        return ax
 
 class LinearModel(Model):
 
@@ -100,7 +113,7 @@ class LinearModel(Model):
         self.var_names=var_names
         if (var_names):
             if not (type(var_names)==list and len(var_names)==n-1 and type(var_names[0])==str):
-                raise Exception("Invalid `var_names`. Must be list of strings of length n-1.")
+                raise Exception("Invalid `var_names`. Must be list of strings of length n-1({}).".format(n-1))
             self.var_names=var_names
         else:
             self.var_names=["X{}".format(i) for i in range(n-1)]
@@ -142,6 +155,9 @@ class LinearModel(Model):
                 sign=self.params[i]/abs(self.params[i])
                 print_str+="-" if (sign==-1) else "+"
                 print_str+="{:.5f}*{}".format(abs(self.params[i]),self.var_names[i-1])
+
+        if (self.noise!=0):
+            print_str+=" + N(0,{})".format(self.noise)
         return print_str
 
 class ExponentialModel(Model):
@@ -198,11 +214,14 @@ class ExponentialModel(Model):
         """
         print model
         """
-        return "{:.5f}*exp({:.5f}*{})".format(self.params[0],self.params[1],self.var_names[0])
+        print_str="{:.5f}*exp({:.5f}*{})".format(self.params[0],self.params[1],self.var_names[0])
+        if (self.noise!=0):
+            print_str+=" + N(0,{})".format(self.noise)
+        return print_str
 
 class GeneralLinearModel(Model):
 
-    def __init__(self,n_params,n_vars,func,theta_star,noise=0):
+    def __init__(self,n_params,n_vars,func,theta_star,var_names=None,noise=0):
         """
         REQUIRED
         n_params (int) - number of parameters in model
@@ -211,10 +230,18 @@ class GeneralLinearModel(Model):
         theta_star ([float]): true model parameters
 
         OPTIONAL
+        var_names ([string]): readable name for each variable (used for plots)
         noise (float):    variance of additive gaussian noise ~ N(0,noise) (default=0)
         """
 
         if (n_params!=len(theta_star)): raise Exception("Incorrect number of parameters provided `(n_params!=len(theta_star))`")
+        if (var_names):
+            if not (type(var_names)==list and len(var_names)==1 and type(var_names[0])==str):
+                raise Exception("Invalid `var_names`. Must be list of strings of length n_vars({}).".format(n_vars))
+            self.var_names=var_names
+        else:
+            self.var_names=["X{}".format(i) for i in range(1)]
+
         self.n_params=n_params
         self.n_vars  =n_vars
         self.func= func
@@ -229,3 +256,43 @@ class GeneralLinearModel(Model):
     def blank_copy(self) -> "GeneralLinearModel":
         temp_params=[1 for _ in range(self.n_params)]
         return GeneralLinearModel(self.n_params,self.n_vars,self.func,temp_params)
+
+class ManyModels():
+
+    def __init__(self,n_vars:int,n_models:int,models:["Models"]):
+
+        if (len(models)!=n_models): raise Exception("Incorect number of models passed (len(models)!=n_models)!")
+        for (i,model) in enumerate(models):
+            if (type(model) not in [LinearModel,ExponentialModel,GeneralLinearModel]): raise Exception("Not all objects in `models` are Models.")
+            if (model.n_vars!=n_vars): raise Exception("Model {} does not have {} variable(s) (act={})".format(i,n_vars,model.n_vars))
+
+        self.n_vars=n_vars
+        self.n_models=n_models
+        self.models=models
+
+    def blank_copy(self) -> "ManyModels":
+        blank_models=[model.blank_copy() for model in self.models]
+        return ManyModels(self.n_vars,self.n_models,blank_models)
+
+    def plot(self,var_ranges=None,noise=False):
+
+        if (self.n_vars<1 or self.n_vars>2): raise Exception("Only plot models with 1 or 2 variables.")
+
+        fig=plt.figure()
+        plt.subplots_adjust(left=.05,right=.95,bottom=.05,top=.95)
+        projection=None if (self.n_vars==1) else "3d"
+
+        for (i,model) in enumerate(self.models):
+            ax=fig.add_subplot(1,self.n_models,i+1,projection=projection)
+            ax.set_title("Model {}".format(i))
+            model.plot(ax=ax,var_ranges=var_ranges,noise=noise)
+
+        plt.get_current_fig_manager().window.state("zoomed")
+        plt.show()
+
+    def __str__(self):
+        print_str="{} models each with {} variables.\nTrue Models\n".format(self.n_vars,self.n_models)
+        for (i,model) in enumerate(self.models):
+            print_str+="({})\t{}".format(i,str(model))
+            if (i<self.n_models):print_str+="\n"
+        return print_str
