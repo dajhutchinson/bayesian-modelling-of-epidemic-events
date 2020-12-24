@@ -10,9 +10,40 @@ import matplotlib.pyplot as plt
 from Models import Model,LinearModel,ExponentialModel,GeneralLinearModel
 import numpy as np
 
+"""
+    KERNELS
+"""
+def abstract_kernel(x:float,epsilon:float) -> bool:
+    """
+    DESCRIPTION
+    determine whether to accept an observation based on how far it is from other observations.
+
+    PARAMETERS
+    x (float) - value for comparision (typically distance between two observations)
+    epsilon (float) - scaling factor
+
+    RETURNS
+    bool - whether to accept
+    """
+    return True
+
 def uniform_kernel(x:float,epsilon:float) -> bool:
     return abs(x)<=epsilon
 
+def epanechnikov_kernel(x:float,epsilon:float) -> bool:
+    if (abs(x)>epsilon): return False
+    ep_val=(1/epsilon)*(3/4)*(1-(x/epsilon)**2) # prob to accept
+    x=stats.uniform(0,1).rvs(1)[0] # sample from U[0,1]
+    return (x<=ep_val)
+
+def gaussian_kernel(x:float,epsilon:float) -> bool:
+    gaus_val=(1/np.sqrt(2*pi*(x**2)))*np.exp(-(1/2)*((x/epsilon)**2)) # prob to accept
+    x=stats.uniform(0,1).rvs(1)[0] # sample from U[0,1]
+    return (x<=gaus_val)
+
+"""
+    DISTANCE MEASURES
+"""
 def l2_norm(s:(float),s_obs:(float)) -> float:
     return sum([(x-y)**2 for (x,y) in zip(s,s_obs)])**.5
 
@@ -181,14 +212,15 @@ def __plot_3d_samples(ax:plt.Axes,accepted_samples:[([float],float)],observation
     SAMPLING STAGE
 """
 
-def __sample_stage_fixed_sample_size(DESIRED_SAMPLE_SIZE:int,EPSILON:float,x_obs:[[float]],s_obs:[float],PRIORS:["stats.Distribution"],x_samplers:["stats.Distribution"],model_t:Model) -> ( [[float]] , [([float],float)] ):
+def __sample_stage_fixed_sample_size(DESIRED_SAMPLE_SIZE:int,EPSILON:float,KERNEL:"func",
+    x_obs:[[float]],s_obs:[float],PRIORS:["stats.Distribution"],x_samplers:["stats.Distribution"],model_t:Model) -> ( [[float]] , [([float],float)] ):
     """
     DESCRIPTION
     sample from parameter priors until a sufficient number of samples are close to observed parameters.
 
     PARAMETERS
     DESIRED_SAMPLE_SIZE (int) - Algorithm terminates after collection this many sample sufficient samples.
-    EPSILON (int) - How close a sample must be to observations to be accepted. (Use in `uniform_kernel()`)
+    EPSILON (int) - How close a sample must be to observations to be accepted. (Use in `KERNEL()`)
     ...
 
     RETURNS
@@ -210,7 +242,7 @@ def __sample_stage_fixed_sample_size(DESIRED_SAMPLE_SIZE:int,EPSILON:float,x_obs
 
         # accept-reject
         norm_vals=[l2_norm(x_i+[s_i],x_t+[s_t]) for (x_i,s_i) in zip (x_obs,s_obs)]
-        if (uniform_kernel(min(norm_vals),EPSILON)):
+        if (KERNEL(min(norm_vals),EPSILON)):
             SAMPLES.append((theta_t,(x_t,s_t)))
 
         i=i+1
@@ -223,7 +255,8 @@ def __sample_stage_fixed_sample_size(DESIRED_SAMPLE_SIZE:int,EPSILON:float,x_obs
 
     return theta_samples,accepted_obs
 
-def __sample_stage_best_samples(NUM_RUNS:int,SAMPLE_SIZE:int,x_obs:[[float]],s_obs:[float],PRIORS:["stats.Distribution"],x_samplers:["stats.Distribution"],model_t:Model) -> ( [[float]] , [([float],float)] ):
+def __sample_stage_best_samples(NUM_RUNS:int,SAMPLE_SIZE:int,
+    x_obs:[[float]],s_obs:[float],PRIORS:["stats.Distribution"],x_samplers:["stats.Distribution"],model_t:Model) -> ( [[float]] , [([float],float)] ):
     """
     DESCRIPTION
     make a defined number of samples and keep only the best n.
@@ -271,7 +304,8 @@ def __sample_stage_best_samples(NUM_RUNS:int,SAMPLE_SIZE:int,x_obs:[[float]],s_o
 
     return theta_samples,accepted_obs
 
-def __sample_stage_multi_compare(NUM_RUNS:int,SAMPLE_SIZE:int,NUM_COMPARISONS:int,x_obs:[[float]],s_obs:[float],PRIORS:["stats.Distribution"],x_samplers:["stats.Distribution"],model_t:Model) -> ( [[float]] , [([float],float)] ):
+def __sample_stage_multi_compare(NUM_RUNS:int,SAMPLE_SIZE:int,NUM_COMPARISONS:int,
+    x_obs:[[float]],s_obs:[float],PRIORS:["stats.Distribution"],x_samplers:["stats.Distribution"],model_t:Model) -> ( [[float]] , [([float],float)] ):
     """
     DESCRIPTION
     make a defined number of parameter samples and keep the best.
@@ -390,8 +424,9 @@ def abc_general(true_model=None,fitting_model=None,priors=None,n_obs=100,var_ran
     elif (sampling_details["sampling_method"]=="fixed_number"): # keep all which fulfil criteria
         SAMPLE_SIZE=sampling_details["sample_size"]
         EPSILON=    sampling_details["epsilon"]
+        KERNEL=     sampling_details["kernel"]
 
-        THETA_SAMPLES,ACCEPTED_OBS=__sample_stage_fixed_sample_size(SAMPLE_SIZE,EPSILON,x_obs,s_obs,PRIORS,x_samplers,model_t)
+        THETA_SAMPLES,ACCEPTED_OBS=__sample_stage_fixed_sample_size(SAMPLE_SIZE,EPSILON,KERNEL,x_obs,s_obs,PRIORS,x_samplers,model_t)
 
     elif (sampling_details["sampling_method"]=="multi_compare"):
         NUM_RUNS       =sampling_details["num_runs"]
