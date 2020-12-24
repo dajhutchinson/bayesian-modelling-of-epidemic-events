@@ -5,6 +5,7 @@ TODO
 """
 from math import exp
 from matplotlib import pyplot as plt
+from scipy import stats
 import numpy as np
 
 class Model():
@@ -18,21 +19,26 @@ class Model():
         raise Exception("`blank_copy` not implemented")
         return Model()
 
-    def calc(self,x:[float]) -> float:
+    def calc(self,x:[float],noise=True) -> float:
         """
         Calculate value of response variable, given values of the predictor variables x
 
         PARAMS
         x ([float]) - Values of predictor variables
+        noise (bool) - Whether to include gaussian noise in plot (default=False)
 
         RETURNS
         float: value of response variable
         """
         raise Exception("`calc` method not implemented.")
 
-    def plot(self,var_ranges=None):
+    def plot(self,var_ranges=None,noise=False):
         """
         Plot model
+
+        PARAMS
+        var_ranges ([(float,float)]) - Range of values for variables, to plot within (default=None)
+        noise (bool) - Whether to include gaussian noise in plot (default=False)
         """
         if (self.n_vars<1 or self.n_vars>2): raise Exception("Only plot models with 1 or 2 variables.")
 
@@ -49,28 +55,32 @@ class Model():
         # plots
         if (self.n_vars==1):
             xs=np.linspace(var_ranges[0][0],var_ranges[0][1],100)
-            ys=[self.calc([x]) for x in xs]
+            ys=[self.calc([x],noise) for x in xs]
 
-            plt.plot(xs,ys)
+            if (noise==False): plt.plot(xs,ys)
+            else: plt.scatter(xs,ys)
+
             plt.title(self.__str__())
         elif (self.n_vars==2):
             x1s=np.linspace(var_ranges[0][0],var_ranges[0][1],100)
             x2s=np.linspace(var_ranges[1][0],var_ranges[1][1],100)
             X1,X2=np.meshgrid(x1s,x2s)
 
-            Z=[[self.calc([x1,x2]) for x2 in x2s] for x1 in x1s]
+            Z=[[self.calc([x1,x2],noise) for x2 in x2s] for x1 in x1s]
             Z=np.array(Z)
 
             fig=plt.figure()
             ax =plt.axes(projection='3d')
 
-            ax.plot_surface(X1,X2,Z,cmap='viridis', edgecolor='none')
+            if (noise==False): ax.plot_surface(X1,X2,Z,cmap="viridis", edgecolor="none")
+            else: ax.scatter(X1,X2,Z,cmap="viridis",edgecolor="none")
+
             ax.set_title(self.__str__())
         plt.show()
 
 class LinearModel(Model):
 
-    def __init__(self,n:int,params:[float],var_names=None):
+    def __init__(self,n:int,params:[float],var_names=None,noise=0):
         """
         REQUIRED
         n (int):          number of model parameters
@@ -78,6 +88,7 @@ class LinearModel(Model):
 
         OPTIONAL
         var_names ([str]): names of variables, excluding bias (for printing only)
+        noise (float):    variance of additive gaussian noise ~ N(0,noise) (default=0)
         """
         if (n!=len(params)):
             raise Exception("Wrong number of parameters provided. (n!=len(params))")
@@ -94,19 +105,26 @@ class LinearModel(Model):
         else:
             self.var_names=["X{}".format(i) for i in range(n-1)]
 
-    def calc(self,x:[float]) -> float:
+        self.noise=noise
+        if (noise==0): self.add_noise=(lambda : 0)
+        else: self.add_noise=(lambda:stats.norm(0,np.sqrt(noise)).rvs(1)[0])
+
+    def calc(self,x:[float],noise=True) -> float:
         """
         Calculate value of response variable, given values of the predictor variables x
 
         PARAMS
         x ([float]) - Values of predictor variables
+        noise (bool) - Whether to add additive gaussian noise to returned value (don't want to when plotting true model)
 
         RETURNS
         float: value of response variable
         """
         if (len(x)!=self.n_vars): return None
+        y=self.params[0]+sum([x[i]*self.params[i+1] for i in range(self.n_vars)])
+        if (noise): y+=self.add_noise()
 
-        return self.params[0]+sum([x[i]*self.params[i+1] for i in range(self.n_vars)])
+        return y
 
     def blank_copy(self) -> "LinearModel":
         temp_params=[1 for _ in range(self.n_params)]
@@ -128,13 +146,14 @@ class LinearModel(Model):
 
 class ExponentialModel(Model):
 
-    def __init__(self,params:[float],var_names=None):
+    def __init__(self,params:[float],var_names=None,noise=0):
         """
         REQUIRED
         params ([float]): value for model parameters
 
         OPTIONAL
         var_names ([str]): names of parameters, excluding bias (for printing only)
+        noise (float):    variance of additive gaussian noise ~ N(0,noise) (default=0)
         """
         self.n_params=2
         self.n_vars=1
@@ -151,19 +170,25 @@ class ExponentialModel(Model):
         else:
             self.var_names=["X{}".format(i) for i in range(1)]
 
-    def calc(self,x:[float]) -> float:
+        self.noise=noise
+        if (noise==0): self.add_noise=(lambda:0)
+        else: self.add_noise=(lambda:stats.norm(0,np.sqrt(noise)).rvs(1)[0])
+
+    def calc(self,x:[float],noise=True) -> float:
         """
         Calculate value of response variable, given values of the predictor variables x
 
         PARAMS
         x ([float]) - Values of predictor variables
+        noise (bool) - Whether to add additive gaussian noise to returned value (don't want to when plotting true model)
 
         RETURNS
         float: value of response variable
         """
-        # if (type(x)!=list or len(x)!=1): return None
-        # print("{}*exp({}*{}) = {}".format(self.params[0],x[0],self.params[1],self.params[0]*exp(x[0]*self.params[1])))
-        return self.params[0]*exp(x[0]*self.params[1])
+        y=self.params[0]*exp(x[0]*self.params[1])
+        if (noise): y+=self.add_noise()
+
+        return y
 
     def blank_copy(self) -> "ExponentialModel":
         temp_params=[1 for _ in range(self.n_params)]
@@ -177,13 +202,29 @@ class ExponentialModel(Model):
 
 class GeneralLinearModel(Model):
 
-    def __init__(self,n_params,n_vars,func,theta_star):
+    def __init__(self,n_params,n_vars,func,theta_star,noise=0):
+        """
+        REQUIRED
+        n_params (int) - number of parameters in model
+        n_vars (int) - number of vars in model
+        func (int) - model function
+        theta_star ([float]): true model parameters
+
+        OPTIONAL
+        noise (float):    variance of additive gaussian noise ~ N(0,noise) (default=0)
+        """
+
         if (n_params!=len(theta_star)): raise Exception("Incorrect number of parameters provided `(n_params!=len(theta_star))`")
         self.n_params=n_params
         self.n_vars  =n_vars
         self.func= func
         self.params=theta_star
-        self.calc=lambda x: self.func(x,self.params)
+
+        self.noise=noise
+        if (noise==0): self.add_noise = (lambda :0)
+        else: self.add_noise=(lambda:stats.norm(0,np.sqrt(noise)).rvs(1)[0])
+
+        self.calc=(lambda x,noise=True: self.func(x,self.params) + noise*self.add_noise()) # apply `self.func` to passed variable values `x` with true params `self.params`
 
     def blank_copy(self) -> "GeneralLinearModel":
         temp_params=[1 for _ in range(self.n_params)]
