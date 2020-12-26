@@ -14,10 +14,13 @@ class Model():
         self.n_params=None # number of parameters
         self.n_vars= None # number of variables
         self.params=None # [float] of parameter values
+        self.var_sample_vals=None # variable values to use for sampling
 
     def blank_copy(self) -> "Model":
+        """
+        Create a copy of the model but with "blank" parameter values
+        """
         raise Exception("`blank_copy` not implemented")
-        return Model()
 
     def calc(self,x:[float],noise=True) -> float:
         """
@@ -91,13 +94,24 @@ class Model():
 
         return ax
 
+    def sample(self) -> [float]:
+        """
+        DESCRIPTION
+        return a sequence of observations from the model. Same result returned everytime this is called
+
+        RETURNS
+        [float] - sequence of observations
+        """
+        return [self.calc(x) for x in self.var_sample_vals]
+
 class LinearModel(Model):
 
-    def __init__(self,n:int,params:[float],var_names=None,noise=0):
+    def __init__(self,n:int,params:[float],var_sample_vals:[[float]],var_names=None,noise=0):
         """
         REQUIRED
         n (int):          number of model parameters
         params ([float]): value for model parameters
+        var_sample_vals ([[float]]): variable to use in `sample`
 
         OPTIONAL
         var_names ([str]): names of variables, excluding bias (for printing only)
@@ -109,6 +123,10 @@ class LinearModel(Model):
         self.n_params=n
         self.n_vars=n-1
         self.params=[float(p) for p in params]
+
+        for x in var_sample_vals:
+            if (len(x)!=self.n_vars): raise Exception("Invalid `var_sample_vals`. Must be list of lists of floats, each sublist of length n_params({})".format(self.n_params))
+        self.var_sample_vals=var_sample_vals
 
         self.var_names=var_names
         if (var_names):
@@ -141,7 +159,7 @@ class LinearModel(Model):
 
     def blank_copy(self) -> "LinearModel":
         temp_params=[1 for _ in range(self.n_params)]
-        return LinearModel(self.n_params,temp_params,self.var_names)
+        return LinearModel(self.n_params,temp_params,self.var_sample_vals,var_names=self.var_names)
 
     def __str__(self):
         """
@@ -162,10 +180,11 @@ class LinearModel(Model):
 
 class ExponentialModel(Model):
 
-    def __init__(self,params:[float],var_names=None,noise=0):
+    def __init__(self,params:[float],var_sample_vals:[[float]],var_names=None,noise=0):
         """
         REQUIRED
         params ([float]): value for model parameters
+        var_sample_vals ([[float]]): variable to use in `sample`
 
         OPTIONAL
         var_names ([str]): names of parameters, excluding bias (for printing only)
@@ -178,6 +197,10 @@ class ExponentialModel(Model):
             raise Exception("Wrong number of parameters provided. (len(params)!=2)")
 
         self.params=[float(p) for p in params]
+
+        for x in var_sample_vals:
+            if (len(x)!=self.n_vars): raise Exception("Invalid `var_sample_vals`. Must be list of lists of floats, each sublist of length n_params({})".format(self.n_params))
+        self.var_sample_vals=var_sample_vals
 
         if (var_names):
             if not (type(var_names)==list and len(var_names)==1 and type(var_names[0])==str):
@@ -208,7 +231,7 @@ class ExponentialModel(Model):
 
     def blank_copy(self) -> "ExponentialModel":
         temp_params=[1 for _ in range(self.n_params)]
-        return ExponentialModel(temp_params,self.var_names)
+        return ExponentialModel(temp_params,self.var_sample_vals,var_names=self.var_names)
 
     def __str__(self):
         """
@@ -221,13 +244,14 @@ class ExponentialModel(Model):
 
 class GeneralLinearModel(Model):
 
-    def __init__(self,n_params,n_vars,func,theta_star,var_names=None,noise=0):
+    def __init__(self,n_params:int,n_vars:int,func:"function",theta_star:[float],var_sample_vals:[[float]],var_names=None,noise=0):
         """
         REQUIRED
         n_params (int) - number of parameters in model
         n_vars (int) - number of vars in model
-        func (int) - model function
+        func (function) - model function
         theta_star ([float]): true model parameters
+        var_sample_vals ([[float]]): variable to use in `sample`
 
         OPTIONAL
         var_names ([string]): readable name for each variable (used for plots)
@@ -247,6 +271,10 @@ class GeneralLinearModel(Model):
         self.func= func
         self.params=theta_star
 
+        for x in var_sample_vals:
+            if (len(x)!=self.n_vars): raise Exception("Invalid `var_sample_vals`. Must be list of lists of floats, each sublist of length n_params({})".format(self.n_params))
+        self.var_sample_vals=var_sample_vals
+
         self.noise=noise
         if (noise==0): self.add_noise = (lambda :0)
         else: self.add_noise=(lambda:stats.norm(0,np.sqrt(noise)).rvs(1)[0])
@@ -255,12 +283,20 @@ class GeneralLinearModel(Model):
 
     def blank_copy(self) -> "GeneralLinearModel":
         temp_params=[1 for _ in range(self.n_params)]
-        return GeneralLinearModel(self.n_params,self.n_vars,self.func,temp_params)
+        return GeneralLinearModel(self.n_params,self.n_vars,self.func,temp_params,self.var_sample_vals,var_names=self.var_names)
 
 class ManyModels():
 
-    def __init__(self,n_vars:int,n_models:int,models:["Models"]):
+    def __init__(self,n_vars:int,n_models:int,models:["Models"],var_sample_vals:[[float]]):
+        """
+        REQUIRED
+        n_vars (int) - Number of variables each model has (all models must have the same).
+        n_models (int) - Number of models
+        models ([Model]) - Models in group
+        var_sample_vals ([[float]]): variable to use in `sample`
 
+        OPTIONAL
+        """
         if (len(models)!=n_models): raise Exception("Incorect number of models passed (len(models)!=n_models)!")
         for (i,model) in enumerate(models):
             if (type(model) not in [LinearModel,ExponentialModel,GeneralLinearModel]): raise Exception("Not all objects in `models` are Models.")
@@ -269,6 +305,10 @@ class ManyModels():
         self.n_vars=n_vars
         self.n_models=n_models
         self.models=models
+
+        for x in var_sample_vals:
+            if (len(x)!=self.n_vars): raise Exception("Invalid `var_sample_vals`. Must be list of lists of floats, each sublist of length n_params({})".format(self.n_params))
+        self.var_sample_vals=var_sample_vals
 
     def blank_copy(self) -> "ManyModels":
         blank_models=[model.blank_copy() for model in self.models]
@@ -289,6 +329,9 @@ class ManyModels():
 
         plt.get_current_fig_manager().window.state("zoomed")
         plt.show()
+
+    def calc(self,x:[float],noise=True) -> [float]:
+        return [model.calc(x,noise) for model in self.models]
 
     def __str__(self):
         print_str="{} models each with {} variables.\nTrue Models\n".format(self.n_vars,self.n_models)
