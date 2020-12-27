@@ -1,7 +1,7 @@
 \documentclass[11pt,a4paper]{article}
 
 \usepackage[margin=1in, paperwidth=8.3in, paperheight=11.7in]{geometry}
-\usepackage{amsmath,amsfonts,fancyhdr,bbm,graphicx,tikz}
+\usepackage{amsmath,amsfonts,fancyhdr,bbm,graphicx,tikz,url}
 \usetikzlibrary{automata,positioning}
 \graphicspath{ {img/} }
 \usepackage[section,nohyphen]{DomH}
@@ -193,7 +193,7 @@
 
 \subsection*{Bayesian Sufficiency}
 
-  \begin{definition}{Bayesian Sufficiency\footnote{https://en.wikipedia.org/wiki/Sufficient_statistic\#Bayesian_sufficiency}}
+  \begin{definition}{Bayesian Sufficiency\footnote{\url{https://en.wikipedia.org/wiki/Sufficient_statistic}}}
     In a Bayesian Setting, a summary statistic $T(X)$ of $X\sim f(\cdot;\theta)$ is sufficient if for (almost) all $x\in X$
     \[ \prob(\theta|X=x)=\prob(\theta|T(X)=T(x)) \]
     ie the posterior for $\theta$ given the true model $X$ is the same as the posterior for $\theta$ given the summary statistic $T(X)$ (for almost all $x\in X$).
@@ -224,7 +224,7 @@
 
   \begin{definition}{$\epsilon$-Approximate Sufficiency \textsuperscript{$\ref{fn_ASSaBC}$}}
     Let $\{T_1,\dots,T_n\}$ be a set of summary statistics for parameter $\theta$ and $T_{n+1}$ be a statistic which we consider adding to the set.
-    \par The set $\{T_1,\dots,T_n\}$ is \textit{$\epsilon$-Sufficient} to the new statistic $T_{n+1}$, if the score of $T_{n+1}$ relative to $\{T_1,\dots,T_n\}$ is no-greater than some $\epislon$
+    \par The set $\{T_1,\dots,T_n\}$ is \textit{$\epsilon$-Sufficient} to the new statistic $T_{n+1}$, if the score of $T_{n+1}$ relative to $\{T_1,\dots,T_n\}$ is no-greater than some $\epsilon$
     \[ \delta_{n+1}\leq\epsilon \]
     If $T_{n+1}=\X$, the whole data set and $\epsilon=0$ then this is the same as the definition for sufficiency.
   \end{definition}
