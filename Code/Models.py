@@ -1,341 +1,347 @@
-"""
-TODO
-- add noise
-- Assess fit of two models
-"""
-from math import exp
-from matplotlib import pyplot as plt
-from scipy import stats
+import matplotlib.pyplot as plt
 import numpy as np
+from scipy import stats
 
 class Model():
 
     def __init__(self):
-        self.n_params=None # number of parameters
-        self.n_vars= None # number of variables
-        self.params=None # [float] of parameter values
-        self.var_sample_vals=None # variable values to use for sampling
-
-    def blank_copy(self) -> "Model":
         """
-        Create a copy of the model but with "blank" parameter values
+        DESCRIPTION
+        generative models which I shall perform Approximate Bayesian Computation on.
         """
-        raise Exception("`blank_copy` not implemented")
+        raise NotImplementedError
 
-    def calc(self,x:[float],noise=True) -> float:
+        # all models have the following
+        self.n_params=int # number of parameters
+        self.params=list(float) # parameter values
+
+        self.n_obs=int # number of observations made by `observe`
+        self.dim_obs=int # dimension of each observation
+
+        self.noise=float # variance of additive gaussian noise (default=0)
+
+    def update_params(self,new_params:[float]):
         """
-        Calculate value of response variable, given values of the predictor variables x
+        DESCRIPTION
+        update the parameters of the model. the observations for `observe` need to be recalculated
 
-        PARAMS
-        x ([float]) - Values of predictor variables
-        noise (bool) - Whether to include gaussian noise in plot (default=False)
+        PARAMETERS
+        new_paramas ([float]) - new parameter values
+        """
+        raise NotImplementedError
+
+    def observe(self) -> [[float]]:
+        """
+        DESCRIPTION
+        generate a sequence of `n_obs` observations from the model, each of dimension `dim_obs`.
+        The same sequence is returned each time this function is called.
+        sequence is ordered by `x_obs` so is best for `x_obs` to provide a useful ordering.
+
+        PARAMETERS
+        None
 
         RETURNS
-        float: value of response variable
+        [[float]] - sequence of observations
         """
-        raise Exception("`calc` method not implemented.")
+        raise NotImplementedError
 
-    def plot(self,ax=None,var_ranges=None,noise=False) -> plt.Axes:
+    def copy(self,new_params:[float]) -> "Model":
         """
-        Plot model
+        DESCRIPTION
+        create a copy of the model with new parameter values
 
-        PARAMS
-        ax (plt.Axes) - Axis to plot on (default=None) (if None then will perform plt.show())
-        var_ranges ([(float,float)]) - Range of values for variables, to plot within (default=None)
-        noise (bool) - Whether to include gaussian noise in plot (default=False)
+        PARAMETERS
+        new_params ([float]) - new parameter values
 
         RETURNS
-        plt.Axes - axis which plot was made on
+        Model - New copy, with stated parameter values
         """
+        raise NotImplementedError
+
+    def plot_obs(self):
+        """
+        DESCRIPTION
+        generate plots of observations returned by `observe`. There is a different plot for each dimension.
+
+        PARAMETERS
+        None
+
+        RETURNS
+        None
+        """
+        fig=plt.figure()
+        plt.subplots_adjust(left=.05,right=.95,bottom=.05,top=.95)
+
+        x=list(range(self.n_obs))
+        y_obs=self.observe()
+
+        for i in range(self.dim_obs):
+            y_obs_dim=[y[i] for y in y_obs]
+            ax=fig.add_subplot(1,self.dim_obs,i+1)
+            ax.set_title("Dim {}".format(i+1))
+            ax.scatter(x,y_obs_dim)
+
+        plt.show()
+
+    def plot_obs_dim(self,dim:int,ax=None) -> plt.Axes:
+        """
+        DESCRIPTION
+        Plot results of specific dimension of the observations from `observe`.
+
+        PARAMETERS
+        dim (int) - dimension you wish to plot.
+        ax (plt.Axes) - Axes to make plot on (optional).
+
+        RETURNS
+        plt.Axes - axes containing new plot
+        """
+        if (type(dim)!=int): raise TypeError("`dim` must be an interger (not {})".format(type(dim)))
+        if (dim<0 or dim>=self.dim_obs): raise ValueError("`dim` is out of range (exp in [0,{}])".format(self.dim_obs-1))
+
         show=False
-        if (self.n_vars<1 or self.n_vars>2): raise Exception("Only plot models with 1 or 2 variables.")
         if (not ax):
-            ax=plt.axes() if (self.n_vars==1) else plt.axes(projection="3d")
+            ax=plt.axes()
             show=True
 
-        # prepare variable ranges
-        if not (var_ranges):
-            var_ranges=[]
-            for i in range(self.n_vars):
-                var_ranges.append((0,1))
-        elif (len(var_ranges)!=self.n_vars): raise Exception("Must define ranges for all variables.")
-        else:
-            for r in var_ranges:
-                if (r[1]<r[0]): raise Exception("Invalid range in var_ranges.")
+        x=list(range(self.n_obs))
+        y_obs=self.observe()
 
-        # plots
-        if (self.n_vars==1):
-            xs=np.linspace(var_ranges[0][0],var_ranges[0][1],100)
-            ys=[self.calc([x],noise) for x in xs]
-
-            if (noise==False): ax.plot(xs,ys)
-            else: ax.scatter(xs,ys)
-
-            ax.set_title(self.__str__())
-            ax.set_xlabel(self.var_names[0])
-            ax.set_ylabel("Response")
-
-        elif (self.n_vars==2):
-            x1s=np.linspace(var_ranges[0][0],var_ranges[0][1],100)
-            x2s=np.linspace(var_ranges[1][0],var_ranges[1][1],100)
-            X1,X2=np.meshgrid(x1s,x2s)
-
-            Z=[[self.calc([x1,x2],noise) for x2 in x2s] for x1 in x1s]
-            Z=np.array(Z)
-
-            if (noise==False): ax.plot_surface(X1,X2,Z,cmap="viridis", edgecolor="none")
-            else: ax.scatter(X1,X2,Z,cmap="viridis",edgecolor="none")
-
-            ax.set_title(self.__str__())
-            ax.set_xlabel(self.var_names[0])
-            ax.set_ylabel(self.var_names[1])
+        y_obs_dim=[y[dim] for y in y_obs]
+        ax.set_title("Dim {}".format(dim+1))
+        ax.scatter(x,y_obs_dim)
 
         if (show): plt.show()
 
         return ax
 
-    def sample(self) -> [float]:
+class LinearModel(Model): # a+bx+cy+...
+
+    def __init__(self,n_params:int,params:[float],n_vars:int,n_obs:int,x_obs:[[float]],noise=None):
         """
         DESCRIPTION
-        return a sequence of observations from the model. Same result returned everytime this is called
 
-        RETURNS
-        [float] - sequence of observations
-        """
-        return [self.calc(x) for x in self.var_sample_vals]
+        PARAMETERS
+        n_params (int) - number of parameters in model.
+        params ([float]) - parameters of the model
+        n_vars (int) - number of varaibles in model.
+        n_obs (int) - number of observations generated by `observe()`
+        x_obs ([[float]]) - variable values used in observations (dim = n_obs*n_vars)
 
-class LinearModel(Model):
-
-    def __init__(self,n:int,params:[float],var_sample_vals:[[float]],var_names=None,noise=0):
-        """
-        REQUIRED
-        n (int):          number of model parameters
-        params ([float]): value for model parameters
-        var_sample_vals ([[float]]): variable to use in `sample`
-
-        OPTIONAL
-        var_names ([str]): names of variables, excluding bias (for printing only)
-        noise (float):    variance of additive gaussian noise ~ N(0,noise) (default=0)
-        """
-        if (n!=len(params)):
-            raise Exception("Wrong number of parameters provided. (n!=len(params))")
-
-        self.n_params=n
-        self.n_vars=n-1
-        self.params=[float(p) for p in params]
-
-        for x in var_sample_vals:
-            if (len(x)!=self.n_vars): raise Exception("Invalid `var_sample_vals`. Must be list of lists of floats, each sublist of length n_params({})".format(self.n_params))
-        self.var_sample_vals=var_sample_vals
-
-        self.var_names=var_names
-        if (var_names):
-            if not (type(var_names)==list and len(var_names)==n-1 and type(var_names[0])==str):
-                raise Exception("Invalid `var_names`. Must be list of strings of length n-1({}).".format(n-1))
-            self.var_names=var_names
-        else:
-            self.var_names=["X{}".format(i) for i in range(n-1)]
-
-        self.noise=noise
-        if (noise==0): self.add_noise=(lambda : 0)
-        else: self.add_noise=(lambda:stats.norm(0,np.sqrt(noise)).rvs(1)[0])
-
-    def calc(self,x:[float],noise=True) -> float:
-        """
-        Calculate value of response variable, given values of the predictor variables x
-
-        PARAMS
-        x ([float]) - Values of predictor variables
-        noise (bool) - Whether to add additive gaussian noise to returned value (don't want to when plotting true model)
-
-        RETURNS
-        float: value of response variable
-        """
-        if (len(x)!=self.n_vars): return None
-        y=self.params[0]+sum([x[i]*self.params[i+1] for i in range(self.n_vars)])
-        if (noise): y+=self.add_noise()
-
-        return y
-
-    def blank_copy(self) -> "LinearModel":
-        temp_params=[1 for _ in range(self.n_params)]
-        return LinearModel(self.n_params,temp_params,self.var_sample_vals,var_names=self.var_names)
-
-    def __str__(self):
-        """
-        print model
-        """
-        print_str=""
-        if (self.params[0]!=0):
-            print_str="{:.5f}".format(self.params[0])
-        for i in range(1,self.n_params):
-            if (self.params[i]!=0):
-                sign=self.params[i]/abs(self.params[i])
-                print_str+="-" if (sign==-1) else "+"
-                print_str+="{:.5f}*{}".format(abs(self.params[i]),self.var_names[i-1])
-
-        if (self.noise!=0):
-            print_str+=" + N(0,{})".format(self.noise)
-        return print_str
-
-class ExponentialModel(Model):
-
-    def __init__(self,params:[float],var_sample_vals:[[float]],var_names=None,noise=0):
-        """
-        REQUIRED
-        params ([float]): value for model parameters
-        var_sample_vals ([[float]]): variable to use in `sample`
-
-        OPTIONAL
-        var_names ([str]): names of parameters, excluding bias (for printing only)
-        noise (float):    variance of additive gaussian noise ~ N(0,noise) (default=0)
-        """
-        self.n_params=2
-        self.n_vars=1
-
-        if (len(params)!=2):
-            raise Exception("Wrong number of parameters provided. (len(params)!=2)")
-
-        self.params=[float(p) for p in params]
-
-        for x in var_sample_vals:
-            if (len(x)!=self.n_vars): raise Exception("Invalid `var_sample_vals`. Must be list of lists of floats, each sublist of length n_params({})".format(self.n_params))
-        self.var_sample_vals=var_sample_vals
-
-        if (var_names):
-            if not (type(var_names)==list and len(var_names)==1 and type(var_names[0])==str):
-                raise Exception("Invalid `var_names`. Must be list of strings of length 1.")
-            self.var_names=var_names
-        else:
-            self.var_names=["X{}".format(i) for i in range(1)]
-
-        self.noise=noise
-        if (noise==0): self.add_noise=(lambda:0)
-        else: self.add_noise=(lambda:stats.norm(0,np.sqrt(noise)).rvs(1)[0])
-
-    def calc(self,x:[float],noise=True) -> float:
-        """
-        Calculate value of response variable, given values of the predictor variables x
-
-        PARAMS
-        x ([float]) - Values of predictor variables
-        noise (bool) - Whether to add additive gaussian noise to returned value (don't want to when plotting true model)
-
-        RETURNS
-        float: value of response variable
-        """
-        y=self.params[0]*exp(x[0]*self.params[1])
-        if (noise): y+=self.add_noise()
-
-        return y
-
-    def blank_copy(self) -> "ExponentialModel":
-        temp_params=[1 for _ in range(self.n_params)]
-        return ExponentialModel(temp_params,self.var_sample_vals,var_names=self.var_names)
-
-    def __str__(self):
-        """
-        print model
-        """
-        print_str="{:.5f}*exp({:.5f}*{})".format(self.params[0],self.params[1],self.var_names[0])
-        if (self.noise!=0):
-            print_str+=" + N(0,{})".format(self.noise)
-        return print_str
-
-class GeneralLinearModel(Model):
-
-    def __init__(self,n_params:int,n_vars:int,func:"function",theta_star:[float],var_sample_vals:[[float]],var_names=None,noise=0):
-        """
-        REQUIRED
-        n_params (int) - number of parameters in model
-        n_vars (int) - number of vars in model
-        func (function) - model function
-        theta_star ([float]): true model parameters
-        var_sample_vals ([[float]]): variable to use in `sample`
-
-        OPTIONAL
-        var_names ([string]): readable name for each variable (used for plots)
-        noise (float):    variance of additive gaussian noise ~ N(0,noise) (default=0)
+        OPTIONAL PARAMETERS
+        noise - variance of additive gaussian noise (default=None)
         """
 
-        if (n_params!=len(theta_star)): raise Exception("Incorrect number of parameters provided `(n_params!=len(theta_star))`")
-        if (var_names):
-            if not (type(var_names)==list and len(var_names)==1 and type(var_names[0])==str):
-                raise Exception("Invalid `var_names`. Must be list of strings of length n_vars({}).".format(n_vars))
-            self.var_names=var_names
-        else:
-            self.var_names=["X{}".format(i) for i in range(1)]
+        # valid inputs
+        if not all([type(x)==int for x in [n_params,n_vars,n_obs]]): raise TypeError("n_params,n_vars,n_obs should all be integers.")
+        if not all([x>=0 for x in [n_params,n_vars,n_obs]]): raise ValueError("n_params,n_vars,n_obs should all be >=0.")
+        if (len(params)!=n_params): raise ValueError("Incorrect number of parameters passed. len(params)!=n_params.")
+        if (n_vars+1!=n_params): raise ValueError("Expected one more parameter than variable.")
+        if (len(x_obs)!=n_obs): raise ValueError("Inccorect number of observation points given. len(x_obs)!=n_obs.")
+        if not all([len(x_obs_i)==n_vars for x_obs_i in x_obs]): raise TypeError("All elements of x_obs should have dimension n_vars ({})".formt(n_vars))
+        if (noise) and (noise<0): raise ValueError("`noise` must be non-negative.")
 
+        # specify model
         self.n_params=n_params
-        self.n_vars  =n_vars
-        self.func= func
-        self.params=theta_star
-
-        for x in var_sample_vals:
-            if (len(x)!=self.n_vars): raise Exception("Invalid `var_sample_vals`. Must be list of lists of floats, each sublist of length n_params({})".format(self.n_params))
-        self.var_sample_vals=var_sample_vals
-
-        self.noise=noise
-        if (noise==0): self.add_noise = (lambda :0)
-        else: self.add_noise=(lambda:stats.norm(0,np.sqrt(noise)).rvs(1)[0])
-
-        self.calc=(lambda x,noise=True: self.func(x,self.params) + noise*self.add_noise()) # apply `self.func` to passed variable values `x` with true params `self.params`
-
-    def blank_copy(self) -> "GeneralLinearModel":
-        temp_params=[1 for _ in range(self.n_params)]
-        return GeneralLinearModel(self.n_params,self.n_vars,self.func,temp_params,self.var_sample_vals,var_names=self.var_names)
-
-class ManyModels():
-
-    def __init__(self,n_vars:int,n_models:int,models:["Models"],var_sample_vals:[[float]]):
-        """
-        REQUIRED
-        n_vars (int) - Number of variables each model has (all models must have the same).
-        n_models (int) - Number of models
-        models ([Model]) - Models in group
-        var_sample_vals ([[float]]): variable to use in `sample`
-
-        OPTIONAL
-        """
-        if (len(models)!=n_models): raise Exception("Incorect number of models passed (len(models)!=n_models)!")
-        for (i,model) in enumerate(models):
-            if (type(model) not in [LinearModel,ExponentialModel,GeneralLinearModel]): raise Exception("Not all objects in `models` are Models.")
-            if (model.n_vars!=n_vars): raise Exception("Model {} does not have {} variable(s) (act={})".format(i,n_vars,model.n_vars))
-
+        self.params=params
         self.n_vars=n_vars
-        self.n_models=n_models
-        self.models=models
+        self.n_obs=n_obs
+        self.x_obs=x_obs
+        self.dim_obs=1
 
-        for x in var_sample_vals:
-            if (len(x)!=self.n_vars): raise Exception("Invalid `var_sample_vals`. Must be list of lists of floats, each sublist of length n_params({})".format(self.n_params))
-        self.var_sample_vals=var_sample_vals
+        self.noise_var=noise if (noise) else 0
+        self.add_noise=(lambda : stats.norm(0,np.sqrt(self.noise_var)).rvs(1)[0])
 
-    def blank_copy(self) -> "ManyModels":
-        blank_models=[model.blank_copy() for model in self.models]
-        return ManyModels(self.n_vars,self.n_models,blank_models)
+        # observations
+        self.observations=[self.__calc(x) for x in self.x_obs]
 
-    def plot(self,var_ranges=None,noise=False):
+    def update_params(self,new_params):
+        """
+        DESCRIPTION
+        update the parameters of the model. the observations for `observe` need to be recalculated
 
-        if (self.n_vars<1 or self.n_vars>2): raise Exception("Only plot models with 1 or 2 variables.")
+        PARAMETERS
+        new_paramas ([float]) - new parameter values
+        """
+        if (len(new_params)!=self.n_params): raise ValueError("Incorrect number of parameters passed. len(params)!=n_params.")
 
-        fig=plt.figure()
-        plt.subplots_adjust(left=.05,right=.95,bottom=.05,top=.95)
-        projection=None if (self.n_vars==1) else "3d"
+        self.params=new_params
+        # update observations observations
+        self.observations=[self.__calc(x) for x in self.x_obs]
 
-        for (i,model) in enumerate(self.models):
-            ax=fig.add_subplot(1,self.n_models,i+1,projection=projection)
-            ax.set_title("Model {}".format(i))
-            model.plot(ax=ax,var_ranges=var_ranges,noise=noise)
+    def observe(self) -> [[float]]:
+        """
+        DESCRIPTION
+        generate a sequence of `n_obs` observations from the model, each of dimension `dim_obs`.
+        The same sequence is returned each time this function is called/
 
-        plt.get_current_fig_manager().window.state("zoomed")
-        plt.show()
+        PARAMETERS
+        None
 
-    def calc(self,x:[float],noise=True) -> [float]:
-        return [model.calc(x,noise) for model in self.models]
+        Returns
+        [[float]] - sequence of observations (For LinearModel each observation is a 1d list)
+        """
+        return self.observations
+
+    def __calc(self,x:[float],inc_noise=True) -> [float]:
+        """
+        DESCRIPTION
+        calculate the value of an observation at a specific point `x` in the varaible space.
+
+        PARAMETERS
+        x ([float]) - point to observe model at (len(x)=n_vars)
+
+        OPTIONAL PARAMETERS
+        inc_noise (bool) - whether to include noise in calculation (default=True)
+
+        Returns
+        [[float]] - value of model at observed point (for LinearModel this is a 1d list)
+        """
+        # valid x is in the model's variable space
+        if (type(x)!=list): raise TypeError("`x` must be a `list` (not `{}`)".format(type(x)))
+        if (len(x)!=self.n_vars): raise TypeError("`x` is of wrong dimension (Exp={})".format(len(x)))
+
+        # calculate value
+        y=self.params[0]
+        for (x,param) in zip(x,self.params[1:]):
+            y+=param*x
+        if (inc_noise): y+=self.add_noise()
+        return [y]
+
+    def copy(self,new_params:[float]) -> "LinearModel":
+        """
+        DESCRIPTION
+        create a copy of the model with new parameter values.
+        does NOT copy noise over
+
+        PARAMETERS
+        new_params ([float]) - new parameter values
+
+        RETURNS
+        LinearModel - New copy, with stated parameter values
+        """
+
+        if (type(new_params)!=list): raise TypeError("`new_params` shoud be a list (not {})".format(type(new_params)))
+        if (len(new_params)!=self.n_params): raise TypeError("`new_params` shoud of length `n_params` ({})".format(self.n_params))
+
+        new_model=LinearModel(self.n_params,new_params,self.n_vars,self.n_obs,self.x_obs)
+        return new_model
 
     def __str__(self):
-        print_str="{} models each with {} variables.\nTrue Models\n".format(self.n_vars,self.n_models)
-        for (i,model) in enumerate(self.models):
-            print_str+="({})\t{}".format(i,str(model))
-            if (i<self.n_models):print_str+="\n"
+        print_str="{:.3f}".format(self.params[0])
+        for (i,p) in enumerate(self.params[1:]):
+            if (p<0): print_str+="{:.3f}*x{:.3f}".format(p,i)
+            elif (p>0): print_str+="+{:.3f}*x{}".format(p,i)
+
+        if (self.noise_var!=0): print_str+="+N(0,{:.3f})".format(self.noise_var)
         return print_str
+
+class ExponentialModel(Model): # ae^{xb}
+
+    def __init__(self,params:[float],n_obs:int,x_obs:[[float]],noise=None):
+        """
+        DESCRIPTION
+
+        PARAMETERS
+        n_params (int) - number of parameters in model.
+        params ([float]) - parameters of the model
+        n_obs (int) - number of observations generated by `observe()`
+        x_obs ([[float]]) - variable values used in observations (dim = n_obs*n_vars)
+
+        OPTIONAL PARAMETERS
+        noise - variance of additive gaussian noise (default=None)
+        """
+
+        # valid inputs
+        if not all([type(x)==int for x in [n_obs]]): raise TypeError("n_obs should all be integers.")
+        if not all([x>=0 for x in [n_obs]]): raise ValueError("n_obs should all be >=0.")
+        if (len(params)!=2): raise ValueError("Incorrect number of parameters passed. len(params)!=2.")
+        if (len(x_obs)!=n_obs): raise ValueError("Inccorect number of observation points given. len(x_obs)!=n_obs.")
+        if not all([len(x_obs_i)==1 for x_obs_i in x_obs]): raise TypeError("All elements of x_obs should have dimension n_vars ({})".formt(1))
+
+        # specify model
+        self.n_params=2
+        self.params=params
+        self.n_vars=1
+        self.n_obs=n_obs
+        self.x_obs=x_obs
+        self.dim_obs=1
+
+        self.noise_var=noise if (noise) else 0
+        self.add_noise=(lambda : stats.norm(0,np.sqrt(self.noise_var)).rvs(1)[0])
+
+        # observations (ensure same noise each time `observe is called`)
+        self.observations=[self.__calc(x) for x in x_obs]
+
+    def update_params(self,new_params):
+        """
+        DESCRIPTION
+        update the parameters of the model. the observations for `observe` need to be recalculated
+
+        PARAMETERS
+        new_paramas ([float]) - new parameter values
+        """
+        if (len(new_params)!=self.n_params): raise ValueError("Incorrect number of parameters passed. len(params)!=n_params.")
+
+        self.params=new_params
+        # update observations observations
+        self.observations=[self.__calc(x) for x in self.x_obs]
+
+    def observe(self) -> [[float]]:
+        """
+        DESCRIPTION
+        generate a sequence of `n_obs` observations from the model, each of dimension `dim_obs`.
+        The same sequence is returned each time this function is called/
+
+        PARAMETERS
+        None
+
+        Returns
+        [[float]] - sequence of observations (For LinearModel each observation is a 1d list)
+        """
+        return self.observations
+
+    def __calc(self,x:[float],inc_noise=True) -> [float]:
+        """
+        DESCRIPTION
+        calculate the value of an observation at a specific point `x` in the varaible space.
+
+        PARAMETERS
+        inc_noise (bool) - whether to include noise in calculation (default=True)
+
+        OPTIONAL PARAMETERS
+        inc_noise (bool) -
+
+        Returns
+        [[float]] - value of model at observed point (for ExponentialModel this is a 1d list)
+        """
+        # valid x is in the model's variable space
+        if (type(x)!=list): raise TypeError("`x` must be a `list` (not `{}`)".format(type(x)))
+        if (len(x)!=self.n_vars): raise TypeError("`x` is of wrong dimension (Exp={})".format(len(x)))
+
+        # calculate value
+        y=[self.params[0]+np.exp(x[0]*self.params[1])]
+        if (inc_noise): y+=self.add_noise()
+        return y
+
+    def copy(self,new_params:[float]) -> "ExponentialModel":
+        """
+        DESCRIPTION
+        create a copy of the model with new parameter values
+
+        PARAMETERS
+        new_params ([float]) - new parameter values
+
+        RETURNS
+        ExponentialModel - New copy, with stated parameter values
+        """
+
+        if (type(new_params)!=list): raise TypeError("`new_params` shoud be a list (not {})".format(type(new_params)))
+        if (len(new_params)!=self.n_params): raise TypeError("`new_params` shoud of length `n_params` ({})".format(self.n_params))
+
+        new_model=ExponentialModel(new_params,self.n_obs,self.x_obs)
+        return new_model
+
+    def __str__(self):
+        printing_str="{:.3f}*e^({:.3f}x)".format(self.params[0],self.params[1])
+        if (self.noise_var!=0): printing_str+="+N(0,{:.3f})".format(self.noise_var)
+        return printing_str

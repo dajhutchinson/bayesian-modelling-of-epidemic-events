@@ -18,9 +18,9 @@ Functions
 ## `sampling_details`
 There are a few options for different sampling methods to use. The details are defined in a `dict` with the following keys
  - `sampling_method` = "best_samples". Use the best `sample_size` samples from a larger set of `num_runs`. Need to define the follow
-   - `sample_size` = Number of samples to keep.
    - `num_runs` = Total of samples to make.
+   - `sample_size` = Number of samples to keep.
  - `sampling_method` = "fixed_number". Sample until a sufficient number of samples are found which are close to observations
    - `sample_size` = Desired number of samples.
-   - `epsilon` = How close a sample needs to be to an observation to be accepted. This is used as an argument to the `uniform_kernel` function.
-   - `kernel` = A function which implements the kernel you wish to use. (Available kernels inc ABC.uniform_kernel,ABC.epanechnikov_kernel,ABC.gaussian_kernel)
+   - `scaling_factor` = How close a sample needs to be to an observation to be accepted. This is used as an argument to the `uniform_kernel` function.
+   - `kernel_func` = A function which implements the kernel you wish to use. (Available kernels inc ABC.uniform_kernel,ABC.epanechnikov_kernel,ABC.gaussian_kernel)
