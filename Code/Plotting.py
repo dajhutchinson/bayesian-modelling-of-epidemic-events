@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy import stats
 
 def plot_accepted_observations(ax:plt.Axes,n_obs:int,y_obs:[float],accepted_observations:[[float]]) -> plt.Axes:
     """
@@ -26,9 +27,16 @@ def plot_accepted_observations(ax:plt.Axes,n_obs:int,y_obs:[float],accepted_obse
     return ax
 
 def plot_parameter_posterior(ax:plt.Axes,name:str,accepted_parameter:[float],predicted_val:float,prior:"stats.Distribution") -> plt.Axes:
-    ax.hist(accepted_parameter,density=True)
+    # plot prior used
     x=np.linspace(prior.ppf(.01),prior.ppf(.99),100)
-    ax.plot(x,prior.pdf(x), 'k-', lw=2, label='Prior')
+    ax.plot(x,prior.pdf(x),"k-",lw=2, label='Prior')
+
+    # plot accepted  points
+    ax.hist(accepted_parameter,density=True)
+
+    # plot smooth posterior (ie KDE)
+    density=stats.kde.gaussian_kde(accepted_parameter)
+    ax.plot(x,density(x),"--",lw=2,c="orange",label="Posterior KDE")
 
     ymax=ax.get_ylim()[1]
     ax.vlines(predicted_val,ymin=0,ymax=ymax,colors="orange",label="Prediction")
