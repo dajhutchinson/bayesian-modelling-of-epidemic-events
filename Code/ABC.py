@@ -56,7 +56,7 @@ def __sampling_stage_fixed_number(DESIRED_SAMPLE_SIZE:int,EPSILON:float,KERNEL:"
     DESIRED_SAMPLE_SIZE (int) - number of `good` samples to wait until
     EPSILON (int) - scale parameter for `KERNEL`
     KERNEL (func) - one of the kernels defined above. determine which parameters are good or not.
-    PRIORS ([stats.distribution]) - prior distribution for parameter values (one per parameter)
+    PRIORS ([stats.Distribution]) - prior distribution for parameter values (one per parameter)
     s_obs ([float]) - summary statistic values for observations from true model.
     summary_stat ([func]) - functions used to determine each summary statistic.
 
@@ -105,7 +105,7 @@ def __sampling_stage_best_samples(NUM_RUNS:int,SAMPLE_SIZE:int,PRIORS:["stats.Di
     PARAMETERS
     NUM_RUNS (int) - number of samples to make
     SAMPLE_SIZE (int) - The best n set of parameters to return
-    PRIORS ([stats.distribution]) - prior distribution for parameter values (one per parameter)
+    PRIORS ([stats.Distribution]) - prior distribution for parameter values (one per parameter)
     s_obs ([float]) - summary statistic values for observations from true model.
     summary_stat ([func]) - functions used to determine each summary statistic.
 
@@ -149,7 +149,7 @@ def __sampling_stage_best_samples(NUM_RUNS:int,SAMPLE_SIZE:int,PRIORS:["stats.Di
     ABC
 """
 
-def abc_rejcection(n_obs:int,y_obs:[[float]],fitting_model:Model,priors:["stats.distribution"],sampling_details:dict,summary_stats=None) -> Model:
+def abc_rejcection(n_obs:int,y_obs:[[float]],fitting_model:Model,priors:["stats.Distribution"],sampling_details:dict,summary_stats=None) -> Model:
     """
     DESCRIPTION
     Rejction Sampling version of Approximate Bayesian Computation for the generative models defined in `Models.py`.
@@ -158,7 +158,7 @@ def abc_rejcection(n_obs:int,y_obs:[[float]],fitting_model:Model,priors:["stats.
     n_obs (int) - Number of observations available.
     y_obs ([[float]]) - Observations from true model.
     fitting_model (Model) - Model the algorithm will aim to fit to observations.
-    priors (["stats.distribution"]) - Priors for the value of parameters of `fitting_model`.
+    priors (["stats.Distribution"]) - Priors for the value of parameters of `fitting_model`.
     sampling_details - specification of how sampling should be done (see README.md)
 
     OPTIONAL PARAMETERS
@@ -226,10 +226,10 @@ def abc_rejcection(n_obs:int,y_obs:[[float]],fitting_model:Model,priors:["stats.
     plt.get_current_fig_manager().window.state("zoomed")
     plt.show()
 
-    return fitting_model
+    return model_hat
 
 def abc_mcmc(n_obs:int,y_obs:[[float]],
-    fitting_model:Model,priors:["stats.distribution"],
+    fitting_model:Model,priors:["stats.Distribution"],
     chain_length:int,perturbance_kernels:"[function]",acceptance_kernel:"function",scaling_factor:float,
     summary_stats=None) -> Model:
     """
@@ -240,7 +240,7 @@ def abc_mcmc(n_obs:int,y_obs:[[float]],
     n_obs (int) - Number of observations available.
     y_obs ([[float]]) - Observations from true model.
     fitting_model (Model) - Model the algorithm will aim to fit to observations.
-    priors (["stats.distribution"]) - Priors for the value of parameters of `fitting_model`.
+    priors (["stats.Distribution"]) - Priors for the value of parameters of `fitting_model`.
     chain_length (int) - Length of markov chain to allow.
     perturbance_kernels ([function]) - Functions for varying parameters each monte-carlo steps.
     acceptance_kernel (function) - Function to determine whether to accept parameters
@@ -341,3 +341,4 @@ def abc_mcmc(n_obs:int,y_obs:[[float]],
             Plotting.plot_summary_stats(ax,name,accepted_s=accepted_vals,s_obs=s_obs[i],s_hat=s_hat[i])
 
     plt.show()
+    return model_hat

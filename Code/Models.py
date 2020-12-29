@@ -287,7 +287,7 @@ class ExponentialModel(Model): # ae^{xb}
         # update observations observations
         self.observations=[self.__calc(x) for x in self.x_obs]
 
-    def observe(self,noise=True) -> [[float]]:
+    def observe(self,inc_noise=True) -> [[float]]:
         """
         DESCRIPTION
         generate a sequence of `n_obs` observations from the model, each of dimension `dim_obs`.
@@ -299,7 +299,8 @@ class ExponentialModel(Model): # ae^{xb}
         Returns
         [[float]] - sequence of observations (For LinearModel each observation is a 1d list)
         """
-        return self.observations
+        if (inc_noise): return self.observations
+        return [self.__calc(x,False) for x in self.x_obs]
 
     def __calc(self,x:[float],inc_noise=True) -> [float]:
         """
