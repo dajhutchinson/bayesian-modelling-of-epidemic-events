@@ -76,7 +76,7 @@
 
 \section{ABC Algorithms}
 
-  \begin{proposition}{ABC Algorithm - Simple, Online}
+  \begin{proposition}{ABC Algorithm - Rejection}
     Consider the setup in \texttt{Proposition 1.2}. Here is a simple, online algorithm for ABC
     \begin{enumerate}
       \item Sample a set of parameters from the prior $\tilde{\pmb\theta}_t\sim\pi_0(\pmb\theta)$.
@@ -94,11 +94,11 @@
   \end{remark}
 
   \begin{proposition}{ABC Algorithm - SMC\cite{Delayed_Acceptance_ABC_SMC}\cite{youtube_ABC_intro}\cite{doi:10.1098/rsif.2008.0172}}
-    Consider the setup in \texttt{Proposition 1.2}. The idea behind \textit{Sequential Monte-Carlo} is to sequentially improve the prior $\pi_0(\pmb\theta)$ by calculating a new posterior after accepted a sufficient number of parameters/observations. Here is a \textit{Sequential Monte-Carlo} algorithm for ABC
+    Consider the setup in \texttt{Proposition 1.2}. Here is a \textit{Sequential Monte-Carlo} algorithm for ABC
     \begin{itemize}
-      \item \textit{Initialisation} - Choose a set of \textit{scaling parameters} $\epsilon$ which are increasingly tight\footnote{There are automatic methods where $\epsilon_{t+1}$ is calculated at the end of step $t$ st convergence is encouraged.}
+      \item \textit{Initialisation} - Choose a set of \textit{scaling parameters} $\{\epsilon_1,\dots,\epsilon_T\}$ which are increasingly tight\footnote{There are automatic methods where $\epsilon_{t+1}$ is calculated at the end of step $t$ st convergence is encouraged.}
       \[ \{\epsilon_1,\dots,\epsilon_T\}\text{ where }\epsilon_1>\dots>\epsilon_T\]
-      Set $N$ to be the number of sets of parameters to sample.
+      Set $N$ to be the number of sets of parameters to sample, choose some summary statistics $s(\cdot)$ and observe $y_{obs}$ from the true model.
       \item \textit{Initial Sampling Step} - $t=1$.\footnote{Here a set of possible parameters $\Theta_1$ is generated.}\footnote{It is possible for the same set of parameters to appear in $\Theta_t$ multiple times.}
       \begin{enumerate}
         \item Sample a set of parameters $\tilde{\pmb\theta}_{1,i}$\[ \tilde{\pmb\theta}_1\sim\pi_0(\pmb\theta) \]
@@ -106,7 +106,7 @@
         \[ \mathbf{y}_{1,i}\sim f_\mathcal{T}(\mathbf{y}|\tilde{\pmb\theta}_{1,i}) \]
         \item
         \begin{itemize}
-          \item[\textit{If}] $K_{\epsilon_1}(\|\mathbf{y}_{1,i}-\mathbf{y}_{obs}\|)$:\footnote{Sample parameters are accepted by the kernel.}
+          \item[\textit{If}] $K_{\epsilon_1}(\|s(\mathbf{y}_{1,i})-s(\mathbf{y}_{obs})\|)$:\footnote{Sample parameters are accepted by the kernel.}
           \begin{itemize}
             \item Store the sampled parameters $\tilde{\pmb\theta}_{1,i}$ in set $\Theta_1$.
             \item Set $w_{1,i}=\frac1N$ and increment $i$.
@@ -123,7 +123,7 @@
         \item \textit{If $\pmb\theta^*_{t,i}$ is impossible under the prior}:\footnote{ie $\pi_0(\pmb\theta^*_{t,i})=0$} return to i).
         \item Observe the theorised model $\mathcal{T}$ with these perturbed parameters
           \[ \mathbf{y}_{t,i}\sim f_\mathcal{T}(\mathbf{y}|\pmb\theta^*_{t,i}) \]
-        \item \textit{If \underline{not} }$K_{\epsilon_t}(\|\mathbf{y}_{t,i}-\mathbf{y}_{obs}\|)$:\footnote{ie the observation is reject by the kernel} return to i).
+        \item \textit{If \underline{not} }$K_{\epsilon_t}(\|s(\mathbf{y}_{t,i})-s(\mathbf{y}_{obs})\|)$:\footnote{ie the observation is reject by the kernel} return to i).
         \item Add $\pmb\theta_{t,i}^*$ to $\Theta_t$ and assign it weight $w_{t,i}$
         \[ \tilde{w}_{t,i}=\frac{\pi_0(\pmb\theta_{t,i}^*)}{\sum_{j=1}^Nw_{t-1,j}\prob(K_t(\theta|\tilde{\pmb\theta}_{t,i})=\pmb\theta_{t,i}^*)\footnotemark} \]
         \footnotetext{Weighted sum of the probability this set of parameters $\pmb\theta_{t,i}^*$ could have been observed under another one of the previous samples.}
@@ -134,6 +134,40 @@
       \end{enumerate}
     \end{itemize}
     Code for this can be found at \url{https://stats.stackexchange.com/a/328384}.
+  \end{proposition}
+
+  \begin{proposition}{ABC Algorithm - MCMC\cite{ABC_MCMC_Intro}}
+    Consider the setup in \texttt{Proposition 1.2}. Here is a \textit{Markov Chain Monte-Carlo} algorithm for \textit{ABC}
+    \begin{itemize}
+      \item \textit{Initialisation} - Observe $y_{obs}$ from the true model, choose some summary statistics $s(\cdot)$, define the length of the chain $N$\footnote{This is used for the termination condition, but other termination conditions are common. Most are based around spotting convergence.}, a theorised model $\mathacal{T}$ with pdf $f_\mathcal{T}(\cdot|\pmb\theta)$, define a prior for the priors $\pi_0(\pmb\theta)$ and a pertubance kernel $K^*(\cdot)$\footnote{e.g. Add some gaussian noise.}.
+      \item \textit{Starting Sample}
+      \begin{enumerate}
+        \item Sample $\tilde{\pmb\theta}_0\sim\pi(\pmb\theta)$.
+        \item Observe $y$ from the theorised model $\mathcal{T}$ using these sampled parameter $\pmb\theta_0$.
+        \[ y\sim f_\mathcal{T}(y|\tilde{\pmb\theta}_0) \]
+        \item
+        \begin{itemize}
+          \item[\textit{If}]$K_{\epsilon}(\|s(y)-s(y_{obs})\|)$: move to \textit{MCMC Step}.
+          \item[\textit{Else}]: return to i).
+        \end{itemize}
+      \end{enumerate}
+      \item \textit{MCMC Step}.
+      \begin{enumerate}
+        \item For $t\in[1,N]:$
+        \begin{enumerate}
+          \item Perturb the previous parameter value $\tilde{\pmb\theta}_{t-1}$ to get a new value $\pmb\theta^*$.
+          \[ \pmb\theta^*=K^*(\tilde{\pmb\theta}_{t-1}) \]
+          \item Observe $y$ from the theorised model $\mathcal{T}$ using these perturbed parameters $\pmb\theta^*$.
+          \[ y\sim f_\mathcal{T}(y|\tilde{\pmb\theta}_0) \]
+          \item
+          \begin{itemize}
+            \item[\textit{If}]$K_{\epsilon}(\|s(y)-s(y_{obs})\|)$: Set $\tilde{\pmb\theta}_t=\pmb\theta^*$.
+            \item[\textit{Else}]: Set $\tilde{\pmb\theta}_t=\tilde{\pmb\theta}_{t-1}$.
+          \end{itemize}
+        \end{enumerate}
+      \end{enumerate}
+      \item Produce a posterior from the accepted parameter values $\{\tilde{\pmb\theta}_0,\dots,\tilde{\pmb\theta}_N\}$
+    \end{itemize}
   \end{proposition}
 
 \section{Semi-Automatic ABC}
