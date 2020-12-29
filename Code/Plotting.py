@@ -1,8 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import stats
+from Models import Model
 
-def plot_accepted_observations(ax:plt.Axes,n_obs:int,y_obs:[float],accepted_observations:[[float]]) -> plt.Axes:
+def plot_accepted_observations(ax:plt.Axes,n_obs:int,y_obs:[[float]],accepted_observations:[[float]],predicted_model:Model) -> plt.Axes:
     """
     DESCRIPTION
 
@@ -19,16 +20,21 @@ def plot_accepted_observations(ax:plt.Axes,n_obs:int,y_obs:[float],accepted_obse
         ax.scatter(xs,obs,c="blue",alpha=.05,marker="x")
     ax.scatter(xs,y_obs,c="green",alpha=1,label="From Truth")
 
+    y_pred=predicted_model.observe(inc_noise=False)
+    ax.plot(xs,y_pred,c="orange",label="Pred")
+
     ax.set_title("Accepted Observations")
     ax.set_xticks([])
     ax.set_xticklabels([])
     ax.legend()
+    ax.margins(0)
 
     return ax
 
 def plot_parameter_posterior(ax:plt.Axes,name:str,accepted_parameter:[float],predicted_val:float,prior:"stats.Distribution") -> plt.Axes:
     # plot prior used
-    x=np.linspace(prior.ppf(.01),prior.ppf(.99),100)
+    x=np.linspace(min(accepted_parameter+[prior.ppf(.01)-1]),max(accepted_parameter+[prior.ppf(.99)+1]),100)
+    # x=np.linspace(prior.ppf(.01),prior.ppf(.99),100)
     ax.plot(x,prior.pdf(x),"k-",lw=2, label='Prior')
 
     # plot accepted  points
@@ -43,6 +49,7 @@ def plot_parameter_posterior(ax:plt.Axes,name:str,accepted_parameter:[float],pre
     ax.set_xlabel(name)
     ax.set_title("Posterior for {}".format(name))
     ax.legend()
+    ax.margins(0)
 
     return ax
 
@@ -56,5 +63,18 @@ def plot_summary_stats(ax:plt.Axes,name:str,accepted_s:[float],s_obs:float,s_hat
     ax.set_xlabel(name)
     ax.set_title("Accepted {}".format(name))
     ax.legend()
+    ax.margins(0)
+
+    return ax
+
+def plot_MCMC_trace(ax:plt.Axes,name:str,accepted_parameter:[float],predicted_val:float) -> plt.Axes:
+    x=list(range(1,len(accepted_parameter)+1))
+    ax.plot(x,accepted_parameter,c="black")
+    ax.hlines(predicted_val,xmin=0,xmax=len(accepted_parameter),colors="orange")
+
+    ax.set_ylabel(name)
+    ax.set_xlabel("t")
+    ax.set_title("Trace {}".format(name))
+    ax.margins(0)
 
     return ax

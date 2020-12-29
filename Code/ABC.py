@@ -27,12 +27,12 @@ def uniform_kernel(x:float,epsilon:float) -> bool:
 
 def epanechnikov_kernel(x:float,epsilon:float) -> bool:
     if (abs(x)>epsilon): return False
-    ep_val=(1/epsilon)*(3/4)*(1-(x/epsilon)**2) # prob to accept
+    ep_val=(1-(x/epsilon)**2)#*(1/epsilon)*(3/4) # prob to accept
     x=stats.uniform(0,1).rvs(1)[0] # sample from U[0,1]
     return (x<=ep_val)
 
 def gaussian_kernel(x:float,epsilon:float) -> bool:
-    gaus_val=(1/np.sqrt(2*np.pi*(epsilon**2)))*np.exp(-(1/2)*((x/epsilon)**2)) # prob to accept
+    gaus_val=np.exp(-(1/2)*((x/epsilon)**2)) #*(1/np.sqrt(2*np.pi*(epsilon**2))) # prob to accept
     x=stats.uniform(0,1).rvs(1)[0] # sample from U[0,1]
     return (x<=gaus_val)
 
@@ -43,7 +43,7 @@ def l2_norm(s_t:(float),s_obs:(float)) -> float:
     return sum([(x-y)**2 for (x,y) in zip(s_t,s_obs)])**.5
 
 """
-    SAMPLING METHODS
+    REJECTION SAMPLING METHODS
 """
 
 def __sampling_stage_fixed_number(DESIRED_SAMPLE_SIZE:int,EPSILON:float,KERNEL:"func",PRIORS:["stats.Distribution"],
@@ -84,7 +84,6 @@ def __sampling_stage_fixed_number(DESIRED_SAMPLE_SIZE:int,EPSILON:float,KERNEL:"
         s_t=[s(y_t) for s in summary_stats]
 
         # accept-reject
-        # TODO - this can be played with (kernels etc.)
         norm_vals=[l2_norm(s_t_i,s_obs_i) for (s_t_i,s_obs_i) in zip(s_t,s_obs)]
         if (np.mean([KERNEL(v,EPSILON) for v in norm_vals])>=pct_matches): # if at least `pct_matches`% of observations satisfy kernel
             ACCEPTED_PARAMS.append(theta_t)
@@ -150,10 +149,10 @@ def __sampling_stage_best_samples(NUM_RUNS:int,SAMPLE_SIZE:int,PRIORS:["stats.Di
     ABC
 """
 
-def abc_general(n_obs:int,y_obs:[[float]],fitting_model:Model,priors:["stats.distribution"],sampling_details:dict,summary_stats=None) -> Model:
+def abc_rejcection(n_obs:int,y_obs:[[float]],fitting_model:Model,priors:["stats.distribution"],sampling_details:dict,summary_stats=None) -> Model:
     """
     DESCRIPTION
-    Approximate Bayesian Computation for the generative models defined in `Models.py`.
+    Rejction Sampling version of Approximate Bayesian Computation for the generative models defined in `Models.py`.
 
     PARAMETERS
     n_obs (int) - Number of observations available.
@@ -195,18 +194,17 @@ def abc_general(n_obs:int,y_obs:[[float]],fitting_model:Model,priors:["stats.dis
 
     # best estimate of model
     theta_hat=[np.mean([p[i] for p in ACCEPTED_PARAMS]) for i in range(fitting_model.n_params)]
-    fitting_model.update_params(theta_hat)
-    s_hat=[s(fitting_model.observe()) for s in summary_stats]
+    model_hat=fitting_model.copy(theta_hat)
+    s_hat=[s(model_hat.observe()) for s in summary_stats]
 
     # plot results
-    num_plots=1+len(summary_stats)+fitting_model.n_params
     n_simple_ss=sum(len(s)==1 for s in ACCEPTED_SUMMARY_VALS[0]) # number of summary stats which map to a single dimension
     n_rows=max([1,np.lcm(fitting_model.n_params,n_simple_ss)])
-    print(n_rows)
+
     fig=plt.figure(constrained_layout=True)
     gs=fig.add_gridspec(n_rows,3) # 3 columns
     ax=fig.add_subplot(gs[:,-1])
-    Plotting.plot_accepted_observations(ax,fitting_model.n_obs,y_obs,ACCEPTED_OBS)
+    Plotting.plot_accepted_observations(ax,fitting_model.n_obs,y_obs,ACCEPTED_OBS,model_hat)
 
     row_step=n_rows//fitting_model.n_params
     for i in range(fitting_model.n_params):
@@ -229,3 +227,117 @@ def abc_general(n_obs:int,y_obs:[[float]],fitting_model:Model,priors:["stats.dis
     plt.show()
 
     return fitting_model
+
+def abc_mcmc(n_obs:int,y_obs:[[float]],
+    fitting_model:Model,priors:["stats.distribution"],
+    chain_length:int,perturbance_kernels:"[function]",acceptance_kernel:"function",scaling_factor:float,
+    summary_stats=None) -> Model:
+    """
+    DESCRIPTION
+    Markov Chain Monte-Carlo Sampling version of Approximate Bayesian Computation for the generative models defined in `Models.py`.
+
+    PARAMETERS
+    n_obs (int) - Number of observations available.
+    y_obs ([[float]]) - Observations from true model.
+    fitting_model (Model) - Model the algorithm will aim to fit to observations.
+    priors (["stats.distribution"]) - Priors for the value of parameters of `fitting_model`.
+    chain_length (int) - Length of markov chain to allow.
+    perturbance_kernels ([function]) - Functions for varying parameters each monte-carlo steps.
+    acceptance_kernel (function) - Function to determine whether to accept parameters
+    scaling_factor (function) - Scaling factor for `acceptance_kernel`.
+
+    OPTIONAL PARAMETERS
+    summary_stats ([function]) - functions which summarise `y_obs` and the observations of `fitting_model` in some way. (default=group by dimension)
+
+    RETURNS
+    Model - fitted model with best parameters
+    """
+    s_obs=[s(y_obs) for s in summary_stats]
+    THETAS=[]
+
+    # find starting sample
+    i=0
+    while (True):
+        print("Finding Start - ({:,})".format(i),end="\r")
+        i+=1
+        theta_0=[pi_i.rvs(1)[0] for pi_i in priors]
+
+        # observe theorised model
+        fitting_model.update_params(theta_0)
+        y_0=fitting_model.observe()
+        s_0=[s(y_0) for s in summary_stats]
+
+        # accept-reject
+        norm_vals=[l2_norm(s_0_i,s_obs_i) for (s_0_i,s_obs_i) in zip(s_0,s_obs)]
+        if all([acceptance_kernel(v,scaling_factor) for v in norm_vals]): break
+
+    THETAS=[theta_0]
+    ACCEPTED_SUMMARY_VALS=[s_0]
+    print("Found Start - ({:,})".format(i),theta_0)
+    print("Scaling factor - ({:.3f})".format(scaling_factor))
+
+    # MCMC step
+    new=0
+    for t in range(1,chain_length+1):
+        # perturb last sample
+        theta_temp=[k(theta_i) for (k,theta_i) in zip(perturbance_kernels,THETAS[-1])]
+        while any([p.pdf(theta)==0.0 for (p,theta) in zip(priors,theta_temp)]): theta_temp=[k(theta_i) for (k,theta_i) in zip(perturbance_kernels,THETAS[-1])]
+
+        # observed theorised model
+        fitting_model.update_params(theta_temp)
+        y_temp=fitting_model.observe()
+        s_temp=[s(y_temp) for s in summary_stats]
+
+        # accept-reject
+        norm_vals=[l2_norm(s_temp_i,s_obs_i) for (s_temp_i,s_obs_i) in zip(s_temp,s_obs)]
+        if all([acceptance_kernel(v,scaling_factor) for v in norm_vals]): # accept new parameter sample
+            new+=1
+            THETAS.append(theta_temp)
+            ACCEPTED_SUMMARY_VALS.append(s_temp)
+            print("({:,}) - NEW".format(t),end="\r")
+        else: # stick with last parameter sample
+            THETAS.append(THETAS[-1])
+            ACCEPTED_SUMMARY_VALS.append(ACCEPTED_SUMMARY_VALS[-1])
+            print("({:,}) - OLD".format(t),end="\r")
+
+    theta_hat=list(np.mean(THETAS,axis=0))
+    model_hat=fitting_model.copy(theta_hat)
+    s_hat=[s(model_hat.observe()) for s in summary_stats]
+    print("Final theta -",THETAS[-1])
+    print("theta_hat -",theta_hat)
+    print("{:.3f} observations were new.".format(new/chain_length))
+
+    n_simple_ss=sum(len(s)==1 for s in ACCEPTED_SUMMARY_VALS[0]) # number of summary stats which map to a single dimension
+    n_rows=max([1,np.lcm(fitting_model.n_params,n_simple_ss)])
+    fig=plt.figure(constrained_layout=True)
+    gs=fig.add_gridspec(n_rows,4) # 3 columns
+    ax=fig.add_subplot(gs[:,-1])
+    Plotting.plot_accepted_observations(ax,fitting_model.n_obs,y_obs,[],model_hat)
+
+    # plot traces
+    row_step=n_rows//fitting_model.n_params
+    for i in range(fitting_model.n_params):
+        name="Theta_{}".format(i)
+        ax=fig.add_subplot(gs[i*row_step:(i+1)*row_step,0])
+        accepted_vals=[x[i] for x in THETAS]
+        Plotting.plot_MCMC_trace(ax,name,accepted_parameter=accepted_vals,predicted_val=theta_hat[i])
+
+    # plot posteriors
+    for i in range(fitting_model.n_params):
+        name="Theta_{}".format(i)
+        ax=fig.add_subplot(gs[i*row_step:(i+1)*row_step,1])
+        accepted_vals=[x[i] for x in THETAS]
+        Plotting.plot_parameter_posterior(ax,name,accepted_parameter=accepted_vals,predicted_val=theta_hat[i],prior=priors[i])
+
+    # plot summary vals
+    row=0
+    row_step=n_rows//n_simple_ss
+    for i in range(len(summary_stats)):
+        if (len(ACCEPTED_SUMMARY_VALS[0][i])==1):
+            name="s_{}".format(i)
+            ax=fig.add_subplot(gs[row*row_step:(row+1)*row_step,2])
+            row+=1
+            accepted_vals=[s[i][0] for s in ACCEPTED_SUMMARY_VALS]
+            Plotting.plot_summary_stats(ax,name,accepted_s=accepted_vals,s_obs=s_obs[i],s_hat=s_hat[i])
+
+    plt.show()
