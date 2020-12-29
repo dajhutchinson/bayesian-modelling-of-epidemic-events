@@ -26,3 +26,39 @@
   abstract = {Summary.  Many modern statistical applications involve inference for complex stochastic models, where it is easy to simulate from the models, but impossible to calculate likelihoods. Approximate Bayesian computation (ABC) is a method of inference for such models. It replaces calculation of the likelihood by a step which involves simulating artificial data for different parameter values, and comparing summary statistics of the simulated data with summary statistics of the observed data. Here we show how to construct appropriate summary statistics for ABC in a semi-automatic manner. We aim for summary statistics which will enable inference about certain parameters of interest to be as accurate as possible. Theoretical results show that optimal summary statistics are the posterior means of the parameters. Although these cannot be calculated analytically, we use an extra stage of simulation to estimate how the posterior means vary as a function of the data; and we then use these estimates of our summary statistics within ABC. Empirical results show that our approach is a robust method for choosing summary statistics that can result in substantially more accurate ABC analyses than the ad hoc choices of summary statistics that have been proposed in the literature. We also demonstrate advantages over two alternative methods of simulation-based inference.},
   year = {2012}
 }
+
+@article{Delayed_Acceptance_ABC_SMC,
+  author = {Richard G. Everitt and Paulina A. Rowińska},
+  title = {Delayed Acceptance ABC-SMC},
+  journal = {Journal of Computational and Graphical Statistics},
+  volume = {0},
+  number = {0},
+  pages = {1-12},
+  year  = {2020},
+  publisher = {Taylor & Francis},
+  doi = {10.1080/10618600.2020.1775617},
+  URL = { https://doi.org/10.1080/10618600.2020.1775617},
+  eprint = {https://doi.org/10.1080/10618600.2020.1775617}
+}
+
+@online{youtube_ABC_intro,
+  title = {Approximate Bayesian Computation: Introduction & Insurance Examples},
+  date = {2020},
+  organization = {Youtube},
+  author = {Patrick Laub},
+  url = {https://www.youtube.com/watch?v=pwVgIh1495A&ab_channel=PatrickLaub},
+}
+
+@article{doi:10.1098/rsif.2008.0172,
+  author = {Toni, Tina  and Welch, David  and Strelkowa, Natalja  and Ipsen, Andreas  and Stumpf, Michael P.H },
+  title = {Approximate Bayesian computation scheme for parameter inference and model selection in dynamical systems},
+  journal = {Journal of The Royal Society Interface},
+  volume = {6},
+  number = {31},
+  pages = {187-202},
+  year = {2009},
+  doi = {10.1098/rsif.2008.0172},
+  URL = {https://royalsocietypublishing.org/doi/abs/10.1098/rsif.2008.0172},
+  eprint = {https://royalsocietypublishing.org/doi/pdf/10.1098/rsif.2008.0172},
+      abstract = { Approximate Bayesian computation (ABC) methods can be used to evaluate posterior distributions without having to calculate likelihoods. In this paper, we discuss and apply an ABC method based on sequential Monte Carlo (SMC) to estimate parameters of dynamical models. We show that ABC SMC provides information about the inferability of parameters and model sensitivity to changes in parameters, and tends to perform better than other ABC approaches. The algorithm is applied to several well-known biological systems, for which parameters and their credible intervals are inferred. Moreover, we develop ABC SMC as a tool for model selection; given a range of different mathematical descriptions, ABC SMC is able to choose the best model using the standard Bayesian model selection apparatus. }
+}

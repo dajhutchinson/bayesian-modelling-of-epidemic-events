@@ -9,21 +9,21 @@
 
 \begin{document}
 
-\setcounter{section}{1}
-
 \title{Approximate Bayesian Computation}
 \author{Dom Hutchinson}
 \date{\today}
 \maketitle
 
-\section*{Intro to ABC}
+\tableofcontents
+
+\section{Intro to ABC}
 
   \begin{definition}{Approximate Bayesian Computation (ABC)}
-    \textit{Approximate Bayesian Computation (ABC)} is a family of computational methods for estimating the posterior of model parameters for \textit{Generative Models}. \textit{Generative Models} are models which can be simulated from but we do not have an explicit definition for their posterior $f+\mathcal{G}(x|\theta)$ (eg most IRL systems).
+    \textit{Approximate Bayesian Computation (ABC)} is a family of computational methods for estimating the posterior of model parameters for \textit{Generative Models}. \textit{Generative Models} are models which can be simulated from but we do not have an explicit definition for their posterior $f_\mathcal{G}(x|\theta)$ (eg most IRL systems).
   \end{definition}
 
   \begin{proposition}{Motivating Idea\cite{ABC_Annual_Review}}
-    \par Consider a set of observations\footnote{From a \textit{Generative Model}} $\mathbf{y}:=(y_1,\dots,y_n)$ where each $y_i\in\reals^m$ is high dimensional. Let $s(\cdot):\reals^m\to\reals^p$ be a mapping (known as a \textit{Summary Statistic}) from the observed data to some lower dimension $p$.
+    \par Consider a set of observations\footnote{From a \textit{Generative Model}}\footnote{Generally these observations are ordered in some way (by the variables of the system) so can be considered a sequence $\{y_t\}_{t\in T}$ where $T$ specifies the variable values in each epoch.} $\mathbf{y}:=(y_1,\dots,y_n)$ where each $y_i\in\reals^m$ is high dimensional. Let $s(\cdot):\reals^m\to\reals^p$ be a mapping (known as a \textit{Summary Statistic}) from the observed data to some lower dimension $p$.
     \par \textit{ABC} aims to infer the joint distribution of parameters $\pmb\theta$ and general summary statistics $\mathbf{s}$, given the observed summary statistics $\mathbf{s}_{obs}:=s(\mathbf{y})$
     \[ p_\epsilon(\pmb\theta,\mathbf{s}|\mathbf{s}_{obs})\propto\underbrace{\pi_0(\pmb\theta)}_\text{Prior}\underbrace{f(s|\pmb\theta)}_\text{Likelihood}K_\epsilon(\|\mathbf{s}-\mathbf{s}_{obs}\|) \]
     where $K_\epsilon(\cdot)$ is a kernel function with scaling parameter $\epsilon$ and $\|\cdot\|$ is a distance measure (e.g. Euclidean).\footnote{The likelihood $f(s|\theta)$ is the only one of these features which is not specified by the user, and thus what we need to ``learn'' it.}
@@ -43,21 +43,7 @@
     \end{itemize}
   \end{proposition}
 
-  \begin{proposition}{ABC Algorithm - Simple, Online}
-    Consider the setup in \texttt{Proposition 1.2}. Here is a simple, online algorithm for ABC
-    \begin{enumerate}
-      \item Sample a set of parameters from the prior $\tilde{\pmb\theta}_t\sim\pi_0(\pmb\theta)$.
-      \item Chose points $\x$ in the variable-space which you wish to sample from the \textit{Theorised Model} at.\footnote{Ideally at points near to ones where the generative model has been observed.}
-      \item Sample from the theorised model at these points, using the sample parameters
-      \[ \mathbf{y}_t\sim f_\mathcal{T}(\mathbf{y}|\tilde{\pmb\theta},\x) \]
-      \item Calculate the summary statistic values for the sampled values $\mathbf{s}_t=\mathbf{s}(\mathbf{y}_t)$.
-      \item Reject the sample summary statistic value $\mathbf{s}_t$ with probability $K_\epsilon(\|\mathbf{s}_t-\mathbf{s}_{obs}\|)$ where ${\mathbf{s}_{obs}=s(\mathbf{y})}$.
-      \item Repeat steps i)-iii) until a total of $M$ simulated values have been accepted.
-    \end{enumerate}
-    Our final sample contains a set of $M$ summary statistics, along with the parameter values $\pmb\theta$ and variable-space points $\x$, which produced them. This data can be used to approximate the posterior for the parameter values.
-  \end{proposition}
-
-\section*{Decisions}
+\subsection{Decisions}
 
   \begin{remark}{Decisions}
     When implementing ABC there are several decisions to make, including:
@@ -88,7 +74,69 @@
     \par Alternatively, all simulated values could be kept and then all but the best $M$\footnote{$M$ closest to $s_\text{obs}$.} are discarded.
   \end{proposition}
 
-\section*{Semi-Automatic ABC}
+\section{ABC Algorithms}
+
+  \begin{proposition}{ABC Algorithm - Simple, Online}
+    Consider the setup in \texttt{Proposition 1.2}. Here is a simple, online algorithm for ABC
+    \begin{enumerate}
+      \item Sample a set of parameters from the prior $\tilde{\pmb\theta}_t\sim\pi_0(\pmb\theta)$.
+      \item Sample from the theorised model using these sampled parameters
+      \[ \mathbf{y}_t\sim f_\mathcal{T}(\mathbf{y}|\tilde{\pmb\theta}_t) \]
+      \item Calculate the summary statistic values for the sampled values $\mathbf{s}_t=\mathbf{s}(\mathbf{y}_t)$.
+      \item Reject the sample summary statistic value $\mathbf{s}_t$ with probability $K_\epsilon(\|\mathbf{s}_t-\mathbf{s}_{obs}\|)$ where ${\mathbf{s}_{obs}=s(\mathbf{y})}$.
+      \item Repeat steps i)-iii) until a total of $M$ simulated values have been accepted.
+    \end{enumerate}
+    Our final sample contains a set of $M$ summary statistics, along with the parameter values $\pmb\theta$ and variable-space points $\x$, which produced them. This data can be used to approximate the posterior for the parameter values.
+  \end{proposition}
+
+  \begin{remark}{ABC-SMC}
+    The idea behind \textit{ABC-Sequential Monte Carlo} is to initially use a kernel with a large acceptance range to produce a sample of parameters which v. roughly approximate of the posterior. And then to finese this sample to improve the posterior, by resampling and tightening the kernel.
+  \end{remark}
+
+  \begin{proposition}{ABC Algorithm - SMC\cite{Delayed_Acceptance_ABC_SMC}\cite{youtube_ABC_intro}\cite{doi:10.1098/rsif.2008.0172}}
+    Consider the setup in \texttt{Proposition 1.2}. The idea behind \textit{Sequential Monte-Carlo} is to sequentially improve the prior $\pi_0(\pmb\theta)$ by calculating a new posterior after accepted a sufficient number of parameters/observations. Here is a \textit{Sequential Monte-Carlo} algorithm for ABC
+    \begin{itemize}
+      \item \textit{Initialisation} - Choose a set of \textit{scaling parameters} $\epsilon$ which are increasingly tight\footnote{There are automatic methods where $\epsilon_{t+1}$ is calculated at the end of step $t$ st convergence is encouraged.}
+      \[ \{\epsilon_1,\dots,\epsilon_T\}\text{ where }\epsilon_1>\dots>\epsilon_T\]
+      Set $N$ to be the number of sets of parameters to sample.
+      \item \textit{Initial Sampling Step} - $t=1$.\footnote{Here a set of possible parameters $\Theta_1$ is generated.}\footnote{It is possible for the same set of parameters to appear in $\Theta_t$ multiple times.}
+      \begin{enumerate}
+        \item Sample a set of parameters $\tilde{\pmb\theta}_{1,i}$\[ \tilde{\pmb\theta}_1\sim\pi_0(\pmb\theta) \]
+        \item Observe the theorised model $\mathcal{T}$ with these sampled parameters
+        \[ \mathbf{y}_{1,i}\sim f_\mathcal{T}(\mathbf{y}|\tilde{\pmb\theta}_{1,i}) \]
+        \item
+        \begin{itemize}
+          \item[\textit{If}] $K_{\epsilon_1}(\|\mathbf{y}_{1,i}-\mathbf{y}_{obs}\|)$:\footnote{Sample parameters are accepted by the kernel.}
+          \begin{itemize}
+            \item Store the sampled parameters $\tilde{\pmb\theta}_{1,i}$ in set $\Theta_1$.
+            \item Set $w_{1,i}=\frac1N$ and increment $i$.
+            \item \textit{If }$i==N$: move to \textit{Resampling Step}.
+          \end{itemize}
+        \end{itemize}
+      \end{enumerate}
+      \item \textit{Resampling Step} - $t=2,\dots,T$.\footnote{Here, we determine weightings for the sets of parameters found in the previous step. With the weightings representing posterior probabilities.}
+      \begin{enumerate}
+        \item Sample $\tilde{\pmb\theta}_{t,i}$ from set $\Theta_{t-1}$ with probability $w_{t-1,j}$.\format{The weights form a KDE.}
+          \[ \prob(\pmb\theta_i^*=\tilde{\pmb\theta}_j)=w_{t-1,j}\text{ for }\tilde{\pmb\theta}_j\in\Theta_{t-1} \]
+        \item Perturb the sample parameters slightly using a \textit{Pertubance Kernel} $K^*$ to get a slightly different parameter set $\pmb\theta^*_{t,i}$
+          \[ \pmb\theta^*_{t,i}\sim K^*(\theta|\tilde{\pmb\theta}_{t,i}) \]
+        \item \textit{If $\pmb\theta^*_{t,i}$ is impossible under the prior}:\footnote{ie $\pi_0(\pmb\theta^*_{t,i})=0$} return to i).
+        \item Observe the theorised model $\mathcal{T}$ with these perturbed parameters
+          \[ \mathbf{y}_{t,i}\sim f_\mathcal{T}(\mathbf{y}|\pmb\theta^*_{t,i}) \]
+        \item \textit{If \underline{not} }$K_{\epsilon_t}(\|\mathbf{y}_{t,i}-\mathbf{y}_{obs}\|)$:\footnote{ie the observation is reject by the kernel} return to i).
+        \item Add $\pmb\theta_{t,i}^*$ to $\Theta_t$ and assign it weight $w_{t,i}$
+        \[ \tilde{w}_{t,i}=\frac{\pi_0(\pmb\theta_{t,i}^*)}{\sum_{j=1}^Nw_{t-1,j}\prob(K_t(\theta|\tilde{\pmb\theta}_{t,i})=\pmb\theta_{t,i}^*)\footnotemark} \]
+        \footnotetext{Weighted sum of the probability this set of parameters $\pmb\theta_{t,i}^*$ could have been observed under another one of the previous samples.}
+        \item \textit{If }$|\Theta_t|<N$: increment $i$ and return to i).
+        \item Normalise weights
+        \[ w_{t,i}=\frac{\tilde{w}_{t,i}}{\sum_{i=1}^Nw_{t,i}} \]
+        \item Increment $t$.
+      \end{enumerate}
+    \end{itemize}
+    Code for this can be found at \url{https://stats.stackexchange.com/a/328384}.
+  \end{proposition}
+
+\section{Semi-Automatic ABC}
 
   \begin{definition}{Semi-Automatic ABC\cite{Constructing_Summary_Statistics_For_ABC}}
     In \textit{Semi-Automatic ABC} summary statistics are learnt from simulation, but the user still has to make choices around what transformation $\mathbf{f}(\cdot)$ of simulated data $\mathbf{y}$.
