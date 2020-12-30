@@ -35,7 +35,7 @@ mean_grad = (lambda ys:[np.mean([ys[i+1][0]-ys[i][0] for i in range(len(ys)-1)])
 summary_stats=[start,end,mean_grad]
 fitted_model=ABC.abc_rejcection(n_obs=10,y_obs=lm.observe(),fitting_model=lm.copy([1,1]),priors=lm_priors,sampling_details=sampling_details,summary_stats=summary_stats)
 print("True Model - {}".format(lm))
-print("Fitted Model - {}".format(fitted_model))
+print("Fitted Model - {}\n".format(fitted_model))
 
 # Exponential Model
 sampling_details={"sampling_method":"best","num_runs":1000,"sample_size":70}
@@ -46,7 +46,7 @@ mean_log_grad = (lambda ys:[np.mean([np.log(max(1,ys[i+1][0]-ys[i][0])) for i in
 summary_stats=[start,end,mean_log_grad]
 fitted_model=ABC.abc_rejcection(n_obs=10,y_obs=em.observe(),fitting_model=em.copy([1,1]),priors=em_priors,sampling_details=sampling_details,summary_stats=summary_stats)
 print("True Model - {}".format(em))
-print("Fitted Model - {}".format(fitted_model))
+print("Fitted Model - {}\n".format(fitted_model))
 
 """
     MCMC
@@ -61,7 +61,7 @@ fitted_model=ABC.abc_mcmc(n_obs=10,y_obs=lm.observe(),fitting_model=lm.copy([1,1
     chain_length=10000,perturbance_kernels=perturbance_kernels,acceptance_kernel=ABC.gaussian_kernel,scaling_factor=1,
     summary_stats=summary_stats)
 print("True Model - {}".format(lm))
-print("Fitted Model - {}".format(fitted_model))
+print("Fitted Model - {}\n".format(fitted_model))
 
 # Exponential Model
 start = (lambda ys:[ys[0][0]])
@@ -73,7 +73,7 @@ fitted_model=ABC.abc_mcmc(n_obs=10,y_obs=em.observe(),fitting_model=em.copy([1,1
     chain_length=10000,perturbance_kernels=perturbance_kernels,acceptance_kernel=ABC.gaussian_kernel,scaling_factor=1,
     summary_stats=summary_stats)
 print("True Model - {}".format(em))
-print("Fitted Model - {}".format(fitted_model))
+print("Fitted Model - {}\n".format(fitted_model))
 
 """
     SMC
@@ -93,7 +93,7 @@ fitted_model=ABC.abc_smc(n_obs=10,y_obs=lm.observe(),fitting_model=lm.copy([1,1]
     num_steps=10,sample_size=100,scaling_factors=scaling_factors,perturbance_kernels=perturbance_kernels,perturbance_kernel_probability=perturbance_kernel_probability,acceptance_kernel=ABC.gaussian_kernel,summary_stats=summary_stats)
 
 print("True Model - {}".format(lm))
-print("Fitted Model - {}".format(fitted_model))
+print("Fitted Model - {}\n".format(fitted_model))
 
 # Exponential Model
 start = (lambda ys:[ys[0][0]])
@@ -110,4 +110,4 @@ fitted_model=ABC.abc_smc(n_obs=10,y_obs=em.observe(),fitting_model=em.copy([1,1]
     num_steps=10,sample_size=100,scaling_factors=scaling_factors,perturbance_kernels=perturbance_kernels,perturbance_kernel_probability=perturbance_kernel_probability,acceptance_kernel=ABC.gaussian_kernel,summary_stats=summary_stats)
 
 print("True Model - {}".format(em))
-print("Fitted Model - {}".format(fitted_model))
+print("Fitted Model - {}\n".format(fitted_model))
