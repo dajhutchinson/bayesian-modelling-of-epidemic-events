@@ -244,7 +244,7 @@ def abc_mcmc(n_obs:int,y_obs:[[float]],
     chain_length (int) - Length of markov chain to allow.
     perturbance_kernels ([function]) - Functions for varying parameters each monte-carlo steps.
     acceptance_kernel (function) - Function to determine whether to accept parameters
-    scaling_factor (function) - Scaling factor for `acceptance_kernel`.
+    scaling_factor (float) - Scaling factor for `acceptance_kernel`.
 
     OPTIONAL PARAMETERS
     summary_stats ([function]) - functions which summarise `y_obs` and the observations of `fitting_model` in some way. (default=group by dimension)
@@ -252,8 +252,9 @@ def abc_mcmc(n_obs:int,y_obs:[[float]],
     RETURNS
     Model - fitted model with best parameters
     """
+    group_dim = lambda ys,i: [y[i] for y in ys]
+    summary_stats=summary_stats if (summary_stats) else ([(lambda ys:group_dim(ys,i)) for i in range(len(y_obs[0]))])
     s_obs=[s(y_obs) for s in summary_stats]
-    THETAS=[]
 
     # find starting sample
     i=0
@@ -273,6 +274,7 @@ def abc_mcmc(n_obs:int,y_obs:[[float]],
 
     THETAS=[theta_0]
     ACCEPTED_SUMMARY_VALS=[s_0]
+
     print("Found Start - ({:,})".format(i),theta_0)
     print("Scaling factor - ({:.3f})".format(scaling_factor))
 
@@ -341,4 +343,116 @@ def abc_mcmc(n_obs:int,y_obs:[[float]],
             Plotting.plot_summary_stats(ax,name,accepted_s=accepted_vals,s_obs=s_obs[i],s_hat=s_hat[i])
 
     plt.show()
+    return model_hat
+
+def abc_smc(n_obs:int,y_obs:[[float]],
+    fitting_model:Model,priors:["stats.Distribution"],
+    num_steps:int,sample_size:int,
+    scaling_factors:[float],perturbance_kernels:"[function]",perturbance_kernel_probability:"[function]",acceptance_kernel:"function",summary_stats=None):
+    """
+    DESCRIPTION
+    Sequential Monte-Carlo Sampling version of Approximate Bayesian Computation for the generative models defined in `Models.py`.
+
+    PARAMETERS
+    n_obs (int) - Number of observations available.
+    y_obs ([[float]]) - Observations from true model.
+    fitting_model (Model) - Model the algorithm will aim to fit to observations.
+    priors (["stats.Distribution"]) - Priors for the value of parameters of `fitting_model`.
+    num_steps (int) - Number of steps (ie number of scaling factors).
+    sample_size (int) - Number of parameters samples to keep per step.
+    scaling_factors ([float]) - Scaling factor for `acceptance_kernel`.
+    perturbance_kernels ([function]) - Functions for varying parameters each monte-carlo steps.
+    perturbance_kernel_probability ([function]) - Probability of x being pertubered to value y
+    acceptance_kernel (function) - Function to determine whether to accept parameters
+
+    OPTIONAL PARAMETERS
+    summary_stats ([function]) - functions which summarise `y_obs` and the observations of `fitting_model` in some way. (default=group by dimension)
+
+    RETURNS
+    Model - fitted model with best parameters
+    """
+    # initial sampling
+    if (num_steps!=len(scaling_factors)): raise ValueError("`num_steps` must equal `len(scaling_factors)`")
+
+    group_dim = lambda ys,i: [y[i] for y in ys]
+    summary_stats=summary_stats if (summary_stats) else ([(lambda ys:group_dim(ys,i)) for i in range(len(y_obs[0]))])
+    s_obs=[s(y_obs) for s in summary_stats]
+
+    # initial sampling
+    THETAS=[] # (weight,params)
+    i=0
+    while (len(THETAS)<sample_size):
+        i+=1
+        theta_temp=[pi_i.rvs(1)[0] for pi_i in priors]
+
+        # observed theorised model
+        fitting_model.update_params(theta_temp)
+        y_temp=fitting_model.observe()
+        s_temp=[s(y_temp) for s in summary_stats]
+
+        # accept-reject
+        norm_vals=[l2_norm(s_temp_i,s_obs_i) for (s_temp_i,s_obs_i) in zip(s_temp,s_obs)]
+        if all([acceptance_kernel(v,scaling_factors[0]) for v in norm_vals]): # accept new parameter sample
+            THETAS.append((1/sample_size,theta_temp))
+        print("({:,}) - {:,}/{:,}".format(i,len(THETAS),sample_size),end="\r")
+    print()
+
+    # resampling & reweighting step
+    for t in range(1,num_steps):
+        i=0
+        NEW_THETAS=[] # (weight,params)
+        while (len(NEW_THETAS)<sample_size):
+            i+=1
+            print("({:,}/{:,} - {:,}) - {:,}/{:,} ({:.3f})".format(t,num_steps,i,len(NEW_THETAS),sample_size,scaling_factors[t]),end="\r")
+
+            # sample from THETA
+            u=stats.uniform(0,1).rvs(1)[0]
+            theta_t=None
+            for (weight,theta_i) in THETAS:
+                u-=weight
+                if (u<=0): theta_t=theta_i; break
+
+            # perturb sample
+            theta_temp=[k(theta_i) for (k,theta_i) in zip(perturbance_kernels,theta_t)]
+            while any([p.pdf(theta)==0.0 for (p,theta) in zip(priors,theta_temp)]): theta_temp=[k(theta_i) for (k,theta_i) in zip(perturbance_kernels,theta_t)]
+
+            # observed theorised model
+            fitting_model.update_params(theta_temp)
+            y_temp=fitting_model.observe()
+            s_temp=[s(y_temp) for s in summary_stats]
+
+            # accept-reject
+            norm_vals=[l2_norm(s_temp_i,s_obs_i) for (s_temp_i,s_obs_i) in zip(s_temp,s_obs)]
+            if all([acceptance_kernel(v,scaling_factors[t]) for v in norm_vals]): # accept new parameter sample
+                weight_numerator=sum([p.pdf(theta) for (p,theta) in zip(priors,theta_temp)])
+                weight_denominator=0
+                for (weight,theta) in THETAS:
+                    weight_denominator+=sum([weight*p(theta_i,theta_temp_i) for (p,theta_i,theta_temp_i) in zip(perturbance_kernel_probability,theta,theta_temp)])
+                weight=weight_numerator/weight_denominator
+                NEW_THETAS.append((weight,theta_temp))
+
+        weight_sum=sum([w for (w,_) in NEW_THETAS])
+        NEW_THETAS=[(w/weight_sum,theta) for (w,theta) in NEW_THETAS]
+
+        THETAS=NEW_THETAS
+
+    param_values=[theta for (_,theta) in THETAS]
+    weights=[w for (w,_) in THETAS]
+    theta_hat=list(np.average(param_values,axis=0,weights=weights))
+    model_hat=fitting_model.copy(theta_hat)
+
+    fig=plt.figure()
+    ax=fig.add_subplot(1,fitting_model.n_params+1,fitting_model.n_params+1)
+    Plotting.plot_accepted_observations(ax,fitting_model.n_obs,y_obs,[],model_hat)
+
+    print("theta_hat -",theta_hat)
+
+    for i in range(fitting_model.n_params):
+        ax=fig.add_subplot(1,fitting_model.n_params+1,i+1)
+        name="theta_{}".format(i)
+        parameter_values=[theta[i] for theta in param_values]
+        Plotting.plot_smc_posterior(ax,name,parameter_values=parameter_values,weights=weights,predicted_val=theta_hat[i])
+
+    plt.show()
+
     return model_hat

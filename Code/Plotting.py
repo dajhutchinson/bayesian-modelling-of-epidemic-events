@@ -18,7 +18,7 @@ def plot_accepted_observations(ax:plt.Axes,n_obs:int,y_obs:[[float]],accepted_ob
     xs=list(range(n_obs))
     for obs in accepted_observations:
         ax.scatter(xs,obs,c="blue",alpha=.05,marker="x")
-    ax.scatter(xs,y_obs,c="green",alpha=1,label="From Truth")
+    ax.scatter(xs,y_obs,c="green",alpha=1,label="y_obs")
 
     y_pred=predicted_model.observe(inc_noise=False)
     ax.plot(xs,y_pred,c="orange",label="Pred")
@@ -57,7 +57,7 @@ def plot_summary_stats(ax:plt.Axes,name:str,accepted_s:[float],s_obs:float,s_hat
 
     ax.hist(accepted_s)
     ymax=ax.get_ylim()[1]
-    ax.vlines(s_obs,ymin=0,ymax=ymax,colors="green",label="From Truth")
+    ax.vlines(s_obs,ymin=0,ymax=ymax,colors="green",label="s_obs")
     ax.vlines(s_hat,ymin=0,ymax=ymax,colors="orange",label="From Fitted")
 
     ax.set_xlabel(name)
@@ -76,5 +76,20 @@ def plot_MCMC_trace(ax:plt.Axes,name:str,accepted_parameter:[float],predicted_va
     ax.set_xlabel("t")
     ax.set_title("Trace {}".format(name))
     ax.margins(0)
+
+    return ax
+
+def plot_smc_posterior(ax:plt.Axes,name:str,parameter_values:[float],weights:[float],predicted_val:float) -> plt.Axes:
+    density=stats.kde.gaussian_kde(parameter_values,weights=weights)
+    x=np.linspace(min(parameter_values)*.9,max(parameter_values)*1.1,100)
+    ax.plot(x,density(x),c="blue",label="Posterior")
+
+    ymax=ax.get_ylim()[1]
+    ax.vlines(predicted_val,ymin=0,ymax=ymax,colors="orange",label="Predicted Value")
+    ax.set_xlabel(name)
+    ax.set_ylabel("P")
+    ax.set_title("Posterior for {}".format(name))
+    ax.margins(0)
+    ax.legend()
 
     return ax
