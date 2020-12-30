@@ -135,7 +135,7 @@ def __sampling_stage_best_samples(NUM_RUNS:int,SAMPLE_SIZE:int,PRIORS:["stats.Di
                 if (j>0): SAMPLES[j-1]=SAMPLES[j]
                 SAMPLES[j]=(summarised_norm_val,(theta_t,y_t,s_t))
 
-        print("({:,})".format(i),end="\r") # update user on sampling process
+        print("({:,}/{:,})".format(i,NUM_RUNS),end="\r") # update user on sampling process
 
     print("\n")
     SAMPLES=[x[1] for x in SAMPLES] # remove norm value
@@ -276,7 +276,6 @@ def abc_mcmc(n_obs:int,y_obs:[[float]],
     ACCEPTED_SUMMARY_VALS=[s_0]
 
     print("Found Start - ({:,})".format(i),theta_0)
-    print("Scaling factor - ({:.3f})".format(scaling_factor))
 
     # MCMC step
     new=0
@@ -305,8 +304,6 @@ def abc_mcmc(n_obs:int,y_obs:[[float]],
     theta_hat=list(np.mean(THETAS,axis=0))
     model_hat=fitting_model.copy(theta_hat)
     s_hat=[s(model_hat.observe()) for s in summary_stats]
-    print("Final theta -",THETAS[-1])
-    print("theta_hat -",theta_hat)
     print("{:.3f} observations were new.".format(new/chain_length))
 
     n_simple_ss=sum(len(s)==1 for s in ACCEPTED_SUMMARY_VALS[0]) # number of summary stats which map to a single dimension
@@ -427,7 +424,7 @@ def abc_smc(n_obs:int,y_obs:[[float]],
                 weight_numerator=sum([p.pdf(theta) for (p,theta) in zip(priors,theta_temp)])
                 weight_denominator=0
                 for (weight,theta) in THETAS:
-                    weight_denominator+=sum([weight*p(theta_i,theta_temp_i) for (p,theta_i,theta_temp_i) in zip(perturbance_kernel_probability,theta,theta_temp)])
+                    weight_denominator+=sum([weight*p(theta_i,theta_temp_i) for (p,theta_i,theta_temp_i) in zip(perturbance_kernel_probability,theta,theta_temp)]) # probability theta_temp was sampled
                 weight=weight_numerator/weight_denominator
                 NEW_THETAS.append((weight,theta_temp))
 
@@ -435,6 +432,8 @@ def abc_smc(n_obs:int,y_obs:[[float]],
         NEW_THETAS=[(w/weight_sum,theta) for (w,theta) in NEW_THETAS]
 
         THETAS=NEW_THETAS
+
+    print()
 
     param_values=[theta for (_,theta) in THETAS]
     weights=[w for (w,_) in THETAS]
