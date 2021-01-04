@@ -9,14 +9,14 @@
 
 \begin{document}
 
-\setcounter{section}{1}
-
 \title{Summary Statistic Selection}
 \author{Dom Hutchinson}
 \date{\today}
 \maketitle
 
-\section*{Summary Statistics}
+\tableofcontents
+
+\section{Summary Statistics}
 
   \begin{definition}{Summary Statistics $s(\cdot)$}
     \textit{Summary Statistics} are a projection of high-dimensional data to a lower dimensional space.
@@ -25,29 +25,36 @@
     \par The trade-off here is between computational requirements and data retention. As data is lost posterior accuracy and stability decreases.
   \end{definition}
 
+  \begin{remark}{Summary Statistics for ABC}
+    In ABC we want each \textit{Summary Statistic} to map from all observations of the model to a lower dimensional space. As each observation can be multi-dimensional, this means \textit{Summary Statistics} for ABC typically map from a matrix to a vector
+    \[ s(\cdot):\reals^{n\times m}\to\reals^p \]
+    where $n$ is the number of observations, $m$ is the dimension of each observation and $p$ is the dimension being mapped to. Ideally $p\ll n\times m$. Moreover, $\sum p_i\ll n\times m$ where $\{p_1,\dots,p_k\}$ are the dimensions the $k$ summary stats map to.
+  \end{remark}
+
   \begin{proposition}{Common Summary Statistics}
     Typically summary statistics describe the following
     \begin{itemize}
-      \item centre of the data (e.g. mean)
-      \item spread of the data (e.g. variance)
-      \item shape of the data (e.g. pearson's skew)
-      \item dependence of different data fields (e.g correlation)
+      \item centre of the data (e.g. mean).
+      \item spread of the data (e.g. variance).
+      \item shape of the data (e.g. pearson's skew).
+      \item dependence of different data fields (e.g correlation).
+      \item start or end points.
     \end{itemize}
   \end{proposition}
 
   \begin{remark}{Reduced Dimension}
-    Suppose we have $N$ samples of each of $M$ dimension, so all the data is represented by a matrix $\X\in\reals^{N\times M}$\footnote{ie We sampled $M$ different properties $n$ times}. If we were to just use the: mean, variance and pearson's skew to summarise each property, then the summarised data would only require a $\reals^{3\times M}$ matrix\footnote{3 values per property} which is: fixed size regardless of $N$; and, significantly smaller than $\reals^{N\times M}$.
-    \par The question is whether these three properties are sufficiently to make valid/inciteful inferences from.
+    Suppose we have $N$ samples of each of $M$ dimension, so all the data is represented by a matrix $\X\in\reals^{N\times M}$\footnote{ie $N$ observations, each with $M$ properties.}. If we were to just use the: mean, variance and pearson's skew to summarise each property, then the summarised data would only require a $\reals^{3\times M}$ matrix\footnote{3 values per property} whose size is independent of the number of observations $N$ and, significantly smaller than $\reals^{N\times M}$.
+    \par The question is whether these three properties are sufficient to make valid/inciteful inferences from.
   \end{remark}
 
-\section*{Approximate Sufficiency}
+\section{Sufficiency}
 
   \begin{proposition}{Approximate Sufficiency (AS)}
     \textit{Approximate Sufficiency} is the practice of finding the subset of summary statistics (from a larger set) which satisfy some optimality condition. This is done by identifying a large set of summary statistics $S$ and then finding a subset $S'\subset S$ which is approximately as good as the superset $S$. There are several measures of sufficiency.
   \end{proposition}
 
   \begin{proposition}{Approach to AS}
-    A typical approach to AS is to do the following
+    A typical approach to AS is to do the following\footnote{This approach requires the underlying model to be known, as we specify the model we are trying to fit, this is ok."}
     \begin{enumerate}
       \item Choose a measure of sufficient $M(\cdot)$.
       \item Start with an empty set $S'=\emptyset$.
@@ -56,17 +63,17 @@
     This approach has limitations since the final subset $S'$ depends on the order in which summary statistics are added. Finding a way to order the elements of $S$ would help this.
   \end{proposition}
 
-\subsection*{Sufficiency}
+\subsection{Sufficiency}
 
   \begin{remark}{Distinguishing Models}
     If two models have the same sufficient statistics it is impossible to distinguish between them.
   \end{remark}
 
   \begin{definition}{Classical Sufficiency}
-    Let $X\sim f(\cdot;\theta)$ and $T(X)$ be a summary statistic of $X$. $T(X)$ is a \textit{sufficient statistic} for $\theta$ if
-    \[ \prob(X|T(X),\theta)=\prob(X|T(X)) \]
-    ie the conditional distribution for $X$, given the summary statistic $T(X)$, is independent of $\theta$.
-    \par This can be read intuitively that $T(X)$ captures all the information the sample $X$ contains about the parameter $\theta$. (A lossless data-compression).
+    Let $X\sim f(\cdot;\theta)$\footnote{$X$ could be one or many observations.} and $s(\cdot)$ be a summary statistic. $s(X)$ is a \textit{sufficient statistic} for $\theta$ if
+    \[ \prob(X|s(X),\theta)=\prob(X|s(X)) \]
+    ie the conditional distribution for $X$, given the summary statistic $s(X)$, is independent of $\theta$.
+    \par This can be read intuitively that $s(X)$ captures all the information the sample $X$ contains about the parameter $\theta$. (A lossless data-compression).
   \end{definition}
 
   \begin{example}{Sufficient Statistic - Bernoulli Distribution}
@@ -121,11 +128,11 @@
     The conditional distribution of $\X$ given $T(\X)$ is independent of $\mu$, thus $T(\X)$ is a sufficient statistic for $\mu$.
   \end{example}
 
-\subsection*{Minimal Sufficiency}
+\subsection{Minimal Sufficiency}
 
   \begin{definition}{Minimal Sufficiency}
-    A sufficient statistic $T(X)$ is \textit{Minimally Sufficient} if it can be represented as a function of any other sufficient statistic $S(X)$.
-    \[ \exists f\text{ st }T(X)=f(S(X)) \]
+    A sufficient statistic $s(X)$ is \textit{Minimally Sufficient} if it can be represented as a function of any other sufficient statistic $t(X)$.
+    \[ \exists\ f\text{ st }s(X)=f(t(X)) \]
   \end{definition}
 
   \begin{example}{Minimal Sufficient Statistics}
@@ -133,12 +140,12 @@
     % e.g. The sample sum $T(X):=\sum_{i=1}^nX_i$ is a \textit{Minimially Sufficient} version of the same mean $S(X):=\frac1n\sum_{i=1}^nX_i$ since $T(X)=f(S(X))$ where $f(x):=nx$.
   \end{example}
 
-\subsection*{Fisher-Neyman Factorisation Theorem}
+\subsection{Fisher-Neyman Factorisation Theorem}
 
   \begin{theorem}{Fisher-Neyman Factorisation Theorem}
-    If $X\sim f(\cdot;\theta)$ then $T(X)$ is sufficient for $\theta$ iff there exists non-negative functions $g(\cdot;\theta),h(\cdot)$ st
-    \[ f(X;\theta)=h(X)g(T(X);\theta) \]
-    This shows that the data $X$ only interacts with the parameter $\theta$ through the sufficient summary statistics $T(X)$.
+    If $X\sim f(\cdot;\theta)$ then $s(\cdot)$ is sufficient for $\theta$ iff there exists non-negative functions $g(\cdot;\theta),h(\cdot)$ st
+    \[ f(X;\theta)=h(X)g(s(X);\theta) \]
+    This shows that the data $X$ only interacts with the parameter $\theta$ through the sufficient summary statistics $s(X)$.
   \end{theorem}
 
   \begin{proof}{Fisher-Neyman Factorisation Theorem}
@@ -191,43 +198,69 @@
     Notice that $h(\cdot)$ is independent of the unknown parameter $\mu$ and that $g(\cdot|\mu)$ only interacts with $\mu$ through the summary statistic $T(\X)$. Thus by the \textit{Fisher-Neyman Factorisation Theorem} $T(\X):=\frac1n\sum X_i$ is a sufficient statistic for $\mu$.
   \end{example}
 
-\subsection*{Bayesian Sufficiency}
+\subsection{Bayesian Sufficiency}
 
-  \begin{definition}{Bayesian Sufficiency\footnote{\url{https://en.wikipedia.org/wiki/Sufficient_statistic}}}
-    In a Bayesian Setting, a summary statistic $T(X)$ of $X\sim f(\cdot;\theta)$ is sufficient if for (almost) all $x\in X$
-    \[ \prob(\theta|X=x)=\prob(\theta|T(X)=T(x)) \]
-    ie the posterior for $\theta$ given the true model $X$ is the same as the posterior for $\theta$ given the summary statistic $T(X)$ (for almost all $x\in X$).
+  \begin{definition}{Bayesian Sufficiency\cite{wiki:Sufficient_statistic}}
+    In a Bayesian Setting, a summary statistic $s(X)$ of $X\sim f(\cdot;\theta)$ is sufficient if for (almost) all $x\in X$
+    \[ \prob(\theta|X=x)=\prob(\theta|s(X)=s(x)) \]
+    ie the posterior for $\theta$ given the true model $X$ is the same as the posterior for $\theta$ given the summary statistic $s(X)$ (for almost all $x\in X$).
   \end{definition}
 
-\subsection*{$\epsilon$-Approximate Sufficiency}
+\subsection{$\epsilon$-Approximate Sufficiency}
 
   \begin{remark}{Approximate Sufficiency}
     Approximate sufficiency concerns sets of summary statistics, rather than a single statistic. We are looking for a set of statistics which are approximate sufficient, while no individual statistic in the set is.
     \par This can be used when the distribution is not explicitly known (and can only be approximated)?
   \end{remark}
 
-  \begin{remark}{Motivation}
-    Suppose we have a set of summary statistics $\{T_1,\dots,T_n\}$ for parameter $\theta$, we only want to add a new statistic $T_{n+1}$ to this set if it offers a substantial amount of new information about $\theta$. We can consider the likelihoods of these sets of statistics
+  \begin{remark}{Motivation for using Approximate Sufficiency}
+    \everymath={\displaystyle}
+    Suppose we have a set of summary statistics $\{s_1(\cdot),\dots,s_n(\cdot)\}$ for parameter $\theta$ and are consider adding a new statistic $s_{n+1}(\cdot)$. We only want to do this if$s_{n+1}(\cdot)$ offers a substantial amount of new information about $\theta$.
+    \[ \prob(s_{1:n+1}(X)|\theta)\gg\prob(s_{1:n}(X)|\theta) \]
+    Note that
     \[\begin{array}{rcl}
-      \prob(T_1,\dots,T_n,T_{n+1}|\theta)&=&\prob(T_{n+1}|T_1,\dots,T_n,\theta)\prob(T_1,\dots,T_n|\theta)
-    \end{array}\]
-    Note that if $T_1,\dots,T_n$ where already sufficient then $\prob(T_{n+1}|T_1,\dots,T_n,\theta)$ would be independent of $\theta$ (ie not contribute to inference about $\theta$).
-    \par \textit{$\epsilon$-Approximate Sufficiency} defines when the set $\{T_1,\dots,T_n\}$ is to be consider sufficient and no new summary statistics need to added to the set.
+      \prob(s_{1:n+1}(X)|\theta)&=&\prob(s_{n+1}(X)|s_{1:n}(X),\theta)\prob(s_{1:n}|\theta)\\
+      \implies\prob(\theta|s_{1:n+1}(X))&=&\frac{\prob(s_{n+1}(X)|s_{1:n}(X),\theta)\prob(s_{1:n}(X)|\theta)\prob(\theta)}{\prpb(s_{n+1}(X)|s_{1:n}(X))\prob(s_{1:n}(X))}\text{ by Bayes}\\
+      &=&\frac{\prob(s_{1:n}(X)|\theta)\prob(\theta)}{\prob(s_{1:n}(X))}\text{ if }\prob(s_{n+1}(X)|s_{1:n}(X))=\prob(s_{n+1}|s_{1:n}(X),\theta)\footnotemark
+    \end{array}\]\footnotetext{i.e. If $s_{1:n}(\cdot)$ are sufficient for $\theta$.}
+    We don't want to add $s_{n+1}(\cdot)$ if $s_{1:n}(\cdot)$ are already sufficient for $\theta$.
+    \par As it is unlikely for $s_{1:n}(\cdot)$ to be completely sufficient, especially in high-dimensional systems\footnote{and as we are using empirical observation + stocastic noise.} so we don't add $s_{n+1}$ if $s_{1:n}$ are \textit{Approximately Sufficient}.
   \end{remark}
 
-  \begin{definition}{Score $\delta_{n+1}$\footnote{\label{fn_ASSaBC}Joyce, P., \& Marjoram, P. (2008). Approximately sufficient statistics and Bayesian computation \textit{Statistical applications in genetics and molecular biology, 7(1).}}}
+  \begin{remark}{Motivation for Using Log-Likelihood}
+    Consider the following
+    \[\begin{array}{rcl}
+      \prob(s_{1:n+1}(X)|\theta)&=&\prob(s_{n+1}(X)|s_{1:n}(X),\theta)\prob(s_{1:n}|\theta)\\
+      \implies\ln\prob(s_{1:n+1}(X)|\theta)&=&\ln\prob(s_{n+1}(X)|s_{1:n}(X),\theta)+\ln\prob(s_{1:n}|\theta)
+    \end{array}\]
+    This means $\ln\prob(s_{n+1}(X)|s_{1:n}(X),\theta)$ is the only difference between $\ln\prob(s_{1:n}|\theta)$ and $\ln\prob(s_{1:n+1}|\theta)$. Thus, the smaller the value of $\ln\prob(s_{n+1}(X)|s_{1:n}(X),\theta)$ the closer the two likelihoods are, implying $s_{1:n}$ and $s_{1:n+1}$  provide very similar amounts of information\footnote{Meaning there is little to be gained by including $s_{n+1}(\cdot)$.}
+  \end{remark}
+
+  \begin{definition}{Score $\delta_{n+1}$\cite{ABC_Approximately_Sufficient_Statistics}}
     Let $\{T_1,\dots,T_n\}$ be a set of summary statistics for parameters $\theta$ and $T_{n+1}$ be a statistic which we consider adding to the set.
     \par The \textit{Score} $\delta_{n+1}$ of the new statistic $T_{n+1}$ relative to the set $\{T_1,\dots,T_n\}$ is defined as
     \[ \delta_{n+1}:=\sup_\theta\ln\big[\prob(T_{n+1}|T_1,\dots,T_n,\theta)\big]-\inf_\theta\ln\big[\prob(T_{n+1}|T_1,\dots,T_n,\theta)\big] \]
     \textit{Score} $\delta_{n+1}$ is a measure of how much new information $T_{n+1}$ introduces
   \end{definition}
 
-  \begin{definition}{$\epsilon$-Approximate Sufficiency \textsuperscript{$\ref{fn_ASSaBC}$}}
+  \begin{definition}{$\epsilon$-Approximate Sufficiency \cite{ABC_Approximately_Sufficient_Statistics}}
     Let $\{T_1,\dots,T_n\}$ be a set of summary statistics for parameter $\theta$ and $T_{n+1}$ be a statistic which we consider adding to the set.
     \par The set $\{T_1,\dots,T_n\}$ is \textit{$\epsilon$-Sufficient} to the new statistic $T_{n+1}$, if the score of $T_{n+1}$ relative to $\{T_1,\dots,T_n\}$ is no-greater than some $\epsilon$
     \[ \delta_{n+1}\leq\epsilon \]
     If $T_{n+1}=\X$, the whole data set and $\epsilon=0$ then this is the same as the definition for sufficiency.
   \end{definition}
+
+  \begin{definition}{Odds-Ratio $R_n(\theta)$}
+    Let $s_{1}(\cdot),\dots,s_n(\cdot)$ be a set of summary statistics and $\pi_0(\theta)$ be a prior for $\theta$. Then the \textit{Odds-Ratio} for $s_n$ to $s_{1:n}$ is defined as
+    \[ R_n(\theta):=\frac{\prob(\theta|s_{1:n}(X))}{\prob(\theta|s_{1:n-1}(X))} \]
+    We are able to estimate this quantity from simulation.
+  \end{definition}
+
+  \begin{theorem}{}
+    Let $s_{1}(\cdot),\dots,s_n(\cdot)$ be a set of summary statistics, $\pi_0(\theta)$ be a prior for $\theta$ and $\delta_n$ be the score of $s_n(\cdot)$ relative to $s_{1:n-1}(\cdot)$. Then
+    \[ e^{-\delta_n}\leq R_n(\theta)\leq e^{\delta_n} \]
+    Thus, the closer the score $\delta_n$ is to $0$ the closer in value the two likelihoods $\prob(\theta|s_{1:n}(X))$ and  $\prob(\theta|s_{1:n-1}(X))$ are (the more sufficient $s_{1:n-1}$ are for $s_{1:n}$).
+  \end{theorem}
 
   \begin{remark}{Adding Statistics}
     Consider a large set of statistics $T:=\{T_1,\dots,T_n\}$. To find a sufficient subset $T'$ of $T$ the following process can be used
@@ -245,10 +278,24 @@
     This approach is deterministic wrt which statistics end up in the final $T'$. Another, stochastic, approach is to uniformly at random at one of the statistics with a score greater than $\epsilon$ to $T'$ each iteration.
   \end{remark}
 
-\section*{Non-Linear Projection}
+  \begin{proposition}{Algorithm for Choosing Summary Statistics}
+    Here is an algorithm for finding a set of approximately-sufficient summary statistics $S'$ from a larger set of summary statistics $S$.
+    \begin{itemize}
+      \item \textit{Initialisation} - Define a set of summary statistics $S:=\{s_1(\cdot),\dots,s_n(\cdot)\}$ and observe $y_{obs}$ from the true model.
+      \item Calculate observed values for each summary statistic
+      \[ S_{obs}:=\{s_1(y_{obs}),\dots,s_n(y_{obs})\} \]
+    \end{itemize}
+  \end{proposition}
 
-\section*{Do we need Summary Statistics?}
+\section{Non-Linear Projection}
 
-\subsection*{Minimum Distance ABC}
+\section{Do we need Summary Statistics?}
+
+\subsection{Minimum Distance ABC}
+
+\newpage
+\bibliographystyle{unsrt}
+\bibliography{aside_bib}
+
 
 \end{document}
