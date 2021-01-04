@@ -455,3 +455,90 @@ def abc_smc(n_obs:int,y_obs:[[float]],
     plt.show()
 
     return model_hat
+
+"""
+    SUMMARY STATISTIC SELECTION
+"""
+
+def joyce_marjoram(summary_stats:["function"],n_obs:int,y_obs:[[float]],fitting_model:Model,priors:["stats.Distribution"],n_samples=10000) -> [int]:
+        """
+        DESCRIPTION
+        Use the algorithm in Paul Joyce, Paul Marjoram 2008 to find an approxiamtely sufficient set of summary statistics (from set `summary_stats`)
+
+        PARAMETERS
+        summary_stats ([function]) - functions which summarise `y_obs` and the observations of `fitting_model` in some way. These are what will be evaluated
+        n_obs (int) - Number of observations available.
+        y_obs ([[float]]) - Observations from true model.
+        fitting_model (Model) - Model the algorithm will aim to fit to observations.
+        priors (["stats.Distribution"]) - Priors for the value of parameters of `fitting_model`.
+        n_samples (int) - number of samples to make
+
+        RETURNS
+        [int] - indexes of selected summary stats in `summary_stats`
+        """
+
+        if (type(y_obs)!=list): raise TypeError("`y_obs` must be a list (not {})".format(type(y_obs)))
+        if (len(y_obs)!=n_obs): raise ValueError("Wrong number of observations supplied (len(y_obs)!=n_obs) ({}!={})".format(len(y_obs),n_obs))
+        if (len(priors)!=fitting_model.n_params): raise ValueError("Wrong number of priors given (exp fitting_model.n_params={})".format(fitting_model.n_params))
+
+        group_dim = lambda ys,i: [y[i] for y in ys]
+        summary_stats=summary_stats if (summary_stats) else ([(lambda ys:group_dim(ys,i)) for i in range(len(y_obs[0]))])
+        s_obs=[s(y_obs) for s in summary_stats]
+
+        # generate samples
+        SAMPLES=[] # (theta,s_vals)
+        for i in range(n_samples):
+            print("{:,}/{:,}".format(i+1,n_samples),end="\r")
+
+            # sample parameters
+            theta_t=[pi_i.rvs(1)[0] for pi_i in priors]
+
+            # observe theorised model
+            fitting_model.update_params(theta_t)
+            y_t=fitting_model.observe()
+            s_t=[s(y_t) for s in summary_stats]
+
+            SAMPLES.append((theta_t,s_t))
+
+        print()
+
+        # TODO make these parameters
+        KERNEL=uniform_kernel
+        EPSILON=1
+
+        # estimate score for each summary stat
+        ACCEPTED_SUMMARY_STATS_ID=[] # index of accepted summary stats
+        prev_prob=1
+        while True:
+            print("ACCEPTED_SUMMARY_STATS_ID - ",ACCEPTED_SUMMARY_STATS_ID)
+            best_ss=(0,-1) # prob,index
+
+            # consider including each summary stat
+            for i in range(len(summary_stats)):
+                if i in ACCEPTED_SUMMARY_STATS_ID: continue # ignore stats already in set
+
+                # count number of samples accepted when using this summary stat and all previously accepted
+                SAMPLES_i=[(theta,[s[j] for j in ACCEPTED_SUMMARY_STATS_ID+[i]]) for (theta,s) in SAMPLES]
+                s_obs_t=[s_obs[j] for j in ACCEPTED_SUMMARY_STATS_ID+[i]]
+                # accept-reject
+                ACCEPTED_PARAMS=[]
+                for (theta_t,s_t) in SAMPLES_i:
+                    norm_vals=[l2_norm(s_t_i,s_obs_i) for (s_t_i,s_obs_i) in zip(s_t,s_obs_t)]
+                    if all([KERNEL(v,EPSILON) for v in norm_vals]): # if at least `pct_matches`% of observations satisfy kernel
+                        ACCEPTED_PARAMS.append(theta_t)
+
+                prob=len(ACCEPTED_PARAMS)/n_samples # correct denominator
+                print("P(theta|{})={:.5f}".format(",".join(["s_{}".format(j) for j in [i]+ACCEPTED_SUMMARY_STATS_ID]),prob))
+                if (prob>best_ss[0]): best_ss=(prob,i)
+
+            ratio=best_ss[0]/prev_prob
+            print("ratio - ",ratio)
+
+            # whether to add a summary stat to accepted set (TODO improve this)
+            if (ACCEPTED_SUMMARY_STATS_ID==[]): ACCEPTED_SUMMARY_STATS_ID+=[best_ss[1]]
+            elif (ratio>1): ACCEPTED_SUMMARY_STATS_ID+=[best_ss[1]] # TODO - define better acceptance criertia (probs based on expected number of obvs)
+            else: break
+            prev_prob=best_ss[0]
+            print()
+
+        return ACCEPTED_SUMMARY_STATS_ID
