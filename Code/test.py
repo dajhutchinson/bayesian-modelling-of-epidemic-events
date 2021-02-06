@@ -27,13 +27,13 @@ em_priors=[stats.uniform(0,3),stats.uniform(0,1)]
     CHOOSE SUMMARY STATS
 """
 # Linear Model
-# rand=(lambda ys:[stats.uniform(0,10).rvs(1)[0]])
-# mean_grad = (lambda ys:[np.mean([ys[i+1][0]-ys[i][0] for i in range(len(ys)-1)])])
-# rand_2=(lambda ys:[mean_grad(ys)[0]*stats.uniform(0.8,.4).rvs(1)[0]])
-# summary_stats=[mean_grad,rand,rand_2]
-# best_stats=ABC.joyce_marjoram(summary_stats,n_obs=10,y_obs=lm.observe(),fitting_model=lm.copy([1,1]),priors=lm_priors_intersect_known,n_samples=1000)
-#
-# print(best_stats)
+mean_grad = (lambda ys:[np.mean([ys[i+1][0]-ys[i][0] for i in range(len(ys)-1)])])
+rand=(lambda ys:[stats.uniform(0,10).rvs(1)[0]])
+rand_2=(lambda ys:[mean_grad(ys)[0]*stats.uniform(0.5,1).rvs(1)[0]])
+summary_stats=[mean_grad,rand,rand_2]
+best_stats=ABC.joyce_marjoram(summary_stats,n_obs=10,y_obs=lm.observe(),fitting_model=lm.copy([1,1]),priors=lm_priors_intersect_known,n_samples=1000)
+
+print(best_stats)
 """
     REJECTION SAMPLING
 """
@@ -98,6 +98,7 @@ em_priors=[stats.uniform(0,3),stats.uniform(0,1)]
 # scaling_factors=list(np.linspace(3,.5,10))
 #
 # pertubance_variance=.1
+#
 # perturbance_kernels = [lambda x:x+stats.norm(0,pertubance_variance).rvs(1)[0]]*2
 # perturbance_kernel_probability = [lambda x,y:stats.norm(0,pertubance_variance).pdf(x-y)]
 #

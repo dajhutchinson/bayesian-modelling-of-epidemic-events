@@ -344,6 +344,6 @@ class ExponentialModel(Model): # ae^{xb}
         return new_model
 
     def __str__(self):
-        printing_str="{:.3f}*e^({:.3f}x)".format(self.params[0],self.params[1])
+        printing_str="{:.3f}*e^({:.3f}*x0)".format(self.params[0],self.params[1])
         if (self.noise_var!=0): printing_str+="+N(0,{:.3f})".format(self.noise_var)
         return printing_str
