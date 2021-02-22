@@ -47,7 +47,7 @@ def l2_norm(s_t:(float),s_obs:(float)) -> float:
 """
 
 def __sampling_stage_fixed_number(DESIRED_SAMPLE_SIZE:int,EPSILON:float,KERNEL:"func",PRIORS:["stats.Distribution"],
-    s_obs:[float],model_t:Model,summary_stats:["function"],pct_matches=.8) -> ([[float]],[[float]],[[float]]):
+    s_obs:[float],model_t:Model,summary_stats:["function"],pct_matches=.6) -> ([[float]],[[float]],[[float]]):
     """
     DESCRIPTION
     keep generating parameter values and observing the equiv models until a sufficient number of `good` parameter values have been found.
@@ -61,7 +61,7 @@ def __sampling_stage_fixed_number(DESIRED_SAMPLE_SIZE:int,EPSILON:float,KERNEL:"
     summary_stat ([func]) - functions used to determine each summary statistic.
 
     OPTIONAL PARAMETERS
-    pct_matches (float) - percentage of sumamry statistics which need to be accepted by the kernels for the parameters to be accepted.
+    pct_matches (float) - percentage of sumamry statistics which need to be accepted by the kernels for the parameters to be accepted. (.6 by default)
 
     RETURNS
     [[float]] - accepted parameter values
@@ -223,7 +223,7 @@ def abc_rejcection(n_obs:int,y_obs:[[float]],fitting_model:Model,priors:["stats.
             accepted_vals=[s[i][0] for s in ACCEPTED_SUMMARY_VALS]
             Plotting.plot_summary_stats(ax,name,accepted_s=accepted_vals,s_obs=s_obs[i],s_hat=s_hat[i])
 
-    plt.get_current_fig_manager().window.state("zoomed")
+    # plt.get_current_fig_manager().window.state("zoomed")
     plt.show()
 
     return model_hat

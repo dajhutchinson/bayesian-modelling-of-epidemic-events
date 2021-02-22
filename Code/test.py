@@ -15,7 +15,7 @@ lm=LinearModel(  # 1+10x
 lm_priors=[stats.uniform(0,6),stats.uniform(8,6)]
 lm_priors_intersect_known=[stats.uniform(1,0),stats.uniform(8,6)]
 
-em=ExponentialModel( # 2e^{.2x}
+em=ExponentialModel( # 2e^{.3x}
     params=[2,.3],
     n_obs=10,
     x_obs=[[x] for x in range(10)],
