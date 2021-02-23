@@ -121,7 +121,7 @@ def plot_MCMC_trace(ax:plt.Axes,name:str,accepted_parameter:[float],predicted_va
 
     return ax
 
-def plot_smc_posterior(ax:plt.Axes,name:str,parameter_values:[float],weights:[float],predicted_val:float) -> plt.Axes:
+def plot_smc_posterior(ax:plt.Axes,name:str,parameter_values:[float],weights:[float],predicted_val:float,prior:"stats.Distribution") -> plt.Axes:
     """
     DESCRIPTION
     plot posterior of a parameter from SMC algorithm.
@@ -132,10 +132,16 @@ def plot_smc_posterior(ax:plt.Axes,name:str,parameter_values:[float],weights:[fl
     parameter_values ([float]) - values of parameter used.
     weights ([float]) - weights of each parameter used (must align with `parameter_values`)
     predicted_val (float) - predicted value for parameter (likely mean of `parameter_values` weighted by `weights`)
+    prior (stats.Distribution) - prior used when sampling for parameter.
 
     RETURNS
     plt.Axes - axes on which plot was made
     """
+    # plot prior used
+    x=np.linspace(prior.ppf(.01)-1,prior.ppf(.99)+1,100)
+    # x=np.linspace(prior.ppf(.01),prior.ppf(.99),100)
+    ax.plot(x,prior.pdf(x),"k-",lw=2, label='Prior')
+
     density=stats.kde.gaussian_kde(parameter_values,weights=weights)
     x=np.linspace(min(parameter_values)*.9,max(parameter_values)*1.1,100)
     ax.plot(x,density(x),c="blue",label="Posterior")

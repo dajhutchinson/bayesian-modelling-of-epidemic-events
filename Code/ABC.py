@@ -39,15 +39,21 @@ def gaussian_kernel(x:float,epsilon:float) -> bool:
 """
     DISTANCE MEASURES
 """
+def l1_norm(xs:[float]) -> float:
+    return sum(xs)
+
 def l2_norm(s_t:(float),s_obs:(float)) -> float:
     return sum([(x-y)**2 for (x,y) in zip(s_t,s_obs)])**.5
+
+def l_infty_norm(xs:[float]) -> float:
+    return max(xs)
 
 """
     REJECTION SAMPLING METHODS
 """
 
 def __sampling_stage_fixed_number(DESIRED_SAMPLE_SIZE:int,EPSILON:float,KERNEL:"func",PRIORS:["stats.Distribution"],
-    s_obs:[float],model_t:Model,summary_stats:["function"],pct_matches=.6) -> ([[float]],[[float]],[[float]]):
+    s_obs:[float],model_t:Model,summary_stats:["function"]) -> ([[float]],[[float]],[[float]]):
     """
     DESCRIPTION
     keep generating parameter values and observing the equiv models until a sufficient number of `good` parameter values have been found.
@@ -60,15 +66,11 @@ def __sampling_stage_fixed_number(DESIRED_SAMPLE_SIZE:int,EPSILON:float,KERNEL:"
     s_obs ([float]) - summary statistic values for observations from true model.
     summary_stat ([func]) - functions used to determine each summary statistic.
 
-    OPTIONAL PARAMETERS
-    pct_matches (float) - percentage of sumamry statistics which need to be accepted by the kernels for the parameters to be accepted. (.6 by default)
-
     RETURNS
     [[float]] - accepted parameter values
     [[float]] - observations made when using accepted parameter values
     [[float]] - summary statistic values for accepted parameter observations
     """
-    if (pct_matches<0 or pct_matches>1): raise ValueError("`pct_matches` must be in [0,1].")
 
     ACCEPTED_PARAMS=[]
     ACCEPTED_OBS=[]
@@ -85,7 +87,7 @@ def __sampling_stage_fixed_number(DESIRED_SAMPLE_SIZE:int,EPSILON:float,KERNEL:"
 
         # accept-reject
         norm_vals=[l2_norm(s_t_i,s_obs_i) for (s_t_i,s_obs_i) in zip(s_t,s_obs)]
-        if (np.mean([KERNEL(v,EPSILON) for v in norm_vals])>=pct_matches): # if at least `pct_matches`% of observations satisfy kernel
+        if (KERNEL(l1_norm(norm_vals),EPSILON)): # NOTE - l1_norm() can be replaced by anyother other norm
             ACCEPTED_PARAMS.append(theta_t)
             ACCEPTED_OBS.append(y_t)
             ACCEPTED_SUMMARY_VALS.append(s_t)
@@ -127,7 +129,7 @@ def __sampling_stage_best_samples(NUM_RUNS:int,SAMPLE_SIZE:int,PRIORS:["stats.Di
         s_t=[s(y_t) for s in summary_stats]
 
         norm_vals=[l2_norm(s_t_i,s_obs_i) for (s_t_i,s_obs_i) in zip(s_t,s_obs)]
-        summarised_norm_val=np.mean(norm_vals) # used to order samples by quality (TODO)
+        summarised_norm_val=l1_norm(norm_vals) # l1_norm can be replaced by any other norm
 
         for j in range(max(0,SAMPLE_SIZE-i-1,SAMPLE_SIZE)):
 
@@ -394,6 +396,8 @@ def abc_smc(n_obs:int,y_obs:[[float]],
         print("({:,}) - {:,}/{:,}".format(i,len(THETAS),sample_size),end="\r")
     print()
 
+    total_simulations=i
+
     # resampling & reweighting step
     for t in range(1,num_steps):
         i=0
@@ -428,6 +432,7 @@ def abc_smc(n_obs:int,y_obs:[[float]],
                 weight=weight_numerator/weight_denominator
                 NEW_THETAS.append((weight,theta_temp))
 
+        total_simulations+=i
         weight_sum=sum([w for (w,_) in NEW_THETAS])
         NEW_THETAS=[(w/weight_sum,theta) for (w,theta) in NEW_THETAS]
 
@@ -444,13 +449,14 @@ def abc_smc(n_obs:int,y_obs:[[float]],
     ax=fig.add_subplot(1,fitting_model.n_params+1,fitting_model.n_params+1)
     Plotting.plot_accepted_observations(ax,fitting_model.n_obs,y_obs,[],model_hat)
 
+    print("Total Simulations - {:,}".format(total_simulations))
     print("theta_hat -",theta_hat)
 
     for i in range(fitting_model.n_params):
         ax=fig.add_subplot(1,fitting_model.n_params+1,i+1)
         name="theta_{}".format(i)
         parameter_values=[theta[i] for theta in param_values]
-        Plotting.plot_smc_posterior(ax,name,parameter_values=parameter_values,weights=weights,predicted_val=theta_hat[i])
+        Plotting.plot_smc_posterior(ax,name,parameter_values=parameter_values,weights=weights,predicted_val=theta_hat[i],prior=priors[i])
 
     plt.show()
 
@@ -524,7 +530,7 @@ def joyce_marjoram(summary_stats:["function"],n_obs:int,y_obs:[[float]],fitting_
                 ACCEPTED_PARAMS=[]
                 for (theta_t,s_t) in SAMPLES_i:
                     norm_vals=[l2_norm(s_t_i,s_obs_i) for (s_t_i,s_obs_i) in zip(s_t,s_obs_t)]
-                    if all([KERNEL(v,EPSILON) for v in norm_vals]): # if at least `pct_matches`% of observations satisfy kernel
+                    if all([KERNEL(v,EPSILON) for v in norm_vals]):
                         ACCEPTED_PARAMS.append(theta_t)
 
                 prob=len(ACCEPTED_PARAMS)/n_samples # correct denominator

@@ -128,6 +128,20 @@
     The conditional distribution of $\X$ given $T(\X)$ is independent of $\mu$, thus $T(\X)$ is a sufficient statistic for $\mu$.
   \end{example}
 
+  \begin{proof}{If $S_{1:k-1}$ are sufficient then $\prob(\theta|S_{1:k})=\prob(\theta|S_{1:k-1})$ for all $S_k$.}
+    \everymath={\displaystyle}
+    Let $S_{1:k-1}$ be a set of summary-statistics which are sufficient for parameters $\theta$, and $S_k$ be any other summary statistic. Then
+    \[\begin{array}{rcl}
+      \prob(\theta|S_{1:k})&=&\frac{\prob(\theta,S_{1:k})}{\prob(S_{1:k})}\\
+      &=&\frac{\prob(\theta,S_{1:k})}{\prob(S_{1:k})}\cdot\frac{\prob(S_{1:k-1})}{\prob(S_{1:k-1})}\\
+      &=&\frac{\prob(\theta,S_k|S_{1:k-1})}{\prob(S_k|S_{1:k-1})}\\
+      &=&\frac{\prob(\theta,S_k|S_{1:k-1})}{\prob(S_k|S_{1:k-1},\theta)}\text{ as }S_{1:k-1}\text{ are sufficient for }\theta\\
+      &=&\frac{\prob(\theta,S_{1:k})}{\prob(S_{1:k-1})}\cdot\frac{\prob(\theta,S_{1:k-1})}{\prob(\theta,S_{1:k})}\\
+      &=&\frac{\prob(\theta,S_{1:k})}{\prob(\theta,S_{1:k})}\\
+      &=&\prob(\theta|S_{1:k-1})
+    \end{array}\]
+  \end{proof}
+
 \subsection{Minimal Sufficiency}
 
   \begin{definition}{Minimal Sufficiency}
@@ -261,6 +275,22 @@
     \[ e^{-\delta_n}\leq R_n(\theta)\leq e^{\delta_n} \]
     Thus, the closer the score $\delta_n$ is to $0$ the closer in value the two likelihoods $\prob(\theta|s_{1:n}(X))$ and  $\prob(\theta|s_{1:n-1}(X))$ are (the more sufficient $s_{1:n-1}$ are for $s_{1:n}$).
   \end{theorem}
+
+  \begin{proof}{Theorem 2.2}
+    \everymath={\displaystyle}
+    Consider the numerator
+    \[\begin{array}{rcl}
+      \prob(\theta|S_{1:k})&=&\frac{\prob(\theta,S_{1:k})}{\prob(S_{1:k})}\\
+      &=&\frac{\prob(\theta,S_{1:k}|\theta)\pi(\theta)}{\int\prob(S_{1:k}|\theta)\pi(\theta)d\theta}\\
+      &=&\frac{\prob(S_k|S_{1:k-1},\theta)\prob(S_{1:k-1}|\theta)\pi(\theta)}{\int\prob(S_k|S_{1:k-1},\theta)\prob(S_{1:k-1}|\theta)\pi(\theta)d\theta}\\
+      &\leq&\frac{\prob(S_{1:k-1}|\theta)\pi(\theta)}{\int\prob(S_{1:k-1}|\theta)\pi(\theta)d\theta}\cdot\frac{\sup_\theta\prob(S_k|S_{1:k-1},\theta)}{\inf_\theta\prob(S_k|S_{1:k-1},\theta)}\\
+      &=&\frac{\prob(S_{1:k-1}|\theta)\pi(\theta)}{\prob(S_{1:k-1})}\cdot\exp\left\{\ln\left(\frac{\sup_\theta\prob(S_k|S_{1:k-1},\theta)}{\inf_\theta\prob(S_k|S_{1:k-1},\theta)}\right)\right\}\\
+      &=&\underbrace{\prob(\theta|S_{1:k-1})}_\text{Bayes' Rule}\cdot\exp\left\{\sup_\theta\ln\left(\prob(S_k|S_{1:k-1},\theta)\right)-\inf_\theta\ln\left(\prob(S_k|S_{1:k-1},\theta)\right)\right\}\\
+      &=&\prob(\theta|S_{1:k-1})\cdot\exp\left\{\delta_k\right\}\\
+      \implies R_k(\theta)&\leq&\exp\{\delta_k\}
+    \end{array}\]
+    A symmetric argument is made for the other bound.
+  \end{proof}
 
   \begin{remark}{Adding Statistics}
     Consider a large set of statistics $T:=\{T_1,\dots,T_n\}$. To find a sufficient subset $T'$ of $T$ the following process can be used

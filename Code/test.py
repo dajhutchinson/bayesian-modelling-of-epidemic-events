@@ -97,10 +97,10 @@ print(best_stats)
 # summary_stats=[start,end,mean_grad]
 # scaling_factors=list(np.linspace(3,.5,10))
 #
-# pertubance_variance=.1
+# perturbance_variance=.1
 #
-# perturbance_kernels = [lambda x:x+stats.norm(0,pertubance_variance).rvs(1)[0]]*2
-# perturbance_kernel_probability = [lambda x,y:stats.norm(0,pertubance_variance).pdf(x-y)]
+# perturbance_kernels = [lambda x:x+stats.norm(0,perturbance_variance).rvs(1)[0]]*2
+# perturbance_kernel_probability = [lambda x,y:stats.norm(0,perturbance_variance).pdf(x-y)]
 #
 # fitted_model=ABC.abc_smc(n_obs=10,y_obs=lm.observe(),fitting_model=lm.copy([1,1]),priors=lm_priors,
 #     num_steps=10,sample_size=100,scaling_factors=scaling_factors,perturbance_kernels=perturbance_kernels,perturbance_kernel_probability=perturbance_kernel_probability,acceptance_kernel=ABC.gaussian_kernel,summary_stats=summary_stats)
@@ -115,9 +115,9 @@ print(best_stats)
 # summary_stats=[start,end,mean_log_grad]
 # scaling_factors=list(np.linspace(3,.5,10))
 #
-# pertubance_variance=.1
-# perturbance_kernels = [lambda x:x+stats.norm(0,pertubance_variance).rvs(1)[0]]*2
-# perturbance_kernel_probability = [lambda x,y:stats.norm(0,pertubance_variance).pdf(x-y)]
+# perturbance_variance=.1
+# perturbance_kernels = [lambda x:x+stats.norm(0,perturbance_variance).rvs(1)[0]]*2
+# perturbance_kernel_probability = [lambda x,y:stats.norm(0,perturbance_variance).pdf(x-y)]
 #
 # fitted_model=ABC.abc_smc(n_obs=10,y_obs=em.observe(),fitting_model=em.copy([1,1]),priors=em_priors,
 #     num_steps=10,sample_size=100,scaling_factors=scaling_factors,perturbance_kernels=perturbance_kernels,perturbance_kernel_probability=perturbance_kernel_probability,acceptance_kernel=ABC.gaussian_kernel,summary_stats=summary_stats)
