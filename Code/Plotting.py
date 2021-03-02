@@ -3,7 +3,7 @@ import numpy as np
 from scipy import stats
 from Models import Model
 
-def plot_accepted_observations(ax:plt.Axes,n_obs:int,y_obs:[[float]],accepted_observations:[[float]],predicted_model:Model) -> plt.Axes:
+def plot_accepted_observations(ax:plt.Axes,n_obs:int,y_obs:[[float]],accepted_observations:[[float]],predicted_model:Model,dim=0) -> plt.Axes:
     """
     DESCRIPTION
     plot observations from truth `y_obs` and observations from accepted parameter sets.
@@ -13,6 +13,7 @@ def plot_accepted_observations(ax:plt.Axes,n_obs:int,y_obs:[[float]],accepted_ob
     n_obs (int) - number of observations per model.
     y_obs ([float]) - observations from true model.
     accepted_observations ([[float]]) - observations from accepted parameter sets.
+    dim (int) - dimension of observations being plotted (default=0)
 
     RETURNS
     plt.Axes - axes on which plot was made
@@ -23,9 +24,11 @@ def plot_accepted_observations(ax:plt.Axes,n_obs:int,y_obs:[[float]],accepted_ob
     ax.scatter(xs,y_obs,c="green",alpha=1,label="y_obs")
 
     y_pred=predicted_model.observe(inc_noise=False)
+    if (len(y_pred[0])!=1): # multi-dimensional
+        y_pred=[y[dim] for y in y_pred]
     ax.plot(xs,y_pred,c="orange",label="Pred")
 
-    ax.set_title("Accepted Observations")
+    ax.set_title("Accepted Observations (dim={})".format(dim))
     ax.set_xticks([])
     ax.set_xticklabels([])
     ax.legend()

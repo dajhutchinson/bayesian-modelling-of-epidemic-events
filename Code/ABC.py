@@ -201,13 +201,22 @@ def abc_rejcection(n_obs:int,y_obs:[[float]],fitting_model:Model,priors:["stats.
 
     # plot results
     n_simple_ss=sum(len(s)==1 for s in ACCEPTED_SUMMARY_VALS[0]) # number of summary stats which map to a single dimension
-    n_rows=max([1,np.lcm(fitting_model.n_params,n_simple_ss)])
+    n_cols=2 if (n_simple_ss==0) else 3
+    n_rows=max([1,np.lcm.reduce([fitting_model.n_params,max(1,n_simple_ss),fitting_model.dim_obs])])
 
+    # plot accepted obervations for each dimension
     fig=plt.figure(constrained_layout=True)
-    gs=fig.add_gridspec(n_rows,3) # 3 columns
-    ax=fig.add_subplot(gs[:,-1])
-    Plotting.plot_accepted_observations(ax,fitting_model.n_obs,y_obs,ACCEPTED_OBS,model_hat)
+    gs=fig.add_gridspec(n_rows,n_cols)
 
+    # plot accepted observations (each dimension separate)
+    row_step=n_rows//fitting_model.dim_obs
+    for i in range(fitting_model.dim_obs):
+        ax=fig.add_subplot(gs[i*row_step:(i+1)*row_step,-1])
+        y_obs_dim=[y[i] for y in y_obs]
+        accepted_obs_dim=[[y[i] for y in obs] for obs in ACCEPTED_OBS]
+        Plotting.plot_accepted_observations(ax,fitting_model.n_obs,y_obs_dim,accepted_obs_dim,model_hat,dim=i)
+
+    # plot posterior for each parameter
     row_step=n_rows//fitting_model.n_params
     for i in range(fitting_model.n_params):
         name="Theta_{}".format(i)
@@ -215,15 +224,17 @@ def abc_rejcection(n_obs:int,y_obs:[[float]],fitting_model:Model,priors:["stats.
         accepted_vals=[x[i] for x in ACCEPTED_PARAMS]
         Plotting.plot_parameter_posterior(ax,name,accepted_parameter=accepted_vals,predicted_val=theta_hat[i],prior=priors[i])
 
+    # plot histogram of each summary statistic value
     row=0
-    row_step=n_rows//n_simple_ss
-    for i in range(len(summary_stats)):
-        if (len(ACCEPTED_SUMMARY_VALS[0][i])==1):
-            name="s_{}".format(i)
-            ax=fig.add_subplot(gs[row*row_step:(row+1)*row_step,1])
-            row+=1
-            accepted_vals=[s[i][0] for s in ACCEPTED_SUMMARY_VALS]
-            Plotting.plot_summary_stats(ax,name,accepted_s=accepted_vals,s_obs=s_obs[i],s_hat=s_hat[i])
+    if (n_simple_ss!=0):
+        row_step=n_rows//n_simple_ss
+        for i in range(len(summary_stats)):
+            if (len(ACCEPTED_SUMMARY_VALS[0][i])==1):
+                name="s_{}".format(i)
+                ax=fig.add_subplot(gs[row*row_step:(row+1)*row_step,1])
+                row+=1
+                accepted_vals=[s[i][0] for s in ACCEPTED_SUMMARY_VALS]
+                Plotting.plot_summary_stats(ax,name,accepted_s=accepted_vals,s_obs=s_obs[i],s_hat=s_hat[i])
 
     # plt.get_current_fig_manager().window.state("zoomed")
     plt.show()
@@ -259,9 +270,10 @@ def abc_mcmc(n_obs:int,y_obs:[[float]],
     s_obs=[s(y_obs) for s in summary_stats]
 
     # find starting sample
+    min_l1_norm=100000000000
     i=0
     while (True):
-        print("Finding Start - ({:,})".format(i),end="\r")
+        print("Finding Start - ({:,},{:,.3f})                       ".format(i,min_l1_norm),end="\r")
         i+=1
         theta_0=[pi_i.rvs(1)[0] for pi_i in priors]
 
@@ -272,7 +284,8 @@ def abc_mcmc(n_obs:int,y_obs:[[float]],
 
         # accept-reject
         norm_vals=[l2_norm(s_0_i,s_obs_i) for (s_0_i,s_obs_i) in zip(s_0,s_obs)]
-        if all([acceptance_kernel(v,scaling_factor) for v in norm_vals]): break
+        if (l1_norm(norm_vals)<min_l1_norm): min_l1_norm=l1_norm(norm_vals)
+        if (acceptance_kernel(l1_norm(norm_vals),scaling_factor)): break
 
     THETAS=[theta_0]
     ACCEPTED_SUMMARY_VALS=[s_0]
@@ -293,7 +306,7 @@ def abc_mcmc(n_obs:int,y_obs:[[float]],
 
         # accept-reject
         norm_vals=[l2_norm(s_temp_i,s_obs_i) for (s_temp_i,s_obs_i) in zip(s_temp,s_obs)]
-        if all([acceptance_kernel(v,scaling_factor) for v in norm_vals]): # accept new parameter sample
+        if (acceptance_kernel(l1_norm(norm_vals),scaling_factor)):
             new+=1
             THETAS.append(theta_temp)
             ACCEPTED_SUMMARY_VALS.append(s_temp)
@@ -309,11 +322,18 @@ def abc_mcmc(n_obs:int,y_obs:[[float]],
     print("{:.3f} observations were new.".format(new/chain_length))
 
     n_simple_ss=sum(len(s)==1 for s in ACCEPTED_SUMMARY_VALS[0]) # number of summary stats which map to a single dimension
-    n_rows=max([1,np.lcm(fitting_model.n_params,n_simple_ss)])
+    n_cols=3 if (n_simple_ss==0) else 4
+    n_rows=max([1,np.lcm.reduce([fitting_model.n_params,max(1,n_simple_ss),fitting_model.dim_obs])])
+
     fig=plt.figure(constrained_layout=True)
-    gs=fig.add_gridspec(n_rows,4) # 3 columns
-    ax=fig.add_subplot(gs[:,-1])
-    Plotting.plot_accepted_observations(ax,fitting_model.n_obs,y_obs,[],model_hat)
+    gs=fig.add_gridspec(n_rows,n_cols)
+
+    # plot fitted model
+    row_step=n_rows//fitting_model.dim_obs
+    for i in range(fitting_model.dim_obs):
+        ax=fig.add_subplot(gs[i*row_step:(i+1)*row_step,-1])
+        y_obs_dim=[y[i] for y in y_obs]
+        Plotting.plot_accepted_observations(ax,fitting_model.n_obs,y_obs_dim,[],model_hat,dim=i)
 
     # plot traces
     row_step=n_rows//fitting_model.n_params
@@ -391,7 +411,7 @@ def abc_smc(n_obs:int,y_obs:[[float]],
 
         # accept-reject
         norm_vals=[l2_norm(s_temp_i,s_obs_i) for (s_temp_i,s_obs_i) in zip(s_temp,s_obs)]
-        if all([acceptance_kernel(v,scaling_factors[0]) for v in norm_vals]): # accept new parameter sample
+        if (acceptance_kernel(l1_norm(norm_vals),scaling_factors[0])):
             THETAS.append((1/sample_size,theta_temp))
         print("({:,}) - {:,}/{:,}".format(i,len(THETAS),sample_size),end="\r")
     print()
@@ -424,7 +444,7 @@ def abc_smc(n_obs:int,y_obs:[[float]],
 
             # accept-reject
             norm_vals=[l2_norm(s_temp_i,s_obs_i) for (s_temp_i,s_obs_i) in zip(s_temp,s_obs)]
-            if all([acceptance_kernel(v,scaling_factors[t]) for v in norm_vals]): # accept new parameter sample
+            if (acceptance_kernel(l1_norm(norm_vals),scaling_factors[t])):
                 weight_numerator=sum([p.pdf(theta) for (p,theta) in zip(priors,theta_temp)])
                 weight_denominator=0
                 for (weight,theta) in THETAS:
@@ -445,15 +465,24 @@ def abc_smc(n_obs:int,y_obs:[[float]],
     theta_hat=list(np.average(param_values,axis=0,weights=weights))
     model_hat=fitting_model.copy(theta_hat)
 
-    fig=plt.figure()
-    ax=fig.add_subplot(1,fitting_model.n_params+1,fitting_model.n_params+1)
-    Plotting.plot_accepted_observations(ax,fitting_model.n_obs,y_obs,[],model_hat)
+    n_rows=max([1,np.lcm(fitting_model.n_params,fitting_model.dim_obs)])
+
+    fig=plt.figure(constrained_layout=True)
+    gs=fig.add_gridspec(n_rows,2)
+
+    # plot fitted model
+    row_step=n_rows//fitting_model.dim_obs
+    for i in range(fitting_model.dim_obs):
+        ax=fig.add_subplot(gs[i*row_step:(i+1)*row_step,-1])
+        y_obs_dim=[y[i] for y in y_obs]
+        Plotting.plot_accepted_observations(ax,fitting_model.n_obs,y_obs_dim,[],model_hat,dim=i)
 
     print("Total Simulations - {:,}".format(total_simulations))
     print("theta_hat -",theta_hat)
 
+    row_step=n_rows//fitting_model.n_params
     for i in range(fitting_model.n_params):
-        ax=fig.add_subplot(1,fitting_model.n_params+1,i+1)
+        ax=fig.add_subplot(gs[i*row_step:(i+1)*row_step,0])
         name="theta_{}".format(i)
         parameter_values=[theta[i] for theta in param_values]
         Plotting.plot_smc_posterior(ax,name,parameter_values=parameter_values,weights=weights,predicted_val=theta_hat[i],prior=priors[i])

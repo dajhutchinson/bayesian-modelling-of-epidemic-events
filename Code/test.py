@@ -23,12 +23,42 @@ em=ExponentialModel( # 2e^{.3x}
     )
 em_priors=[stats.uniform(0,3),stats.uniform(0,1)]
 
+sir_model=SIRModel(
+    params=[100000,100,1,.5],
+    n_obs=30)
+sir_priors=[stats.uniform(100000,1),stats.uniform(100,1),stats.uniform(0,1.5),stats.uniform(0,2)]
+
 """
     SIR Model
 """
-sir_model=SIRModel(params=[100000,100,1,.5],n_obs=30)
-data=sir_model.observe()
-sir_model.plot_obs(constant_scale=True)
+# data=sir_model.observe()
+# sir_model.plot_obs(constant_scale=True)
+
+# ABC-Rejection Sampling
+# sampling_details={"sampling_method":"best","num_runs":10000,"sample_size":100}
+# fitted_model=ABC.abc_rejcection(n_obs=30,y_obs=sir_model.observe(),fitting_model=sir_model.copy([1,1,1,1]),priors=sir_priors,sampling_details=sampling_details)
+# print("True Model - {}".format(sir_model))
+# print("Fitted Model - {}\n".format(fitted_model))
+
+# ABC-MCMC
+# perturbance_kernels = [lambda x:x]*2 + [lambda x:x+stats.norm(0,.1).rvs(1)[0]]*2
+# fitted_model=ABC.abc_mcmc(n_obs=30,y_obs=sir_model.observe(),fitting_model=sir_model.copy([1,1,1,1]),priors=sir_priors,
+#     chain_length=10000,perturbance_kernels=perturbance_kernels,acceptance_kernel=ABC.gaussian_kernel,scaling_factor=15000)
+# print("True Model - {}".format(sir_model))
+# print("Fitted Model - {}\n".format(fitted_model))
+
+# ABC-SMC
+# scaling_factors=list(np.linspace(50000,10000,10))
+# perturbance_variance=.1
+#
+# perturbance_kernels = [lambda x:x]*2 + [lambda x:x+stats.norm(0,perturbance_variance).rvs(1)[0]]*2
+# perturbance_kernel_probability = [lambda x,y:1]*2 + [lambda x,y:stats.norm(0,perturbance_variance).pdf(x-y)]*2
+#
+# fitted_model=ABC.abc_smc(n_obs=30,y_obs=sir_model.observe(),fitting_model=sir_model.copy([1,1,1,1]),priors=sir_priors,
+#     num_steps=10,sample_size=100,scaling_factors=scaling_factors,perturbance_kernels=perturbance_kernels,perturbance_kernel_probability=perturbance_kernel_probability,acceptance_kernel=ABC.gaussian_kernel)
+#
+# print("True Model - {}".format(lm))
+# print("Fitted Model - {}\n".format(fitted_model))
 
 """
     CHOOSE SUMMARY STATS

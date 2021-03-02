@@ -19,6 +19,7 @@ class Model():
         self.dim_obs=int # dimension of each observation
 
         self.noise=float # variance of additive gaussian noise (default=0)
+        self.param_labels=None # names for each parameter (used for plotting so optional)
 
     def update_params(self,new_params:[float]):
         """
@@ -30,7 +31,7 @@ class Model():
         """
         raise NotImplementedError
 
-    def observe(self,noise=True) -> [[float]]:
+    def observe(self,inc_noise=True) -> [[float]]:
         """
         DESCRIPTION
         generate a sequence of `n_obs` observations from the model, each of dimension `dim_obs`.
@@ -163,6 +164,7 @@ class LinearModel(Model): # a+bx+cy+...
 
         self.noise_var=noise if (noise) else 0
         self.add_noise=(lambda : stats.norm(0,np.sqrt(self.noise_var)).rvs(1)[0])
+        self.param_labels=None
 
         # observations
         self.observations=[self.__calc(x) for x in self.x_obs]
@@ -280,6 +282,8 @@ class ExponentialModel(Model): # ae^{xb}
         self.x_obs=x_obs
         self.dim_obs=1
 
+        self.param_labels=None
+
         self.noise_var=noise if (noise) else 0
         self.add_noise=(lambda : stats.norm(0,np.sqrt(self.noise_var)).rvs(1)[0])
 
@@ -360,6 +364,7 @@ class ExponentialModel(Model): # ae^{xb}
         printing_str="{:.3f}*e^({:.3f}*x0)".format(self.params[0],self.params[1])
         if (self.noise_var!=0): printing_str+="+N(0,{:.3f})".format(self.noise_var)
         return printing_str
+
 class SIRModel(Model):
 
     def __init__(self,params:(int,float,float),n_obs:int):
@@ -388,6 +393,8 @@ class SIRModel(Model):
 
         self.noise=0 # variance of additive gaussian noise (default=0)
 
+        self.observations=self.__calc()
+
     def update_params(self,new_params:[float]):
         """
         DESCRIPTION
@@ -403,7 +410,9 @@ class SIRModel(Model):
         self.beta=new_params[2]
         self.gamma=new_params[3]
 
-    def observe(self,noise=True) -> [[float]]:
+        self.observations=self.__calc()
+
+    def observe(self,inc_noise=True) -> [[float]]:
         """
         DESCRIPTION
         generate a sequence of `n_obs` observations from the model, each of dimension `dim_obs`.
@@ -416,7 +425,7 @@ class SIRModel(Model):
         RETURNS
         [[float]] - sequence of observations
         """
-        return self.__calc()
+        return self.observations
 
     def __calc(self) -> [(int,int,int)]:
         """
@@ -461,8 +470,8 @@ class SIRModel(Model):
         return new_model
 
     def __str__(self) -> str:
-        printing_str="Population Size={:,}\n".format(self.population_size)
-        printing_str+="Initially Infected={:,}\n".format(self.initially_infected)
+        printing_str="Population Size={:,.1f}\n".format(self.population_size)
+        printing_str+="Initially Infected={:,.1f}\n".format(self.initially_infected)
         printing_str+="Beta={:.3f}\n".format(self.beta)
         printing_str+="Gamma={:.3f}".format(self.gamma)
 
