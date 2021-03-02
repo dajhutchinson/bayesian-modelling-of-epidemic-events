@@ -2,7 +2,7 @@ from scipy import stats
 import numpy as np
 
 import ABC
-from Models import LinearModel,ExponentialModel
+from Models import LinearModel,ExponentialModel,SIRModel
 
 lm=LinearModel(  # 1+10x
     n_params=2,
@@ -24,16 +24,23 @@ em=ExponentialModel( # 2e^{.3x}
 em_priors=[stats.uniform(0,3),stats.uniform(0,1)]
 
 """
+    SIR Model
+"""
+sir_model=SIRModel(params=[100000,100,1,.5],n_obs=30)
+data=sir_model.observe()
+sir_model.plot_obs(constant_scale=True)
+
+"""
     CHOOSE SUMMARY STATS
 """
 # Linear Model
-mean_grad = (lambda ys:[np.mean([ys[i+1][0]-ys[i][0] for i in range(len(ys)-1)])])
-rand=(lambda ys:[stats.uniform(0,10).rvs(1)[0]])
-rand_2=(lambda ys:[mean_grad(ys)[0]*stats.uniform(0.5,1).rvs(1)[0]])
-summary_stats=[mean_grad,rand,rand_2]
-best_stats=ABC.joyce_marjoram(summary_stats,n_obs=10,y_obs=lm.observe(),fitting_model=lm.copy([1,1]),priors=lm_priors_intersect_known,n_samples=1000)
-
-print(best_stats)
+# mean_grad = (lambda ys:[np.mean([ys[i+1][0]-ys[i][0] for i in range(len(ys)-1)])])
+# rand=(lambda ys:[stats.uniform(0,10).rvs(1)[0]])
+# rand_2=(lambda ys:[mean_grad(ys)[0]*stats.uniform(0.5,1).rvs(1)[0]])
+# summary_stats=[mean_grad,rand,rand_2]
+# best_stats=ABC.joyce_marjoram(summary_stats,n_obs=10,y_obs=lm.observe(),fitting_model=lm.copy([1,1]),priors=lm_priors_intersect_known,n_samples=1000)
+#
+# print(best_stats)
 """
     REJECTION SAMPLING
 """

@@ -58,28 +58,41 @@ class Model():
         """
         raise NotImplementedError
 
-    def plot_obs(self):
+    def plot_obs(self,constant_scale=False):
         """
         DESCRIPTION
         generate plots of observations returned by `observe`. There is a different plot for each dimension.
 
         PARAMETERS
-        None
+        constant_scale (bool) - Whether the y-axis should have the same range or not (default=False)
 
         RETURNS
         None
         """
+
+        param_labels = self.param_labels if (self.param_labels) else ["Dim {}".format(i+1) for i in range(self.dim_obs)]
+
         fig=plt.figure()
         plt.subplots_adjust(left=.05,right=.95,bottom=.05,top=.95)
 
         x=list(range(self.n_obs))
         y_obs=self.observe()
 
+        if (constant_scale):
+            y_min=min([min(y) for y in y_obs])
+            y_max=max([max(y) for y in y_obs])
+
+            # Add padding
+            y_range=y_max-y_min
+            y_min-=y_range/20
+            y_max+=y_range/20
+
         for i in range(self.dim_obs):
             y_obs_dim=[y[i] for y in y_obs]
             ax=fig.add_subplot(1,self.dim_obs,i+1)
-            ax.set_title("Dim {}".format(i+1))
+            ax.set_title(param_labels[i])
             ax.scatter(x,y_obs_dim)
+            if (constant_scale): ax.set_ylim(y_min,y_max)
 
         plt.show()
 
@@ -346,4 +359,111 @@ class ExponentialModel(Model): # ae^{xb}
     def __str__(self):
         printing_str="{:.3f}*e^({:.3f}*x0)".format(self.params[0],self.params[1])
         if (self.noise_var!=0): printing_str+="+N(0,{:.3f})".format(self.noise_var)
+        return printing_str
+class SIRModel(Model):
+
+    def __init__(self,params:(int,float,float),n_obs:int):
+        """
+        DESCRIPTION
+        Classical SIR model
+
+        params ((int,int,float,float)) - (population_size,initial_infectied_population_size,beta,gamma)
+        n_obs (int) - number of time-periods to run model for
+        """
+
+        if (params[0]<params[1]): raise ValueError("Number of initially infected individuals cannot be greater than the population size.")
+
+        # all models have the following
+        self.n_params=4
+        self.population_size=params[0]
+        self.initially_infected=params[1]
+        self.beta=params[2]
+        self.gamma=params[3]
+        self.params=params # parameter values
+
+        self.param_labels=["Susceptible","Infectious","Removed"]
+
+        self.n_obs=n_obs # number of observations made by `observe`
+        self.dim_obs=3 # dimension of each observation
+
+        self.noise=0 # variance of additive gaussian noise (default=0)
+
+    def update_params(self,new_params:[float]):
+        """
+        DESCRIPTION
+        update the parameters of the model. the observations for `observe` need to be recalculated
+
+        PARAMETERS
+        new_paramas ([float]) - new parameter values
+        """
+        if (len(new_params)!=self.n_params): raise ValueError("Incorrect number of parameters passed. len(params)!=n_params.")
+
+        self.population_size=new_params[0]
+        self.initially_infected=new_params[1]
+        self.beta=new_params[2]
+        self.gamma=new_params[3]
+
+    def observe(self,noise=True) -> [[float]]:
+        """
+        DESCRIPTION
+        generate a sequence of `n_obs` observations from the model, each of dimension `dim_obs`.
+        The same sequence is returned each time this function is called.
+        sequence is ordered by `x_obs` so is best for `x_obs` to provide a useful ordering.
+
+        PARAMETERS
+        None
+
+        RETURNS
+        [[float]] - sequence of observations
+        """
+        return self.__calc()
+
+    def __calc(self) -> [(int,int,int)]:
+        """
+        DESCRIPTION
+        calculate the time-series of observations from the specified SIR model (using ODEs)
+
+        RETURNS
+        [(int,int,int)] - time-series with each data-point being (S,I,R)
+        """
+        observations=[(self.population_size-self.initially_infected,self.initially_infected,0)] # [(S,I,R)]
+
+        for t in range(self.n_obs-1):
+            last_obs=observations[-1]
+
+            new_infections=int(self.beta*((last_obs[0]*last_obs[1])/self.population_size))
+            new_removed   =int(self.gamma*last_obs[1])
+
+            d_S=-new_infections
+            d_I=new_infections-new_removed
+            d_R=new_removed
+
+            new_obs=(last_obs[0]+d_S,last_obs[1]+d_I,last_obs[2]+d_R)
+            observations.append(new_obs)
+
+        return observations
+
+    def copy(self,new_params:[float]) -> "Model":
+        """
+        DESCRIPTION
+        create a copy of the model with new parameter values
+
+        PARAMETERS
+        new_params ([float]) - new parameter values
+
+        RETURNS
+        Model - New copy, with stated parameter values
+        """
+        if (type(new_params)!=list): raise TypeError("`new_params` shoud be a list (not {})".format(type(new_params)))
+        if (len(new_params)!=self.n_params): raise TypeError("`new_params` shoud of length `n_params` ({})".format(self.n_params))
+
+        new_model=SIRModel(new_params,self.n_obs)
+        return new_model
+
+    def __str__(self) -> str:
+        printing_str="Population Size={:,}\n".format(self.population_size)
+        printing_str+="Initially Infected={:,}\n".format(self.initially_infected)
+        printing_str+="Beta={:.3f}\n".format(self.beta)
+        printing_str+="Gamma={:.3f}".format(self.gamma)
+
         return printing_str

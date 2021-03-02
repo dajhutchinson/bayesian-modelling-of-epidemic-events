@@ -508,43 +508,46 @@ def joyce_marjoram(summary_stats:["function"],n_obs:int,y_obs:[[float]],fitting_
 
         print()
 
-        # TODO make these parameters
-        KERNEL=uniform_kernel
-        EPSILON=1
+        for i in range(len(summary_stats)):
+            pass
 
-        # estimate score for each summary stat
-        ACCEPTED_SUMMARY_STATS_ID=[] # index of accepted summary stats
-        prev_prob=1
-        while True:
-            print("ACCEPTED_SUMMARY_STATS_ID - ",ACCEPTED_SUMMARY_STATS_ID)
-            best_ss=(0,-1) # prob,index
-
-            # consider including each summary stat
-            for i in range(len(summary_stats)):
-                if i in ACCEPTED_SUMMARY_STATS_ID: continue # ignore stats already in set
-
-                # count number of samples accepted when using this summary stat and all previously accepted
-                SAMPLES_i=[(theta,[s[j] for j in ACCEPTED_SUMMARY_STATS_ID+[i]]) for (theta,s) in SAMPLES]
-                s_obs_t=[s_obs[j] for j in ACCEPTED_SUMMARY_STATS_ID+[i]]
-                # accept-reject
-                ACCEPTED_PARAMS=[]
-                for (theta_t,s_t) in SAMPLES_i:
-                    norm_vals=[l2_norm(s_t_i,s_obs_i) for (s_t_i,s_obs_i) in zip(s_t,s_obs_t)]
-                    if all([KERNEL(v,EPSILON) for v in norm_vals]):
-                        ACCEPTED_PARAMS.append(theta_t)
-
-                prob=len(ACCEPTED_PARAMS)/n_samples # correct denominator
-                print("P(theta|{})={:.5f}".format(",".join(["s_{}".format(j) for j in [i]+ACCEPTED_SUMMARY_STATS_ID]),prob))
-                if (prob>best_ss[0]): best_ss=(prob,i)
-
-            ratio=best_ss[0]/prev_prob
-            print("ratio - ",ratio)
-
-            # whether to add a summary stat to accepted set (TODO improve this)
-            if (ACCEPTED_SUMMARY_STATS_ID==[]): ACCEPTED_SUMMARY_STATS_ID+=[best_ss[1]]
-            elif (ratio>1): ACCEPTED_SUMMARY_STATS_ID+=[best_ss[1]] # TODO - define better acceptance criertia (probs based on expected number of obvs)
-            else: break
-            prev_prob=best_ss[0]
-            print()
+        # # TODO make these parameters
+        # KERNEL=uniform_kernel
+        # EPSILON=1
+        #
+        # # estimate score for each summary stat
+        # ACCEPTED_SUMMARY_STATS_ID=[] # index of accepted summary stats
+        # prev_prob=1
+        # while True:
+        #     print("ACCEPTED_SUMMARY_STATS_ID - ",ACCEPTED_SUMMARY_STATS_ID)
+        #     best_ss=(0,-1) # prob,index
+        #
+        #     # consider including each summary stat
+        #     for i in range(len(summary_stats)):
+        #         if i in ACCEPTED_SUMMARY_STATS_ID: continue # ignore stats already in set
+        #
+        #         # count number of samples accepted when using this summary stat and all previously accepted
+        #         SAMPLES_i=[(theta,[s[j] for j in ACCEPTED_SUMMARY_STATS_ID+[i]]) for (theta,s) in SAMPLES]
+        #         s_obs_t=[s_obs[j] for j in ACCEPTED_SUMMARY_STATS_ID+[i]]
+        #         # accept-reject
+        #         ACCEPTED_PARAMS=[]
+        #         for (theta_t,s_t) in SAMPLES_i:
+        #             norm_vals=[l2_norm(s_t_i,s_obs_i) for (s_t_i,s_obs_i) in zip(s_t,s_obs_t)]
+        #             if all([KERNEL(v,EPSILON) for v in norm_vals]):
+        #                 ACCEPTED_PARAMS.append(theta_t)
+        #
+        #         prob=len(ACCEPTED_PARAMS)/n_samples # correct denominator
+        #         print("P(theta|{})={:.5f}".format(",".join(["s_{}".format(j) for j in [i]+ACCEPTED_SUMMARY_STATS_ID]),prob))
+        #         if (prob>best_ss[0]): best_ss=(prob,i)
+        #
+        #     ratio=best_ss[0]/prev_prob
+        #     print("ratio - ",ratio)
+        #
+        #     # whether to add a summary stat to accepted set (TODO improve this)
+        #     if (ACCEPTED_SUMMARY_STATS_ID==[]): ACCEPTED_SUMMARY_STATS_ID+=[best_ss[1]]
+        #     elif (ratio>1): ACCEPTED_SUMMARY_STATS_ID+=[best_ss[1]] # TODO - define better acceptance criertia (probs based on expected number of obvs)
+        #     else: break
+        #     prev_prob=best_ss[0]
+        #     print()
 
         return ACCEPTED_SUMMARY_STATS_ID
