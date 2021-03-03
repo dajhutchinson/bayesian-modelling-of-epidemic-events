@@ -222,7 +222,7 @@ def abc_rejcection(n_obs:int,y_obs:[[float]],fitting_model:Model,priors:["stats.
         name="Theta_{}".format(i)
         ax=fig.add_subplot(gs[i*row_step:(i+1)*row_step,0])
         accepted_vals=[x[i] for x in ACCEPTED_PARAMS]
-        Plotting.plot_parameter_posterior(ax,name,accepted_parameter=accepted_vals,predicted_val=theta_hat[i],prior=priors[i])
+        Plotting.plot_parameter_posterior(ax,name,accepted_parameter=accepted_vals,predicted_val=theta_hat[i],prior=priors[i],dim=i)
 
     # plot histogram of each summary statistic value
     row=0
@@ -234,7 +234,7 @@ def abc_rejcection(n_obs:int,y_obs:[[float]],fitting_model:Model,priors:["stats.
                 ax=fig.add_subplot(gs[row*row_step:(row+1)*row_step,1])
                 row+=1
                 accepted_vals=[s[i][0] for s in ACCEPTED_SUMMARY_VALS]
-                Plotting.plot_summary_stats(ax,name,accepted_s=accepted_vals,s_obs=s_obs[i],s_hat=s_hat[i])
+                Plotting.plot_summary_stats(ax,name,accepted_s=accepted_vals,s_obs=s_obs[i],s_hat=s_hat[i],dim=i)
 
     # plt.get_current_fig_manager().window.state("zoomed")
     plt.show()
@@ -348,7 +348,7 @@ def abc_mcmc(n_obs:int,y_obs:[[float]],
         name="Theta_{}".format(i)
         ax=fig.add_subplot(gs[i*row_step:(i+1)*row_step,1])
         accepted_vals=[x[i] for x in THETAS]
-        Plotting.plot_parameter_posterior(ax,name,accepted_parameter=accepted_vals,predicted_val=theta_hat[i],prior=priors[i])
+        Plotting.plot_parameter_posterior(ax,name,accepted_parameter=accepted_vals,predicted_val=theta_hat[i],prior=priors[i],dim=i)
 
     # plot summary vals
     row=0
@@ -359,7 +359,7 @@ def abc_mcmc(n_obs:int,y_obs:[[float]],
             ax=fig.add_subplot(gs[row*row_step:(row+1)*row_step,2])
             row+=1
             accepted_vals=[s[i][0] for s in ACCEPTED_SUMMARY_VALS]
-            Plotting.plot_summary_stats(ax,name,accepted_s=accepted_vals,s_obs=s_obs[i],s_hat=s_hat[i])
+            Plotting.plot_summary_stats(ax,name,accepted_s=accepted_vals,s_obs=s_obs[i],s_hat=s_hat[i],dim=i)
 
     plt.show()
     return model_hat
@@ -485,7 +485,7 @@ def abc_smc(n_obs:int,y_obs:[[float]],
         ax=fig.add_subplot(gs[i*row_step:(i+1)*row_step,0])
         name="theta_{}".format(i)
         parameter_values=[theta[i] for theta in param_values]
-        Plotting.plot_smc_posterior(ax,name,parameter_values=parameter_values,weights=weights,predicted_val=theta_hat[i],prior=priors[i])
+        Plotting.plot_smc_posterior(ax,name,parameter_values=parameter_values,weights=weights,predicted_val=theta_hat[i],prior=priors[i],dim=i)
 
     plt.show()
 
