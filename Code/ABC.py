@@ -39,11 +39,15 @@ def gaussian_kernel(x:float,epsilon:float) -> bool:
 """
     DISTANCE MEASURES
 """
-def l1_norm(xs:[float]) -> float:
-    return sum(xs)
+def l1_norm(xs:[float],ys=[]) -> float:
+    return sum(xs)+sum(ys)
 
 def l2_norm(s_t:(float),s_obs:(float)) -> float:
     return sum([(x-y)**2 for (x,y) in zip(s_t,s_obs)])**.5
+
+def log_l2_norm(s_t:(float),s_obs:(float)) -> float:
+
+    return sum([(np.log(x)-np.log(y))**2 if (x>0 and y>0) else 0 for (x,y) in zip(s_t,s_obs)])**.5
 
 def l_infty_norm(xs:[float]) -> float:
     return max(xs)
@@ -53,7 +57,7 @@ def l_infty_norm(xs:[float]) -> float:
 """
 
 def __sampling_stage_fixed_number(DESIRED_SAMPLE_SIZE:int,EPSILON:float,KERNEL:"func",PRIORS:["stats.Distribution"],
-    s_obs:[float],model_t:Model,summary_stats:["function"]) -> ([[float]],[[float]],[[float]]):
+    s_obs:[float],model_t:Model,summary_stats:["function"],distance_measure=l2_norm) -> ([[float]],[[float]],[[float]]):
     """
     DESCRIPTION
     keep generating parameter values and observing the equiv models until a sufficient number of `good` parameter values have been found.
@@ -65,6 +69,7 @@ def __sampling_stage_fixed_number(DESIRED_SAMPLE_SIZE:int,EPSILON:float,KERNEL:"
     PRIORS ([stats.Distribution]) - prior distribution for parameter values (one per parameter)
     s_obs ([float]) - summary statistic values for observations from true model.
     summary_stat ([func]) - functions used to determine each summary statistic.
+    distance_measure - (func) - distance function to use (See choices above)
 
     RETURNS
     [[float]] - accepted parameter values
@@ -86,7 +91,7 @@ def __sampling_stage_fixed_number(DESIRED_SAMPLE_SIZE:int,EPSILON:float,KERNEL:"
         s_t=[s(y_t) for s in summary_stats]
 
         # accept-reject
-        norm_vals=[l2_norm(s_t_i,s_obs_i) for (s_t_i,s_obs_i) in zip(s_t,s_obs)]
+        norm_vals=[distance_function(s_t_i,s_obs_i) for (s_t_i,s_obs_i) in zip(s_t,s_obs)]
         if (KERNEL(l1_norm(norm_vals),EPSILON)): # NOTE - l1_norm() can be replaced by anyother other norm
             ACCEPTED_PARAMS.append(theta_t)
             ACCEPTED_OBS.append(y_t)
@@ -99,7 +104,7 @@ def __sampling_stage_fixed_number(DESIRED_SAMPLE_SIZE:int,EPSILON:float,KERNEL:"
     return ACCEPTED_PARAMS,ACCEPTED_OBS,ACCEPTED_SUMMARY_VALS
 
 def __sampling_stage_best_samples(NUM_RUNS:int,SAMPLE_SIZE:int,PRIORS:["stats.Distribution"],
-    s_obs:[float],model_t:Model,summary_stats:["function"]) -> ([[float]],[[float]],[[float]]):
+    s_obs:[float],model_t:Model,summary_stats:["function"],distance_measure=l2_norm) -> ([[float]],[[float]],[[float]]):
     """
     DESCRIPTION
     perform `NUM_RUNS` samples and return the parameters values associated to the best `SAMPLE_SIZE`.
@@ -110,6 +115,7 @@ def __sampling_stage_best_samples(NUM_RUNS:int,SAMPLE_SIZE:int,PRIORS:["stats.Di
     PRIORS ([stats.Distribution]) - prior distribution for parameter values (one per parameter)
     s_obs ([float]) - summary statistic values for observations from true model.
     summary_stat ([func]) - functions used to determine each summary statistic.
+    distance_measure - (func) - distance function to use (See choices above)
 
     RETURNS
     [[float]] - accepted parameter values
@@ -128,7 +134,7 @@ def __sampling_stage_best_samples(NUM_RUNS:int,SAMPLE_SIZE:int,PRIORS:["stats.Di
         y_t=model_t.observe()
         s_t=[s(y_t) for s in summary_stats]
 
-        norm_vals=[l2_norm(s_t_i,s_obs_i) for (s_t_i,s_obs_i) in zip(s_t,s_obs)]
+        norm_vals=[distance_measure(s_t_i,s_obs_i) for (s_t_i,s_obs_i) in zip(s_t,s_obs)]
         summarised_norm_val=l1_norm(norm_vals) # l1_norm can be replaced by any other norm
 
         for j in range(max(0,SAMPLE_SIZE-i-1,SAMPLE_SIZE)):
@@ -186,13 +192,15 @@ def abc_rejcection(n_obs:int,y_obs:[[float]],fitting_model:Model,priors:["stats.
         sample_size=sampling_details["sample_size"]
         epsilon=sampling_details["scaling_factor"]
         kernel=sampling_details["kernel_func"]
-        ACCEPTED_PARAMS,ACCEPTED_OBS,ACCEPTED_SUMMARY_VALS=__sampling_stage_fixed_number(sample_size,epsilon,kernel,PRIORS=priors,s_obs=s_obs,model_t=fitting_model,summary_stats=summary_stats)
+        distance_measure=l2_norm if (not "distance_measure" in sampling_details) else sampling_details["distance_measure"]
+        ACCEPTED_PARAMS,ACCEPTED_OBS,ACCEPTED_SUMMARY_VALS=__sampling_stage_fixed_number(sample_size,epsilon,kernel,PRIORS=priors,s_obs=s_obs,model_t=fitting_model,summary_stats=summary_stats,distance_measure=distance_measure)
 
     elif (sampling_details["sampling_method"]=="best"):
         if any([x not in sampling_details for x in ["sample_size","num_runs"]]): raise Exception("`sampling_details` missing key(s) - expecting `num_runs` and `sample_size`")
         num_runs=sampling_details["num_runs"]
         sample_size=sampling_details["sample_size"]
-        ACCEPTED_PARAMS,ACCEPTED_OBS,ACCEPTED_SUMMARY_VALS=__sampling_stage_best_samples(num_runs,sample_size,PRIORS=priors,s_obs=s_obs,model_t=fitting_model,summary_stats=summary_stats)
+        distance_measure=l2_norm if (not "distance_measure" in sampling_details) else sampling_details["distance_measure"]
+        ACCEPTED_PARAMS,ACCEPTED_OBS,ACCEPTED_SUMMARY_VALS=__sampling_stage_best_samples(num_runs,sample_size,PRIORS=priors,s_obs=s_obs,model_t=fitting_model,summary_stats=summary_stats,distance_measure=distance_measure)
 
     # best estimate of model
     theta_hat=[np.mean([p[i] for p in ACCEPTED_PARAMS]) for i in range(fitting_model.n_params)]
@@ -244,7 +252,7 @@ def abc_rejcection(n_obs:int,y_obs:[[float]],fitting_model:Model,priors:["stats.
 def abc_mcmc(n_obs:int,y_obs:[[float]],
     fitting_model:Model,priors:["stats.Distribution"],
     chain_length:int,perturbance_kernels:"[function]",acceptance_kernel:"function",scaling_factor:float,
-    summary_stats=None) -> Model:
+    summary_stats=None,distance_measure=l2_norm) -> Model:
     """
     DESCRIPTION
     Markov Chain Monte-Carlo Sampling version of Approximate Bayesian Computation for the generative models defined in `Models.py`.
@@ -258,6 +266,7 @@ def abc_mcmc(n_obs:int,y_obs:[[float]],
     perturbance_kernels ([function]) - Functions for varying parameters each monte-carlo steps.
     acceptance_kernel (function) - Function to determine whether to accept parameters
     scaling_factor (float) - Scaling factor for `acceptance_kernel`.
+    distance_measure - (func) - distance function to use (See choices above)
 
     OPTIONAL PARAMETERS
     summary_stats ([function]) - functions which summarise `y_obs` and the observations of `fitting_model` in some way. (default=group by dimension)
@@ -305,7 +314,7 @@ def abc_mcmc(n_obs:int,y_obs:[[float]],
         s_temp=[s(y_temp) for s in summary_stats]
 
         # accept-reject
-        norm_vals=[l2_norm(s_temp_i,s_obs_i) for (s_temp_i,s_obs_i) in zip(s_temp,s_obs)]
+        norm_vals=[distance_measure(s_temp_i,s_obs_i) for (s_temp_i,s_obs_i) in zip(s_temp,s_obs)]
         if (acceptance_kernel(l1_norm(norm_vals),scaling_factor)):
             new+=1
             THETAS.append(theta_temp)
@@ -367,7 +376,8 @@ def abc_mcmc(n_obs:int,y_obs:[[float]],
 def abc_smc(n_obs:int,y_obs:[[float]],
     fitting_model:Model,priors:["stats.Distribution"],
     num_steps:int,sample_size:int,
-    scaling_factors:[float],perturbance_kernels:"[function]",perturbance_kernel_probability:"[function]",acceptance_kernel:"function",summary_stats=None):
+    scaling_factors:[float],perturbance_kernels:"[function]",perturbance_kernel_probability:"[function]",
+    acceptance_kernel:"function",summary_stats=None,distance_measure=l2_norm):
     """
     DESCRIPTION
     Sequential Monte-Carlo Sampling version of Approximate Bayesian Computation for the generative models defined in `Models.py`.
@@ -383,6 +393,7 @@ def abc_smc(n_obs:int,y_obs:[[float]],
     perturbance_kernels ([function]) - Functions for varying parameters each monte-carlo steps.
     perturbance_kernel_probability ([function]) - Probability of x being pertubered to value y
     acceptance_kernel (function) - Function to determine whether to accept parameters
+    distance_measure - (func) - distance function to use (See choices above)
 
     OPTIONAL PARAMETERS
     summary_stats ([function]) - functions which summarise `y_obs` and the observations of `fitting_model` in some way. (default=group by dimension)
@@ -410,7 +421,7 @@ def abc_smc(n_obs:int,y_obs:[[float]],
         s_temp=[s(y_temp) for s in summary_stats]
 
         # accept-reject
-        norm_vals=[l2_norm(s_temp_i,s_obs_i) for (s_temp_i,s_obs_i) in zip(s_temp,s_obs)]
+        norm_vals=[distance_measure(s_temp_i,s_obs_i) for (s_temp_i,s_obs_i) in zip(s_temp,s_obs)]
         if (acceptance_kernel(l1_norm(norm_vals),scaling_factors[0])):
             THETAS.append((1/sample_size,theta_temp))
         print("({:,}) - {:,}/{:,}".format(i,len(THETAS),sample_size),end="\r")
