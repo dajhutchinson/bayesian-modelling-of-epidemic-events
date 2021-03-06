@@ -2,7 +2,7 @@ from scipy import stats
 import numpy as np
 
 import ABC
-from Models import LinearModel,ExponentialModel,SIRModel
+from Models import LinearModel,ExponentialModel,SIRModel,GaussianMixtureModel
 
 lm=LinearModel(  # 1+10x
     n_params=2,
@@ -26,7 +26,45 @@ em_priors=[stats.uniform(0,3),stats.uniform(0,1)]
 sir_model=SIRModel(
     params=[100000,100,1,.5],
     n_obs=30)
-sir_priors=[stats.uniform(100000,1),stats.uniform(100,1),stats.uniform(0,1.5),stats.uniform(0,2)]
+sir_priors=[stats.uniform(100000,0),stats.uniform(100,0),stats.uniform(0,1.5),stats.uniform(0,2)]
+sir_smc_priors=[stats.uniform(100000,1),stats.uniform(100,1),stats.uniform(0,1.5),stats.uniform(0,2)]
+
+gmm=GaussianMixtureModel(
+    params=(-20,20,.3),
+    n_obs=50,
+    sd=(1,1))
+gmm_priors=[stats.norm(loc=0,scale=10),stats.norm(loc=0,scale=15),stats.beta(1,1)] # from https://www.tandfonline.com/doi/pdf/10.1080/00949655.2020.1843169
+"""
+    GMM
+"""
+
+# print(gmm.observe())
+# gmm.plot_obs()
+
+# ABC-Rejection Sampling
+# sampling_details={"sampling_method":"best","num_runs":10000,"sample_size":100,"distance_measure":ABC.l2_norm}
+# fitted_model=ABC.abc_rejcection(n_obs=50,y_obs=gmm.observe(),fitting_model=gmm.copy([1,1,1]),priors=gmm_priors,sampling_details=sampling_details)
+# print("True Model - {}".format(gmm))
+# print("Fitted Model - {}\n".format(fitted_model))
+
+# ABC-MCMC
+# perturbance_kernels = [lambda x:x+stats.norm(0,.3).rvs(1)[0]]*2+[lambda x:x+stats.norm(0,.1).rvs(1)[0]]
+# fitted_model=ABC.abc_mcmc(n_obs=50,y_obs=gmm.observe(),fitting_model=gmm.copy([1,1,1]),priors=gmm_priors,
+#     chain_length=10000,perturbance_kernels=perturbance_kernels,acceptance_kernel=ABC.gaussian_kernel,scaling_factor=70)
+# print("True Model - {}".format(gmm_model))
+# print("Fitted Model - {}\n".format(fitted_model))
+
+# ABC-SMC
+scaling_factors=list(np.linspace(70,30,10))
+
+perturbance_kernels = [lambda x:x+stats.norm(0,.3).rvs(1)[0]]*2+[lambda x:x+stats.norm(0,.1).rvs(1)[0]]
+perturbance_kernel_probability = [lambda x,y:stats.norm(0,.3).pdf(x-y)]*2+[lambda x,y:stats.norm(0,.1).pdf(x-y)]
+
+fitted_model=ABC.abc_smc(n_obs=50,y_obs=gmm.observe(),fitting_model=gmm.copy([1,1,1]),priors=gmm_priors,
+    num_steps=10,sample_size=50,scaling_factors=scaling_factors,perturbance_kernels=perturbance_kernels,perturbance_kernel_probability=perturbance_kernel_probability,acceptance_kernel=ABC.gaussian_kernel)
+
+print("True Model - {}".format(lm))
+print("Fitted Model - {}\n".format(fitted_model))
 
 """
     SIR Model
@@ -35,7 +73,7 @@ sir_priors=[stats.uniform(100000,1),stats.uniform(100,1),stats.uniform(0,1.5),st
 # sir_model.plot_obs(constant_scale=True)
 
 # ABC-Rejection Sampling
-# sampling_details={"sampling_method":"best","num_runs":10000,"sample_size":100}
+# sampling_details={"sampling_method":"best","num_runs":10000,"sample_size":100,"distance_measure":ABC.log_l2_norm}
 # fitted_model=ABC.abc_rejcection(n_obs=30,y_obs=sir_model.observe(),fitting_model=sir_model.copy([1,1,1,1]),priors=sir_priors,sampling_details=sampling_details)
 # print("True Model - {}".format(sir_model))
 # print("Fitted Model - {}\n".format(fitted_model))
@@ -54,7 +92,7 @@ sir_priors=[stats.uniform(100000,1),stats.uniform(100,1),stats.uniform(0,1.5),st
 # perturbance_kernels = [lambda x:x]*2 + [lambda x:x+stats.norm(0,perturbance_variance).rvs(1)[0]]*2
 # perturbance_kernel_probability = [lambda x,y:1]*2 + [lambda x,y:stats.norm(0,perturbance_variance).pdf(x-y)]*2
 #
-# fitted_model=ABC.abc_smc(n_obs=30,y_obs=sir_model.observe(),fitting_model=sir_model.copy([1,1,1,1]),priors=sir_priors,
+# fitted_model=ABC.abc_smc(n_obs=30,y_obs=sir_model.observe(),fitting_model=sir_model.copy([1,1,1,1]),priors=sir_smc_priors,
 #     num_steps=10,sample_size=100,scaling_factors=scaling_factors,perturbance_kernels=perturbance_kernels,perturbance_kernel_probability=perturbance_kernel_probability,acceptance_kernel=ABC.gaussian_kernel)
 #
 # print("True Model - {}".format(lm))

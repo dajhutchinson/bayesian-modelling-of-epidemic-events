@@ -92,6 +92,7 @@ class Model():
             y_obs_dim=[y[i] for y in y_obs]
             ax=fig.add_subplot(1,self.dim_obs,i+1)
             ax.set_title(param_labels[i])
+            print(len(x),len(y_obs_dim))
             ax.scatter(x,y_obs_dim)
             if (constant_scale): ax.set_ylim(y_min,y_max)
 
@@ -474,5 +475,122 @@ class SIRModel(Model):
         printing_str+="Initially Infected={:,.1f}\n".format(self.initially_infected)
         printing_str+="Beta={:.3f}\n".format(self.beta)
         printing_str+="Gamma={:.3f}".format(self.gamma)
+
+        return printing_str
+
+class GaussianMixtureModel(Model):
+
+    def __init__(self,params:(int,float,float),n_obs:int,sd=(1,1)):
+        """
+        DESCRIPTION
+        Gaussian Mixture Model with 2 gaussians with known variance (example from https://www.tandfonline.com/doi/pdf/10.1080/00949655.2020.1843169).
+        Produces n observations, nx from one distribution and n(1-x) from another.
+        Parameters to learn are the mean for each distribution and the relative weighting
+
+        params ((float,float,float)) - (mean_1,mean_2,x) where x is the weight given to the first distribution
+        n_obs (int) - number of observations to make from model
+        sd ((float,float)) - standard deviation from each gaussian (default=(1,1))
+        """
+
+        if (params[2]>1) or (params[2]<0): raise ValueError("weight (params[2]) must be in [0,1].")
+
+        # all models have the following
+        self.n_params=3
+        self.params=params # parameter values
+        self.mu_1=params[0]
+        self.mu_2=params[1]
+        self.sigma_1=sd[0]
+        self.sigma_2=sd[1]
+        self.weight_1=params[2]
+        self.weight_2=1-self.weight_1
+
+        self.param_labels=None
+
+        self.n_obs=n_obs # number of observations made by `observe`
+        self.dim_obs=1 # dimension of each observation
+
+        self.noise=0 # variance of additive gaussian noise (default=0)
+
+        self.observations=self.__calc()
+
+    def update_params(self,new_params:[float]):
+        """
+        DESCRIPTION
+        update the parameters of the model. the observations for `observe` need to be recalculated
+
+        PARAMETERS
+        new_paramas ([float]) - new parameter values
+        """
+        if (len(new_params)!=self.n_params): raise ValueError("Incorrect number of parameters passed. len(params)!=n_params.")
+
+        self.params=new_params # parameter values
+        self.mu_1=new_params[0]
+        self.mu_2=new_params[1]
+        self.weight_1=new_params[2]
+        self.weight_2=1-self.weight_1
+
+        self.observations=self.__calc()
+
+    def observe(self,inc_noise=True) -> [[float]]:
+        """
+        DESCRIPTION
+        generate a sequence of `n_obs` observations from the model, each of dimension `dim_obs`.
+        The same sequence is returned each time this function is called.
+        sequence is ordered by `x_obs` so is best for `x_obs` to provide a useful ordering.
+
+        PARAMETERS
+        None
+
+        RETURNS
+        [[float]] - sequence of observations
+        """
+        if (inc_noise): return self.observations
+        return self.__calc(inc_noise=False)
+
+    def __calc(self,inc_noise=True) -> [(int,int,int)]:
+        """
+        DESCRIPTION
+        calculate the time-series of observations from the specified gaussian mixtures model
+
+        RETURNS
+        [(int,int,int)] - time-series with each data-point being (S,I,R)
+        """
+
+        n_obs_model_1=int(self.weight_1*self.n_obs)
+        n_obs_model_2=self.n_obs-n_obs_model_1
+
+        if (inc_noise):
+            dist_1=stats.norm(loc=self.mu_1,scale=self.sigma_1)
+            dist_2=stats.norm(loc=self.mu_2,scale=self.sigma_2)
+        else:
+            dist_1=stats.norm(loc=self.mu_1,scale=0)
+            dist_2=stats.norm(loc=self.mu_2,scale=0)
+
+        observations=list(dist_1.rvs(size=n_obs_model_1))+list(dist_2.rvs(size=n_obs_model_2))
+        observations=[[x] for x in observations]
+
+        return observations
+
+    def copy(self,new_params:[float]) -> "Model":
+        """
+        DESCRIPTION
+        create a copy of the model with new parameter values
+
+        PARAMETERS
+        new_params ([float]) - new parameter values
+
+        RETURNS
+        Model - New copy, with stated parameter values
+        """
+        if (type(new_params)!=list): raise TypeError("`new_params` shoud be a list (not {})".format(type(new_params)))
+        if (len(new_params)!=self.n_params): raise TypeError("`new_params` shoud of length `n_params` ({})".format(self.n_params))
+
+        new_model=GaussianMixtureModel(new_params,self.n_obs,sd=(self.sigma_1,self.sigma_2))
+        return new_model
+
+    def __str__(self) -> str:
+        printing_str="X_1~Normal({:.3f},{:.3f})\n".format(self.mu_1,self.sigma_1**2)
+        printing_str+="X_2~Normal({:.3f},{:.3f})\n".format(self.mu_2,self.sigma_2**2)
+        printing_str+="X={:.3f}*X_1+{:.3f}*X_2".format(self.weight_1,self.weight_2)
 
         return printing_str
