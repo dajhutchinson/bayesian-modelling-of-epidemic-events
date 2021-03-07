@@ -92,7 +92,6 @@ class Model():
             y_obs_dim=[y[i] for y in y_obs]
             ax=fig.add_subplot(1,self.dim_obs,i+1)
             ax.set_title(param_labels[i])
-            print(len(x),len(y_obs_dim))
             ax.scatter(x,y_obs_dim)
             if (constant_scale): ax.set_ylim(y_min,y_max)
 
@@ -474,11 +473,12 @@ class SIRModel(Model):
         printing_str="Population Size={:,.1f}\n".format(self.population_size)
         printing_str+="Initially Infected={:,.1f}\n".format(self.initially_infected)
         printing_str+="Beta={:.3f}\n".format(self.beta)
-        printing_str+="Gamma={:.3f}".format(self.gamma)
+        printing_str+="Gamma={:.3f}\n".format(self.gamma)
+        printing_str+="R_0={:.3f}".format(self.beta/self.gamma)
 
         return printing_str
 
-class GaussianMixtureModel(Model):
+class GaussianMixtureModel_two(Model):
 
     def __init__(self,params:(int,float,float),n_obs:int,sd=(1,1)):
         """
@@ -585,7 +585,7 @@ class GaussianMixtureModel(Model):
         if (type(new_params)!=list): raise TypeError("`new_params` shoud be a list (not {})".format(type(new_params)))
         if (len(new_params)!=self.n_params): raise TypeError("`new_params` shoud of length `n_params` ({})".format(self.n_params))
 
-        new_model=GaussianMixtureModel(new_params,self.n_obs,sd=(self.sigma_1,self.sigma_2))
+        new_model=GaussianMixtureModel_two(new_params,self.n_obs,sd=(self.sigma_1,self.sigma_2))
         return new_model
 
     def __str__(self) -> str:

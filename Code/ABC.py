@@ -1,5 +1,6 @@
 from Models import Model
 from scipy import stats
+from scipy.signal import correlate2d
 import matplotlib.pyplot as plt
 
 import numpy as np
@@ -91,7 +92,7 @@ def __sampling_stage_fixed_number(DESIRED_SAMPLE_SIZE:int,EPSILON:float,KERNEL:"
         s_t=[s(y_t) for s in summary_stats]
 
         # accept-reject
-        norm_vals=[distance_function(s_t_i,s_obs_i) for (s_t_i,s_obs_i) in zip(s_t,s_obs)]
+        norm_vals=[distance_measure(s_t_i,s_obs_i) for (s_t_i,s_obs_i) in zip(s_t,s_obs)]
         if (KERNEL(l1_norm(norm_vals),EPSILON)): # NOTE - l1_norm() can be replaced by anyother other norm
             ACCEPTED_PARAMS.append(theta_t)
             ACCEPTED_OBS.append(y_t)
@@ -157,7 +158,7 @@ def __sampling_stage_best_samples(NUM_RUNS:int,SAMPLE_SIZE:int,PRIORS:["stats.Di
     ABC
 """
 
-def abc_rejcection(n_obs:int,y_obs:[[float]],fitting_model:Model,priors:["stats.Distribution"],sampling_details:dict,summary_stats=None) -> Model:
+def abc_rejcection(n_obs:int,y_obs:[[float]],fitting_model:Model,priors:["stats.Distribution"],sampling_details:dict,summary_stats=None) -> (Model,[[float]]):
     """
     DESCRIPTION
     Rejction Sampling version of Approximate Bayesian Computation for the generative models defined in `Models.py`.
@@ -174,6 +175,7 @@ def abc_rejcection(n_obs:int,y_obs:[[float]],fitting_model:Model,priors:["stats.
 
     RETURNS
     Model - fitted model with best parameters
+    [[float]] - set of all accepted parameter values (use for further investigation)
     """
 
     if (type(y_obs)!=list): raise TypeError("`y_obs` must be a list (not {})".format(type(y_obs)))
@@ -247,12 +249,12 @@ def abc_rejcection(n_obs:int,y_obs:[[float]],fitting_model:Model,priors:["stats.
     # plt.get_current_fig_manager().window.state("zoomed")
     plt.show()
 
-    return model_hat
+    return model_hat,ACCEPTED_PARAMS
 
 def abc_mcmc(n_obs:int,y_obs:[[float]],
     fitting_model:Model,priors:["stats.Distribution"],
     chain_length:int,perturbance_kernels:"[function]",acceptance_kernel:"function",scaling_factor:float,
-    summary_stats=None,distance_measure=l2_norm) -> Model:
+    summary_stats=None,distance_measure=l2_norm) -> (Model,[[float]]):
     """
     DESCRIPTION
     Markov Chain Monte-Carlo Sampling version of Approximate Bayesian Computation for the generative models defined in `Models.py`.
@@ -273,6 +275,7 @@ def abc_mcmc(n_obs:int,y_obs:[[float]],
 
     RETURNS
     Model - fitted model with best parameters
+    [[float]] - set of all accepted parameter values (use for further investigation)
     """
     group_dim = lambda ys,i: [y[i] for y in ys]
     summary_stats=summary_stats if (summary_stats) else ([(lambda ys:group_dim(ys,i)) for i in range(len(y_obs[0]))])
@@ -329,6 +332,7 @@ def abc_mcmc(n_obs:int,y_obs:[[float]],
     model_hat=fitting_model.copy(theta_hat)
     s_hat=[s(model_hat.observe()) for s in summary_stats]
     print("{:.3f} observations were new.".format(new/chain_length))
+    # print("Auto-correlation - ",correlate2d(THETAS,THETAS))
 
     n_simple_ss=sum(len(s)==1 for s in ACCEPTED_SUMMARY_VALS[0]) # number of summary stats which map to a single dimension
     n_cols=3 if (n_simple_ss==0) else 4
@@ -371,13 +375,13 @@ def abc_mcmc(n_obs:int,y_obs:[[float]],
             Plotting.plot_summary_stats(ax,name,accepted_s=accepted_vals,s_obs=s_obs[i],s_hat=s_hat[i],dim=i)
 
     plt.show()
-    return model_hat
+    return model_hat, THETAS
 
 def abc_smc(n_obs:int,y_obs:[[float]],
     fitting_model:Model,priors:["stats.Distribution"],
     num_steps:int,sample_size:int,
     scaling_factors:[float],perturbance_kernels:"[function]",perturbance_kernel_probability:"[function]",
-    acceptance_kernel:"function",summary_stats=None,distance_measure=l2_norm):
+    acceptance_kernel:"function",summary_stats=None,distance_measure=l2_norm) -> (Model,[[float]]):
     """
     DESCRIPTION
     Sequential Monte-Carlo Sampling version of Approximate Bayesian Computation for the generative models defined in `Models.py`.
@@ -400,6 +404,7 @@ def abc_smc(n_obs:int,y_obs:[[float]],
 
     RETURNS
     Model - fitted model with best parameters
+    [[float]] - set of all accepted parameter values (use for further investigation)
     """
     # initial sampling
     if (num_steps!=len(scaling_factors)): raise ValueError("`num_steps` must equal `len(scaling_factors)`")
@@ -500,7 +505,7 @@ def abc_smc(n_obs:int,y_obs:[[float]],
 
     plt.show()
 
-    return model_hat
+    return model_hat,param_values
 
 """
     SUMMARY STATISTIC SELECTION
