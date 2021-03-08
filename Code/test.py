@@ -35,8 +35,6 @@ gmm=GaussianMixtureModel_two(
     sd=(1,1))
 gmm_priors=[stats.norm(loc=0,scale=10),stats.norm(loc=0,scale=10),stats.beta(1,1)] # from https://www.tandfonline.com/doi/pdf/10.1080/00949655.2020.1843169
 
-print(stats.gaussian_kde([1,2,3]).ppf(.05),stats.gaussian_kde([1,2,3]).ppf(.95))
-
 """
     GMM
 """
@@ -108,8 +106,10 @@ print(stats.gaussian_kde([1,2,3]).ppf(.05),stats.gaussian_kde([1,2,3]).ppf(.95))
 # mean_grad = (lambda ys:[np.mean([ys[i+1][0]-ys[i][0] for i in range(len(ys)-1)])])
 # rand=(lambda ys:[stats.uniform(0,10).rvs(1)[0]])
 # rand_2=(lambda ys:[mean_grad(ys)[0]*stats.uniform(0.5,1).rvs(1)[0]])
-# summary_stats=[mean_grad,rand,rand_2]
-# best_stats=ABC.joyce_marjoram(summary_stats,n_obs=10,y_obs=lm.observe(),fitting_model=lm.copy([1,1]),priors=lm_priors_intersect_known,n_samples=1000)
+# summary_stats=[rand,rand_2,mean_grad]
+#
+# param_bounds=[(1,1),(8,14)]
+# best_stats=ABC.joyce_marjoram(summary_stats,n_obs=10,y_obs=lm.observe(),fitting_model=lm.copy([1,1]),priors=lm_priors_intersect_known,param_bounds=param_bounds,n_samples=1000,n_bins=10)
 #
 # print(best_stats)
 """

@@ -511,88 +511,157 @@ def abc_smc(n_obs:int,y_obs:[[float]],
     SUMMARY STATISTIC SELECTION
 """
 
-def joyce_marjoram(summary_stats:["function"],n_obs:int,y_obs:[[float]],fitting_model:Model,priors:["stats.Distribution"],n_samples=10000) -> [int]:
-        """
-        DESCRIPTION
-        Use the algorithm in Paul Joyce, Paul Marjoram 2008 to find an approxiamtely sufficient set of summary statistics (from set `summary_stats`)
+def compare_summary_stats(accepted_params_curr:[[float]],accepted_params_prop:[[float]],param_bounds:[(float,float)],n_params:int,n_bins=10) -> bool:
+    """
+    DESCRIPTION
+    The algorithm proposed by joyce-marjoram for estimating the odds-ratio for two sets of summary statistics S_{K-1} and S_K
+    where S_K is a super-set of S_{K-1}
 
-        PARAMETERS
-        summary_stats ([function]) - functions which summarise `y_obs` and the observations of `fitting_model` in some way. These are what will be evaluated
-        n_obs (int) - Number of observations available.
-        y_obs ([[float]]) - Observations from true model.
-        fitting_model (Model) - Model the algorithm will aim to fit to observations.
-        priors (["stats.Distribution"]) - Priors for the value of parameters of `fitting_model`.
-        n_samples (int) - number of samples to make
+    PARAMETERS
+    accepted_params_curr ([[float]]) - Sets of parameters which were accepted when using current set of summary stats S_{K-1}.
+    accepted_params_prop ([[float]]) - Sets of parameters which were accepted when using propsed set of summary stats S_K.
+    param_bounds ([(float,float)]) - The bounds of the priors used to generate parameter sets.
+    n_params (int) - Number of parameters being fitted.
+    n_bins (int) - Number of bins to discretise each dimension of posterior into (default=10)
 
-        RETURNS
-        [int] - indexes of selected summary stats in `summary_stats`
-        """
+    RETURNS
+    bool - Whether S_K produces a notably different posterior to S_{K-1} (ie whether to accept new summary stat or not)
+    """
+    n_curr=len(accepted_params_curr)
+    if (n_curr==0): return True # if nothing is currently being used then accept
+    n_prop=len(accepted_params_prop)
 
-        if (type(y_obs)!=list): raise TypeError("`y_obs` must be a list (not {})".format(type(y_obs)))
-        if (len(y_obs)!=n_obs): raise ValueError("Wrong number of observations supplied (len(y_obs)!=n_obs) ({}!={})".format(len(y_obs),n_obs))
-        if (len(priors)!=fitting_model.n_params): raise ValueError("Wrong number of priors given (exp fitting_model.n_params={})".format(fitting_model.n_params))
+    # count occurences of accepted params
+    bins_curr=[[0 for _ in range(n_bins)] for _ in range(n_params)]
+    for params in accepted_params_curr:
+        for (dim,param) in enumerate(params):
+            step=(param_bounds[dim][1]-param_bounds[dim][0])/(n_bins-1)
+            if (step==0): step=1 # avoid division my zero
 
-        group_dim = lambda ys,i: [y[i] for y in ys]
-        summary_stats=summary_stats if (summary_stats) else ([(lambda ys:group_dim(ys,i)) for i in range(len(y_obs[0]))])
-        s_obs=[s(y_obs) for s in summary_stats]
+            i=int(np.floor((param-param_bounds[dim][0])/step))
+            bins_curr[dim][i]+=1
 
-        # generate samples
-        SAMPLES=[] # (theta,s_vals)
-        for i in range(n_samples):
-            print("{:,}/{:,}".format(i+1,n_samples),end="\r")
+    bins_prop=[[0 for _ in range(n_bins)] for _ in range(n_params)]
+    for params in accepted_params_prop:
+        for (dim,param) in enumerate(params):
+            step=(param_bounds[dim][1]-param_bounds[dim][0])/(n_bins-1)
+            if (step==0): step=1 # avoid division my zero
 
-            # sample parameters
-            theta_t=[pi_i.rvs(1)[0] for pi_i in priors]
+            i=int(np.floor((param-param_bounds[dim][0])/step))
+            bins_prop[dim][i]+=1
 
-            # observe theorised model
-            fitting_model.update_params(theta_t)
-            y_t=fitting_model.observe()
-            s_t=[s(y_t) for s in summary_stats]
+    # calculated expected number of occurences for each bin
+    expected=[[(x*n_prop)/n_curr for x in bins] for bins in bins_curr]
+    sd=[[np.sqrt(expected[i][j]*((n_curr-x)/n_curr)) for (j,x) in enumerate(bins)] for (i,bins) in enumerate(bins_curr)]
 
-            SAMPLES.append((theta_t,s_t))
+    upper_thresh=[[expected[i][j]+4*sd[i][j] for j in range(n_bins)] for i in range(n_params)]
+    lower_thresh=[[expected[i][j]-4*sd[i][j] for j in range(n_bins)] for i in range(n_params)]
+
+    # count number of extreme values
+    # value is extreme if it is more than 4sd away from expected
+    extreme=0
+    for i in range(n_params):
+        for j in range(n_bins):
+            if (bins_prop[i][j]>upper_thresh[i][j]) or (bins_prop[i][j]<lower_thresh[i][j]): extreme+=1
+
+    return (extreme>0)
+
+
+def joyce_marjoram(summary_stats:["function"],n_obs:int,y_obs:[[float]],fitting_model:Model,priors:["stats.Distribution"],param_bounds:[(float,float)],n_samples=10000,n_bins=10) -> [int]:
+    """
+    DESCRIPTION
+    Use the algorithm in Paul Joyce, Paul Marjoram 2008 to find an approxiamtely sufficient set of summary statistics (from set `summary_stats`)
+
+    PARAMETERS
+    summary_stats ([function]) - functions which summarise `y_obs` and the observations of `fitting_model` in some way. These are what will be evaluated
+    n_obs (int) - Number of observations available.
+    y_obs ([[float]]) - Observations from true model.
+    fitting_model (Model) - Model the algorithm will aim to fit to observations.
+    priors (["stats.Distribution"]) - Priors for the value of parameters of `fitting_model`.
+    param_bounds ([(float,float)]) - The bounds of the priors used to generate parameter sets.
+    n_samples (int) - number of samples to make
+    n_bins (int) - Number of bins to discretise each dimension of posterior into (default=10)
+
+    RETURNS
+    [int] - indexes of selected summary stats in `summary_stats`
+    """
+
+    if (type(y_obs)!=list): raise TypeError("`y_obs` must be a list (not {})".format(type(y_obs)))
+    if (len(y_obs)!=n_obs): raise ValueError("Wrong number of observations supplied (len(y_obs)!=n_obs) ({}!={})".format(len(y_obs),n_obs))
+    if (len(priors)!=fitting_model.n_params): raise ValueError("Wrong number of priors given (exp fitting_model.n_params={})".format(fitting_model.n_params))
+
+    group_dim = lambda ys,i: [y[i] for y in ys]
+    summary_stats=summary_stats if (summary_stats) else ([(lambda ys:group_dim(ys,i)) for i in range(len(y_obs[0]))])
+    s_obs=[s(y_obs) for s in summary_stats]
+
+    # generate samples
+    SAMPLES=[] # (theta,s_vals)
+    for i in range(n_samples):
+        print("{:,}/{:,}".format(i+1,n_samples),end="\r")
+
+        # sample parameters
+        theta_t=[pi_i.rvs(1)[0] for pi_i in priors]
+
+        # observe theorised model
+        fitting_model.update_params(theta_t)
+        y_t=fitting_model.observe()
+        s_t=[s(y_t) for s in summary_stats]
+
+        SAMPLES.append((theta_t,s_t))
+
+    print()
+
+    # # TODO make these parameters
+    KERNEL=uniform_kernel
+    EPSILON=1
+
+    # consider adding each summary stat in turn
+    ACCEPTED_SUMMARY_STATS_ID=[] # index of accepted summary stats
+    prev_prob=1
+
+    # prep for comparing summary stats
+    SAMPLES_curr=[]
+    s_obs_curr=[]
+    ACCEPTED_PARAMS_curr=[]
+
+    """TODO-improve this so best stat is chosen first or do some sort of leave-one-out testing"""
+
+    added=True
+    while added: # keep running until no new summary stat is accepted
+        added=False
+        print("ACCEPTED_SUMMARY_STATS_ID - ",ACCEPTED_SUMMARY_STATS_ID)
+        best_ss=(0,-1) # prob,index
+
+        # identify which params are accepted under proposed
+        for i in range(len(summary_stats)):
+            if i in ACCEPTED_SUMMARY_STATS_ID: continue # ignore stats already in set
+            print("Considering adding {} to [{}]. ".format(i,",".join([str(x) for x in ACCEPTED_SUMMARY_STATS_ID])),end="")
+
+            SAMPLES_prop=[(theta,[s[j] for j in ACCEPTED_SUMMARY_STATS_ID+[i]]) for (theta,s) in SAMPLES] # parameters & summary stat values
+            s_obs_prop=[s_obs[j] for j in ACCEPTED_SUMMARY_STATS_ID+[i]] # observed summary stat values
+
+            # accept-reject
+            ACCEPTED_PARAMS_prop=[]
+            for (theta_t,s_t) in SAMPLES_prop:
+                norm_vals=[l2_norm(s_t_i,s_obs_i) for (s_t_i,s_obs_i) in zip(s_t,s_obs_prop)]
+                if (KERNEL(l1_norm(norm_vals),EPSILON)): # NOTE - l1_norm() can be replaced by anyother other norm
+                    ACCEPTED_PARAMS_prop.append(theta_t)
+
+            print("(n_curr={},n_prop={})".format(len(ACCEPTED_PARAMS_curr),len(ACCEPTED_PARAMS_prop)),end="\n")
+
+            # if summary stat helps
+            if compare_summary_stats(ACCEPTED_PARAMS_curr,ACCEPTED_PARAMS_prop,param_bounds=param_bounds,n_params=len(priors),n_bins=n_bins):
+                print("Accepted summary stats - {}".format(i))
+
+                SAMPLES_curr=SAMPLES_prop
+                s_obs_curr=s_obs_prop
+                ACCEPTED_PARAMS_curr=ACCEPTED_PARAMS_prop
+
+                ACCEPTED_SUMMARY_STATS_ID+=[i]
+
+                added=True
+                break
 
         print()
 
-        for i in range(len(summary_stats)):
-            pass
-
-        # # TODO make these parameters
-        # KERNEL=uniform_kernel
-        # EPSILON=1
-        #
-        # # estimate score for each summary stat
-        # ACCEPTED_SUMMARY_STATS_ID=[] # index of accepted summary stats
-        # prev_prob=1
-        # while True:
-        #     print("ACCEPTED_SUMMARY_STATS_ID - ",ACCEPTED_SUMMARY_STATS_ID)
-        #     best_ss=(0,-1) # prob,index
-        #
-        #     # consider including each summary stat
-        #     for i in range(len(summary_stats)):
-        #         if i in ACCEPTED_SUMMARY_STATS_ID: continue # ignore stats already in set
-        #
-        #         # count number of samples accepted when using this summary stat and all previously accepted
-        #         SAMPLES_i=[(theta,[s[j] for j in ACCEPTED_SUMMARY_STATS_ID+[i]]) for (theta,s) in SAMPLES]
-        #         s_obs_t=[s_obs[j] for j in ACCEPTED_SUMMARY_STATS_ID+[i]]
-        #         # accept-reject
-        #         ACCEPTED_PARAMS=[]
-        #         for (theta_t,s_t) in SAMPLES_i:
-        #             norm_vals=[l2_norm(s_t_i,s_obs_i) for (s_t_i,s_obs_i) in zip(s_t,s_obs_t)]
-        #             if all([KERNEL(v,EPSILON) for v in norm_vals]):
-        #                 ACCEPTED_PARAMS.append(theta_t)
-        #
-        #         prob=len(ACCEPTED_PARAMS)/n_samples # correct denominator
-        #         print("P(theta|{})={:.5f}".format(",".join(["s_{}".format(j) for j in [i]+ACCEPTED_SUMMARY_STATS_ID]),prob))
-        #         if (prob>best_ss[0]): best_ss=(prob,i)
-        #
-        #     ratio=best_ss[0]/prev_prob
-        #     print("ratio - ",ratio)
-        #
-        #     # whether to add a summary stat to accepted set (TODO improve this)
-        #     if (ACCEPTED_SUMMARY_STATS_ID==[]): ACCEPTED_SUMMARY_STATS_ID+=[best_ss[1]]
-        #     elif (ratio>1): ACCEPTED_SUMMARY_STATS_ID+=[best_ss[1]] # TODO - define better acceptance criertia (probs based on expected number of obvs)
-        #     else: break
-        #     prev_prob=best_ss[0]
-        #     print()
-
-        return ACCEPTED_SUMMARY_STATS_ID
+    return ACCEPTED_SUMMARY_STATS_ID
