@@ -511,7 +511,7 @@ def abc_smc(n_obs:int,y_obs:[[float]],
     SUMMARY STATISTIC SELECTION
 """
 
-def compare_summary_stats(accepted_params_curr:[[float]],accepted_params_prop:[[float]],param_bounds:[(float,float)],n_params:int,n_bins=10) -> bool:
+def __compare_summary_stats(accepted_params_curr:[[float]],accepted_params_prop:[[float]],param_bounds:[(float,float)],n_params:int,n_bins=10) -> bool:
     """
     DESCRIPTION
     The algorithm proposed by joyce-marjoram for estimating the odds-ratio for two sets of summary statistics S_{K-1} and S_K
@@ -567,7 +567,8 @@ def compare_summary_stats(accepted_params_curr:[[float]],accepted_params_prop:[[
     return (extreme>0)
 
 
-def joyce_marjoram(summary_stats:["function"],n_obs:int,y_obs:[[float]],fitting_model:Model,priors:["stats.Distribution"],param_bounds:[(float,float)],n_samples=10000,n_bins=10) -> [int]:
+def joyce_marjoram(summary_stats:["function"],n_obs:int,y_obs:[[float]],fitting_model:Model,priors:["stats.Distribution"],param_bounds:[(float,float)],
+    KERNEL=uniform_kernel,BANDWIDTH=1,n_samples=10000,n_bins=10,printing=True) -> [int]:
     """
     DESCRIPTION
     Use the algorithm in Paul Joyce, Paul Marjoram 2008 to find an approxiamtely sufficient set of summary statistics (from set `summary_stats`)
@@ -579,6 +580,8 @@ def joyce_marjoram(summary_stats:["function"],n_obs:int,y_obs:[[float]],fitting_
     fitting_model (Model) - Model the algorithm will aim to fit to observations.
     priors (["stats.Distribution"]) - Priors for the value of parameters of `fitting_model`.
     param_bounds ([(float,float)]) - The bounds of the priors used to generate parameter sets.
+    KERNEL (func) - one of the kernels defined above. determine which parameters are good or not.
+    BANDWIDTH (float) - scale parameter for `KERNEL`
     n_samples (int) - number of samples to make
     n_bins (int) - Number of bins to discretise each dimension of posterior into (default=10)
 
@@ -597,7 +600,7 @@ def joyce_marjoram(summary_stats:["function"],n_obs:int,y_obs:[[float]],fitting_
     # generate samples
     SAMPLES=[] # (theta,s_vals)
     for i in range(n_samples):
-        print("{:,}/{:,}".format(i+1,n_samples),end="\r")
+        if (printing): print("{:,}/{:,}".format(i+1,n_samples),end="\r")
 
         # sample parameters
         theta_t=[pi_i.rvs(1)[0] for pi_i in priors]
@@ -609,11 +612,7 @@ def joyce_marjoram(summary_stats:["function"],n_obs:int,y_obs:[[float]],fitting_
 
         SAMPLES.append((theta_t,s_t))
 
-    print()
-
-    # # TODO make these parameters
-    KERNEL=uniform_kernel
-    EPSILON=1
+    if (printing): print()
 
     # consider adding each summary stat in turn
     ACCEPTED_SUMMARY_STATS_ID=[] # index of accepted summary stats
@@ -629,13 +628,13 @@ def joyce_marjoram(summary_stats:["function"],n_obs:int,y_obs:[[float]],fitting_
     added=True
     while added: # keep running until no new summary stat is accepted
         added=False
-        print("ACCEPTED_SUMMARY_STATS_ID - ",ACCEPTED_SUMMARY_STATS_ID)
+        if (printing): print("ACCEPTED_SUMMARY_STATS_ID - ",ACCEPTED_SUMMARY_STATS_ID)
         best_ss=(0,-1) # prob,index
 
         # identify which params are accepted under proposed
         for i in range(len(summary_stats)):
             if i in ACCEPTED_SUMMARY_STATS_ID: continue # ignore stats already in set
-            print("Considering adding {} to [{}]. ".format(i,",".join([str(x) for x in ACCEPTED_SUMMARY_STATS_ID])),end="")
+            if (printing): print("Considering adding {} to [{}]. ".format(i,",".join([str(x) for x in ACCEPTED_SUMMARY_STATS_ID])),end="")
 
             SAMPLES_prop=[(theta,[s[j] for j in ACCEPTED_SUMMARY_STATS_ID+[i]]) for (theta,s) in SAMPLES] # parameters & summary stat values
             s_obs_prop=[s_obs[j] for j in ACCEPTED_SUMMARY_STATS_ID+[i]] # observed summary stat values
@@ -644,24 +643,45 @@ def joyce_marjoram(summary_stats:["function"],n_obs:int,y_obs:[[float]],fitting_
             ACCEPTED_PARAMS_prop=[]
             for (theta_t,s_t) in SAMPLES_prop:
                 norm_vals=[l2_norm(s_t_i,s_obs_i) for (s_t_i,s_obs_i) in zip(s_t,s_obs_prop)]
-                if (KERNEL(l1_norm(norm_vals),EPSILON)): # NOTE - l1_norm() can be replaced by anyother other norm
+                if (KERNEL(l1_norm(norm_vals),BANDWIDTH*len(ACCEPTED_SUMMARY_STATS_ID+[i]))): # NOTE - l1_norm() can be replaced by anyother other norm
                     ACCEPTED_PARAMS_prop.append(theta_t)
 
-            print("(n_curr={},n_prop={})".format(len(ACCEPTED_PARAMS_curr),len(ACCEPTED_PARAMS_prop)),end="\n")
+            if (printing): print("(n_curr={},n_prop={})".format(len(ACCEPTED_PARAMS_curr),len(ACCEPTED_PARAMS_prop)),end="\n")
 
             # if summary stat helps
-            if compare_summary_stats(ACCEPTED_PARAMS_curr,ACCEPTED_PARAMS_prop,param_bounds=param_bounds,n_params=len(priors),n_bins=n_bins):
-                print("Accepted summary stats - {}".format(i))
+            if __compare_summary_stats(ACCEPTED_PARAMS_curr,ACCEPTED_PARAMS_prop,param_bounds=param_bounds,n_params=len(priors),n_bins=n_bins):
+                if (printing): print("Accepted summary stats - {}".format(i))
+
+                # confirm addition by considering removing each other summary stat in turn
+                removal=False
+                for j in ACCEPTED_SUMMARY_STATS_ID:
+                    if (printing): print("Comparing [{}] to [{}]. ".format(",".join([str(x) for x in ACCEPTED_SUMMARY_STATS_ID if x!=j]+[str(i)]),",".join([str(x) for x in ACCEPTED_SUMMARY_STATS_ID]+[str(i)])),end="")
+                    accepted_ss_ids_minus_one=[x for x in ACCEPTED_SUMMARY_STATS_ID if x!=j]+[i]
+                    SAMPLES_minus_one=[(theta,[s[j] for j in accepted_ss_ids_minus_one]) for (theta,s) in SAMPLES] # parameters & summary stat values
+                    s_obs_minus_one=[s_obs[j] for j in accepted_ss_ids_minus_one] # observed summary stat values
+
+                    # accept-reject
+                    ACCEPTED_PARAMS_minus_one=[]
+                    for (theta_t,s_t) in SAMPLES_minus_one:
+                        norm_vals=[l2_norm(s_t_i,s_obs_i) for (s_t_i,s_obs_i) in zip(s_t,s_obs_minus_one)]
+                        if (KERNEL(l1_norm(norm_vals),BANDWIDTH*len(accepted_ss_ids_minus_one))): # NOTE - l1_norm() can be replaced by anyother other norm
+                            ACCEPTED_PARAMS_minus_one.append(theta_t)
+                    if (printing): print("(n_minus_one={},n_prop={})".format(len(ACCEPTED_PARAMS_minus_one),len(ACCEPTED_PARAMS_prop)),end="\n")
+
+                    if __compare_summary_stats(ACCEPTED_PARAMS_minus_one,ACCEPTED_PARAMS_prop,param_bounds=param_bounds,n_params=len(priors),n_bins=n_bins):
+                        ACCEPTED_SUMMARY_STATS_ID=accepted_ss_ids_minus_one
+                        removal=True
+                        break
+
+                if (not removal): ACCEPTED_SUMMARY_STATS_ID+=[i]
 
                 SAMPLES_curr=SAMPLES_prop
                 s_obs_curr=s_obs_prop
                 ACCEPTED_PARAMS_curr=ACCEPTED_PARAMS_prop
 
-                ACCEPTED_SUMMARY_STATS_ID+=[i]
-
                 added=True
                 break
 
-        print()
+        if (printing): print()
 
     return ACCEPTED_SUMMARY_STATS_ID
