@@ -3,14 +3,14 @@ import numpy as np
 from scipy import stats
 from Models import Model
 
-def plot_accepted_observations(ax:plt.Axes,n_obs:int,y_obs:[[float]],accepted_observations:[[float]],predicted_model:Model,dim=0) -> plt.Axes:
+def plot_accepted_observations(ax:plt.Axes,x_obs:int,y_obs:[[float]],accepted_observations:[[float]],predicted_model:Model,dim=0) -> plt.Axes:
     """
     DESCRIPTION
     plot observations from truth `y_obs` and observations from accepted parameter sets.
 
     PARAMETERS
     ax (plt.Axes) - axes to plot on.
-    n_obs (int) - number of observations per model.
+    x_obs (int) -
     y_obs ([float]) - observations from true model.
     accepted_observations ([[float]]) - observations from accepted parameter sets.
     dim (int) - dimension of observations being plotted (default=0)
@@ -19,15 +19,14 @@ def plot_accepted_observations(ax:plt.Axes,n_obs:int,y_obs:[[float]],accepted_ob
     plt.Axes - axes on which plot was made
     """
     if (accepted_observations!=[]): ax.scatter([],[],c="blue",alpha=1,marker="x",label="Accepted")
-    xs=list(range(n_obs))
     for obs in accepted_observations:
-        ax.scatter(xs,obs,c="blue",alpha=.05,marker="x")
-    ax.scatter(xs,y_obs,c="green",alpha=1,label="y_obs")
+        ax.scatter(x_obs,obs,c="blue",alpha=.05,marker="x")
+    ax.scatter(x_obs,y_obs,c="green",alpha=1,label="y_obs")
 
     y_pred=predicted_model.observe(inc_noise=False)
     if (len(y_pred[0])!=1): # multi-dimensional
         y_pred=[y[dim] for y in y_pred]
-    ax.plot(xs,y_pred,c="orange",label="Prediction")
+    ax.plot(x_obs,y_pred,c="orange",label="Prediction")
 
     ax.set_title("Accepted Observations (dim={})".format(dim))
     ax.set_xticks([])

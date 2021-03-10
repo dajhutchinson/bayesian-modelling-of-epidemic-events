@@ -59,7 +59,7 @@ def l_infty_norm(xs:[float]) -> float:
 """
 
 def __sampling_stage_fixed_number(DESIRED_SAMPLE_SIZE:int,EPSILON:float,KERNEL:"func",PRIORS:["stats.Distribution"],
-    s_obs:[float],model_t:Model,summary_stats:["function"],distance_measure=l2_norm) -> ([[float]],[[float]],[[float]]):
+    s_obs:[float],model_t:Model,summary_stats:["function"],distance_measure=l2_norm,printing=True) -> ([[float]],[[float]],[[float]]):
     """
     DESCRIPTION
     keep generating parameter values and observing the equiv models until a sufficient number of `good` parameter values have been found.
@@ -71,7 +71,10 @@ def __sampling_stage_fixed_number(DESIRED_SAMPLE_SIZE:int,EPSILON:float,KERNEL:"
     PRIORS ([stats.Distribution]) - prior distribution for parameter values (one per parameter)
     s_obs ([float]) - summary statistic values for observations from true model.
     summary_stat ([func]) - functions used to determine each summary statistic.
-    distance_measure - (func) - distance function to use (See choices above)
+
+    OPTIONAL PARAMETERS
+    distance_measure (func) - distance function to use (See choices above)
+    printing (bool) - whether to print updates to terminal (default=True)
 
     RETURNS
     [[float]] - accepted parameter values
@@ -100,13 +103,13 @@ def __sampling_stage_fixed_number(DESIRED_SAMPLE_SIZE:int,EPSILON:float,KERNEL:"
             ACCEPTED_SUMMARY_VALS.append(s_t)
 
         i+=1
-        print("({:,}) {:,}/{:,}".format(i,len(ACCEPTED_PARAMS),DESIRED_SAMPLE_SIZE),end="\r") # update user on sampling process
-    print("\n")
+        if (printing): print("({:,}) {:,}/{:,}".format(i,len(ACCEPTED_PARAMS),DESIRED_SAMPLE_SIZE),end="\r") # update user on sampling process
+    if (printing): print("\n")
 
     return ACCEPTED_PARAMS,ACCEPTED_OBS,ACCEPTED_SUMMARY_VALS
 
 def __sampling_stage_best_samples(NUM_RUNS:int,SAMPLE_SIZE:int,PRIORS:["stats.Distribution"],
-    s_obs:[float],model_t:Model,summary_stats:["function"],distance_measure=l2_norm) -> ([[float]],[[float]],[[float]]):
+    s_obs:[float],model_t:Model,summary_stats:["function"],distance_measure=l2_norm,printing=True) -> ([[float]],[[float]],[[float]]):
     """
     DESCRIPTION
     perform `NUM_RUNS` samples and return the parameters values associated to the best `SAMPLE_SIZE`.
@@ -117,7 +120,10 @@ def __sampling_stage_best_samples(NUM_RUNS:int,SAMPLE_SIZE:int,PRIORS:["stats.Di
     PRIORS ([stats.Distribution]) - prior distribution for parameter values (one per parameter)
     s_obs ([float]) - summary statistic values for observations from true model.
     summary_stat ([func]) - functions used to determine each summary statistic.
+
+    OPTIONAL PARAMETERS
     distance_measure - (func) - distance function to use (See choices above)
+    printing (bool) - whether to print updates to terminal (default=True)
 
     RETURNS
     [[float]] - accepted parameter values
@@ -145,9 +151,9 @@ def __sampling_stage_best_samples(NUM_RUNS:int,SAMPLE_SIZE:int,PRIORS:["stats.Di
                 if (j>0): SAMPLES[j-1]=SAMPLES[j]
                 SAMPLES[j]=(summarised_norm_val,(theta_t,y_t,s_t))
 
-        print("({:,}/{:,})".format(i,NUM_RUNS),end="\r") # update user on sampling process
+        if (printing): print("({:,}/{:,})".format(i,NUM_RUNS),end="\r") # update user on sampling process
 
-    print("\n")
+    if (printing): print("\n")
     SAMPLES=[x[1] for x in SAMPLES] # remove norm value
     ACCEPTED_PARAMS=[x[0] for x in SAMPLES]
     ACCEPTED_OBS=[x[1] for x in SAMPLES]
@@ -159,7 +165,7 @@ def __sampling_stage_best_samples(NUM_RUNS:int,SAMPLE_SIZE:int,PRIORS:["stats.Di
     ABC
 """
 
-def abc_rejcection(n_obs:int,y_obs:[[float]],fitting_model:Model,priors:["stats.Distribution"],sampling_details:dict,summary_stats=None,show_plots=True) -> (Model,[[float]]):
+def abc_rejcection(n_obs:int,y_obs:[[float]],fitting_model:Model,priors:["stats.Distribution"],sampling_details:dict,summary_stats=None,show_plots=True,printing=True) -> (Model,[[float]]):
     """
     DESCRIPTION
     Rejction Sampling version of Approximate Bayesian Computation for the generative models defined in `Models.py`.
@@ -174,6 +180,7 @@ def abc_rejcection(n_obs:int,y_obs:[[float]],fitting_model:Model,priors:["stats.
     OPTIONAL PARAMETERS
     summary_stats ([function]) - functions which summarise `y_obs` and the observations of `fitting_model` in some way. (default=group by dimension)
     show_plots (bool) - whether to generate and show plots (default=True)
+    printing (bool) - whether to print updates to terminal (default=True)
 
     RETURNS
     Model - fitted model with best parameters
@@ -197,14 +204,14 @@ def abc_rejcection(n_obs:int,y_obs:[[float]],fitting_model:Model,priors:["stats.
         epsilon=sampling_details["scaling_factor"]
         kernel=sampling_details["kernel_func"]
         distance_measure=l2_norm if (not "distance_measure" in sampling_details) else sampling_details["distance_measure"]
-        ACCEPTED_PARAMS,ACCEPTED_OBS,ACCEPTED_SUMMARY_VALS=__sampling_stage_fixed_number(sample_size,epsilon,kernel,PRIORS=priors,s_obs=s_obs,model_t=fitting_model,summary_stats=summary_stats,distance_measure=distance_measure)
+        ACCEPTED_PARAMS,ACCEPTED_OBS,ACCEPTED_SUMMARY_VALS=__sampling_stage_fixed_number(sample_size,epsilon,kernel,PRIORS=priors,s_obs=s_obs,model_t=fitting_model,summary_stats=summary_stats,distance_measure=distance_measure,printing=printing)
 
     elif (sampling_details["sampling_method"]=="best"):
         if any([x not in sampling_details for x in ["sample_size","num_runs"]]): raise Exception("`sampling_details` missing key(s) - expecting `num_runs` and `sample_size`")
         num_runs=sampling_details["num_runs"]
         sample_size=sampling_details["sample_size"]
         distance_measure=l2_norm if (not "distance_measure" in sampling_details) else sampling_details["distance_measure"]
-        ACCEPTED_PARAMS,ACCEPTED_OBS,ACCEPTED_SUMMARY_VALS=__sampling_stage_best_samples(num_runs,sample_size,PRIORS=priors,s_obs=s_obs,model_t=fitting_model,summary_stats=summary_stats,distance_measure=distance_measure)
+        ACCEPTED_PARAMS,ACCEPTED_OBS,ACCEPTED_SUMMARY_VALS=__sampling_stage_best_samples(num_runs,sample_size,PRIORS=priors,s_obs=s_obs,model_t=fitting_model,summary_stats=summary_stats,distance_measure=distance_measure,printing=printing)
 
     # best estimate of model
     theta_hat=[np.mean([p[i] for p in ACCEPTED_PARAMS]) for i in range(fitting_model.n_params)]
@@ -227,7 +234,7 @@ def abc_rejcection(n_obs:int,y_obs:[[float]],fitting_model:Model,priors:["stats.
             ax=fig.add_subplot(gs[i*row_step:(i+1)*row_step,-1])
             y_obs_dim=[y[i] for y in y_obs]
             accepted_obs_dim=[[y[i] for y in obs] for obs in ACCEPTED_OBS]
-            Plotting.plot_accepted_observations(ax,fitting_model.n_obs,y_obs_dim,accepted_obs_dim,model_hat,dim=i)
+            Plotting.plot_accepted_observations(ax,fitting_model.x_obs,y_obs_dim,accepted_obs_dim,model_hat,dim=i)
 
         # plot posterior for each parameter
         row_step=n_rows//fitting_model.n_params
@@ -257,7 +264,7 @@ def abc_rejcection(n_obs:int,y_obs:[[float]],fitting_model:Model,priors:["stats.
 def abc_mcmc(n_obs:int,y_obs:[[float]],
     fitting_model:Model,priors:["stats.Distribution"],
     chain_length:int,perturbance_kernels:"[function]",acceptance_kernel:"function",scaling_factor:float,
-    summary_stats=None,distance_measure=l2_norm,show_plots=True) -> (Model,[[float]]):
+    summary_stats=None,distance_measure=l2_norm,show_plots=True,printing=True) -> (Model,[[float]]):
     """
     DESCRIPTION
     Markov Chain Monte-Carlo Sampling version of Approximate Bayesian Computation for the generative models defined in `Models.py`.
@@ -271,11 +278,12 @@ def abc_mcmc(n_obs:int,y_obs:[[float]],
     perturbance_kernels ([function]) - Functions for varying parameters each monte-carlo steps.
     acceptance_kernel (function) - Function to determine whether to accept parameters
     scaling_factor (float) - Scaling factor for `acceptance_kernel`.
-    distance_measure - (func) - distance function to use (See choices above)
 
     OPTIONAL PARAMETERS
     summary_stats ([function]) - functions which summarise `y_obs` and the observations of `fitting_model` in some way. (default=group by dimension)
+    distance_measure - (func) - distance function to use (See choices above) (default=ABC.l2_norm)
     show_plots (bool) - whether to generate and show plots (default=True)
+    printing (bool) - whether to print updates to terminal (default=True)
 
     RETURNS
     Model - fitted model with best parameters
@@ -289,7 +297,7 @@ def abc_mcmc(n_obs:int,y_obs:[[float]],
     min_l1_norm=100000000000
     i=0
     while (True):
-        print("Finding Start - ({:,},{:,.3f})                       ".format(i,min_l1_norm),end="\r")
+        if (printing): print("Finding Start - ({:,},{:,.3f})                       ".format(i,min_l1_norm),end="\r")
         i+=1
         theta_0=[pi_i.rvs(1)[0] for pi_i in priors]
 
@@ -306,7 +314,7 @@ def abc_mcmc(n_obs:int,y_obs:[[float]],
     THETAS=[theta_0]
     ACCEPTED_SUMMARY_VALS=[s_0]
 
-    print("Found Start - ({:,})".format(i),theta_0)
+    if (printing): print("Found Start - ({:,})".format(i),theta_0)
 
     # MCMC step
     new=0
@@ -326,16 +334,16 @@ def abc_mcmc(n_obs:int,y_obs:[[float]],
             new+=1
             THETAS.append(theta_temp)
             ACCEPTED_SUMMARY_VALS.append(s_temp)
-            print("({:,}) - NEW".format(t),end="\r")
+            if (printing): print("({:,}) - NEW".format(t),end="\r")
         else: # stick with last parameter sample
             THETAS.append(THETAS[-1])
             ACCEPTED_SUMMARY_VALS.append(ACCEPTED_SUMMARY_VALS[-1])
-            print("({:,}) - OLD".format(t),end="\r")
+            if (printing): print("({:,}) - OLD".format(t),end="\r")
 
     theta_hat=list(np.mean(THETAS,axis=0))
     model_hat=fitting_model.copy(theta_hat)
     s_hat=[s(model_hat.observe()) for s in summary_stats]
-    print("{:.3f} observations were new.".format(new/chain_length))
+    if (printing): print("{:.3f} observations were new.".format(new/chain_length))
     # print("Auto-correlation - ",correlate2d(THETAS,THETAS))
 
     if (show_plots):
@@ -352,7 +360,7 @@ def abc_mcmc(n_obs:int,y_obs:[[float]],
         for i in range(fitting_model.dim_obs):
             ax=fig.add_subplot(gs[i*row_step:(i+1)*row_step,-1])
             y_obs_dim=[y[i] for y in y_obs]
-            Plotting.plot_accepted_observations(ax,fitting_model.n_obs,y_obs_dim,[],model_hat,dim=i)
+            Plotting.plot_accepted_observations(ax,fitting_model.x_obs,y_obs_dim,[],model_hat,dim=i)
 
         # plot traces
         row_step=n_rows//fitting_model.n_params
@@ -387,7 +395,7 @@ def abc_smc(n_obs:int,y_obs:[[float]],
     fitting_model:Model,priors:["stats.Distribution"],
     num_steps:int,sample_size:int,
     scaling_factors:[float],perturbance_kernels:"[function]",perturbance_kernel_probability:"[function]",
-    acceptance_kernel:"function",summary_stats=None,distance_measure=l2_norm,show_plots=True) -> (Model,[[float]]):
+    acceptance_kernel:"function",summary_stats=None,distance_measure=l2_norm,show_plots=True,printing=True) -> (Model,[[float]]):
     """
     DESCRIPTION
     Sequential Monte-Carlo Sampling version of Approximate Bayesian Computation for the generative models defined in `Models.py`.
@@ -403,11 +411,12 @@ def abc_smc(n_obs:int,y_obs:[[float]],
     perturbance_kernels ([function]) - Functions for varying parameters each monte-carlo steps.
     perturbance_kernel_probability ([function]) - Probability of x being pertubered to value y
     acceptance_kernel (function) - Function to determine whether to accept parameters
-    distance_measure - (func) - distance function to use (See choices above)
 
     OPTIONAL PARAMETERS
     summary_stats ([function]) - functions which summarise `y_obs` and the observations of `fitting_model` in some way. (default=group by dimension)
+    distance_measure - (func) - distance function to use (See choices above)
     show_plots (bool) - whether to generate and show plots (default=True)
+    printing (bool) - whether to print updates to terminal (default=True)
 
     RETURNS
     Model - fitted model with best parameters
@@ -436,8 +445,8 @@ def abc_smc(n_obs:int,y_obs:[[float]],
         norm_vals=[distance_measure(s_temp_i,s_obs_i) for (s_temp_i,s_obs_i) in zip(s_temp,s_obs)]
         if (acceptance_kernel(l1_norm(norm_vals),scaling_factors[0])):
             THETAS.append((1/sample_size,theta_temp))
-        print("({:,}) - {:,}/{:,}".format(i,len(THETAS),sample_size),end="\r")
-    print()
+        if(printing): print("({:,}) - {:,}/{:,}".format(i,len(THETAS),sample_size),end="\r")
+    if (printing): print()
 
     total_simulations=i
 
@@ -447,7 +456,7 @@ def abc_smc(n_obs:int,y_obs:[[float]],
         NEW_THETAS=[] # (weight,params)
         while (len(NEW_THETAS)<sample_size):
             i+=1
-            print("({:,}/{:,} - {:,}) - {:,}/{:,} ({:.3f})".format(t,num_steps,i,len(NEW_THETAS),sample_size,scaling_factors[t]),end="\r")
+            if (printing): print("({:,}/{:,} - {:,}) - {:,}/{:,} ({:.3f})".format(t,num_steps,i,len(NEW_THETAS),sample_size,scaling_factors[t]),end="\r")
 
             # sample from THETA
             u=stats.uniform(0,1).rvs(1)[0]
@@ -481,12 +490,16 @@ def abc_smc(n_obs:int,y_obs:[[float]],
 
         THETAS=NEW_THETAS
 
-    print()
+    if (printing): print()
 
     param_values=[theta for (_,theta) in THETAS]
     weights=[w for (w,_) in THETAS]
     theta_hat=list(np.average(param_values,axis=0,weights=weights))
     model_hat=fitting_model.copy(theta_hat)
+
+    if (printing):
+        print("Total Simulations - {:,}".format(total_simulations))
+        print("theta_hat -",theta_hat)
 
     if (show_plots):
         n_rows=max([1,np.lcm(fitting_model.n_params,fitting_model.dim_obs)])
@@ -499,10 +512,8 @@ def abc_smc(n_obs:int,y_obs:[[float]],
         for i in range(fitting_model.dim_obs):
             ax=fig.add_subplot(gs[i*row_step:(i+1)*row_step,-1])
             y_obs_dim=[y[i] for y in y_obs]
-            Plotting.plot_accepted_observations(ax,fitting_model.n_obs,y_obs_dim,[],model_hat,dim=i)
+            Plotting.plot_accepted_observations(ax,fitting_model.x_obs,y_obs_dim,[],model_hat,dim=i)
 
-        print("Total Simulations - {:,}".format(total_simulations))
-        print("theta_hat -",theta_hat)
 
         row_step=n_rows//fitting_model.n_params
         for i in range(fitting_model.n_params):

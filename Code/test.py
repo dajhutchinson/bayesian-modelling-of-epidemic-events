@@ -40,13 +40,30 @@ gmm_priors=[stats.norm(loc=0,scale=10),stats.norm(loc=0,scale=10),stats.beta(1,1
 """
     CROSS-VALIDATION
 """
-# Linear Model
-# sampling_details={"sampling_method":"best","num_runs":1000,"sample_size":100}
+# Exponential Model
 # start = (lambda ys:[ys[0][0]])
-# end = (lambda ys:[ys[-1][0]])
+# mean_log_grad = (lambda ys:[10*np.mean([np.log(max(1,ys[i+1][0]-ys[i][0])) for i in range(len(ys)-1)])])
+# summary_stats=[start,mean_log_grad]
+#
+# scaling_factors=list(np.linspace(7,4,10))
+#
+# perturbance_variance=.1
+#
+# perturbance_kernels = [lambda x:x+stats.norm(0,perturbance_variance).rvs(1)[0]]*2
+# perturbance_kernel_probability = [lambda x,y:stats.norm(0,perturbance_variance).pdf(x-y)]
+#
+# error=ABC_Cross_Validation.LOO_CV_abc_smc(n_obs=10,x_obs=em.x_obs,y_obs=em.observe(),fitting_model=em.copy([1,1]),priors=em_priors,
+#         perturbance_kernels=perturbance_kernels,perturbance_kernel_probability=perturbance_kernel_probability,acceptance_kernel=ABC.gaussian_kernel,scaling_factors=scaling_factors,
+#         num_steps=10,sample_size=50,summary_stats=summary_stats)
+# print("Total error : {:,.3f}".format(error))
+
+# Linear Model
+# sampling_details={"sampling_method":"best","num_runs":10000,"sample_size":1000}
+# start = (lambda ys:[ys[0][0]])
 # mean_grad = (lambda ys:[np.mean([ys[i+1][0]-ys[i][0] for i in range(len(ys)-1)])])
-# summary_stats=[start,end,mean_grad]
-# ABC_Cross_Validation.LOO_CB_abc_rejection(n_obs=10,x_obs=lm.x_obs,y_obs=lm.observe(),fitting_model=lm.copy([1,1]),priors=lm_priors,sampling_details=sampling_details,summary_stats=summary_stats)
+# summary_stats=[start,mean_grad]
+# error=ABC_Cross_Validation.LOO_CV_abc_rejection(n_obs=10,x_obs=lm.x_obs,y_obs=lm.observe(),fitting_model=lm.copy([1,1]),priors=lm_priors,sampling_details=sampling_details,summary_stats=summary_stats)
+# print("Total error : {:,.3f}".format(error))
 
 # SIR Model
 # peak_infections_date_ss=(lambda ys:[1000*ys.index(max(ys,key=lambda y:y[1]))])
@@ -76,7 +93,7 @@ gmm_priors=[stats.norm(loc=0,scale=10),stats.norm(loc=0,scale=10),stats.beta(1,1
 # error=ABC_Cross_Validation.LOO_CV_abc_smc(n_obs=30,x_obs=sir_model.x_obs,y_obs=sir_model.observe(),fitting_model=sir_model.copy([1,1,1,1]),priors=sir_smc_priors,
 #         perturbance_kernels=perturbance_kernels,perturbance_kernel_probability=perturbance_kernel_probability,acceptance_kernel=ABC.gaussian_kernel,scaling_factors=scaling_factors,
 #         num_steps=6,sample_size=50,summary_stats=summary_stats)
-
+# print("Total error : {:,.3f}".format(error))
 """
     GMM
 """
