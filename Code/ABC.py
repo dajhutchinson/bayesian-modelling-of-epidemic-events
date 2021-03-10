@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 
 import numpy as np
 import Plotting
+from random import randint
 
 """
     KERNELS
@@ -158,7 +159,7 @@ def __sampling_stage_best_samples(NUM_RUNS:int,SAMPLE_SIZE:int,PRIORS:["stats.Di
     ABC
 """
 
-def abc_rejcection(n_obs:int,y_obs:[[float]],fitting_model:Model,priors:["stats.Distribution"],sampling_details:dict,summary_stats=None) -> (Model,[[float]]):
+def abc_rejcection(n_obs:int,y_obs:[[float]],fitting_model:Model,priors:["stats.Distribution"],sampling_details:dict,summary_stats=None,show_plots=True) -> (Model,[[float]]):
     """
     DESCRIPTION
     Rejction Sampling version of Approximate Bayesian Computation for the generative models defined in `Models.py`.
@@ -172,6 +173,7 @@ def abc_rejcection(n_obs:int,y_obs:[[float]],fitting_model:Model,priors:["stats.
 
     OPTIONAL PARAMETERS
     summary_stats ([function]) - functions which summarise `y_obs` and the observations of `fitting_model` in some way. (default=group by dimension)
+    show_plots (bool) - whether to generate and show plots (default=True)
 
     RETURNS
     Model - fitted model with best parameters
@@ -209,52 +211,53 @@ def abc_rejcection(n_obs:int,y_obs:[[float]],fitting_model:Model,priors:["stats.
     model_hat=fitting_model.copy(theta_hat)
     s_hat=[s(model_hat.observe()) for s in summary_stats]
 
-    # plot results
-    n_simple_ss=sum(len(s)==1 for s in ACCEPTED_SUMMARY_VALS[0]) # number of summary stats which map to a single dimension
-    n_cols=2 if (n_simple_ss==0) else 3
-    n_rows=max([1,np.lcm.reduce([fitting_model.n_params,max(1,n_simple_ss),fitting_model.dim_obs])])
+    if (show_plots):
+        # plot results
+        n_simple_ss=sum(len(s)==1 for s in ACCEPTED_SUMMARY_VALS[0]) # number of summary stats which map to a single dimension
+        n_cols=2 if (n_simple_ss==0) else 3
+        n_rows=max([1,np.lcm.reduce([fitting_model.n_params,max(1,n_simple_ss),fitting_model.dim_obs])])
 
-    # plot accepted obervations for each dimension
-    fig=plt.figure(constrained_layout=True)
-    gs=fig.add_gridspec(n_rows,n_cols)
+        # plot accepted obervations for each dimension
+        fig=plt.figure(constrained_layout=True)
+        gs=fig.add_gridspec(n_rows,n_cols)
 
-    # plot accepted observations (each dimension separate)
-    row_step=n_rows//fitting_model.dim_obs
-    for i in range(fitting_model.dim_obs):
-        ax=fig.add_subplot(gs[i*row_step:(i+1)*row_step,-1])
-        y_obs_dim=[y[i] for y in y_obs]
-        accepted_obs_dim=[[y[i] for y in obs] for obs in ACCEPTED_OBS]
-        Plotting.plot_accepted_observations(ax,fitting_model.n_obs,y_obs_dim,accepted_obs_dim,model_hat,dim=i)
+        # plot accepted observations (each dimension separate)
+        row_step=n_rows//fitting_model.dim_obs
+        for i in range(fitting_model.dim_obs):
+            ax=fig.add_subplot(gs[i*row_step:(i+1)*row_step,-1])
+            y_obs_dim=[y[i] for y in y_obs]
+            accepted_obs_dim=[[y[i] for y in obs] for obs in ACCEPTED_OBS]
+            Plotting.plot_accepted_observations(ax,fitting_model.n_obs,y_obs_dim,accepted_obs_dim,model_hat,dim=i)
 
-    # plot posterior for each parameter
-    row_step=n_rows//fitting_model.n_params
-    for i in range(fitting_model.n_params):
-        name="Theta_{}".format(i)
-        ax=fig.add_subplot(gs[i*row_step:(i+1)*row_step,0])
-        accepted_vals=[x[i] for x in ACCEPTED_PARAMS]
-        Plotting.plot_parameter_posterior(ax,name,accepted_parameter=accepted_vals,predicted_val=theta_hat[i],prior=priors[i],dim=i)
+        # plot posterior for each parameter
+        row_step=n_rows//fitting_model.n_params
+        for i in range(fitting_model.n_params):
+            name="Theta_{}".format(i)
+            ax=fig.add_subplot(gs[i*row_step:(i+1)*row_step,0])
+            accepted_vals=[x[i] for x in ACCEPTED_PARAMS]
+            Plotting.plot_parameter_posterior(ax,name,accepted_parameter=accepted_vals,predicted_val=theta_hat[i],prior=priors[i],dim=i)
 
-    # plot histogram of each summary statistic value
-    row=0
-    if (n_simple_ss!=0):
-        row_step=n_rows//n_simple_ss
-        for i in range(len(summary_stats)):
-            if (len(ACCEPTED_SUMMARY_VALS[0][i])==1):
-                name="s_{}".format(i)
-                ax=fig.add_subplot(gs[row*row_step:(row+1)*row_step,1])
-                row+=1
-                accepted_vals=[s[i][0] for s in ACCEPTED_SUMMARY_VALS]
-                Plotting.plot_summary_stats(ax,name,accepted_s=accepted_vals,s_obs=s_obs[i],s_hat=s_hat[i],dim=i)
+        # plot histogram of each summary statistic value
+        row=0
+        if (n_simple_ss!=0):
+            row_step=n_rows//n_simple_ss
+            for i in range(len(summary_stats)):
+                if (len(ACCEPTED_SUMMARY_VALS[0][i])==1):
+                    name="s_{}".format(i)
+                    ax=fig.add_subplot(gs[row*row_step:(row+1)*row_step,1])
+                    row+=1
+                    accepted_vals=[s[i][0] for s in ACCEPTED_SUMMARY_VALS]
+                    Plotting.plot_summary_stats(ax,name,accepted_s=accepted_vals,s_obs=s_obs[i],s_hat=s_hat[i],dim=i)
 
-    # plt.get_current_fig_manager().window.state("zoomed")
-    plt.show()
+        # plt.get_current_fig_manager().window.state("zoomed")
+        plt.show()
 
     return model_hat,ACCEPTED_PARAMS
 
 def abc_mcmc(n_obs:int,y_obs:[[float]],
     fitting_model:Model,priors:["stats.Distribution"],
     chain_length:int,perturbance_kernels:"[function]",acceptance_kernel:"function",scaling_factor:float,
-    summary_stats=None,distance_measure=l2_norm) -> (Model,[[float]]):
+    summary_stats=None,distance_measure=l2_norm,show_plots=True) -> (Model,[[float]]):
     """
     DESCRIPTION
     Markov Chain Monte-Carlo Sampling version of Approximate Bayesian Computation for the generative models defined in `Models.py`.
@@ -272,6 +275,7 @@ def abc_mcmc(n_obs:int,y_obs:[[float]],
 
     OPTIONAL PARAMETERS
     summary_stats ([function]) - functions which summarise `y_obs` and the observations of `fitting_model` in some way. (default=group by dimension)
+    show_plots (bool) - whether to generate and show plots (default=True)
 
     RETURNS
     Model - fitted model with best parameters
@@ -334,54 +338,56 @@ def abc_mcmc(n_obs:int,y_obs:[[float]],
     print("{:.3f} observations were new.".format(new/chain_length))
     # print("Auto-correlation - ",correlate2d(THETAS,THETAS))
 
-    n_simple_ss=sum(len(s)==1 for s in ACCEPTED_SUMMARY_VALS[0]) # number of summary stats which map to a single dimension
-    n_cols=3 if (n_simple_ss==0) else 4
-    n_rows=max([1,np.lcm.reduce([fitting_model.n_params,max(1,n_simple_ss),fitting_model.dim_obs])])
+    if (show_plots):
 
-    fig=plt.figure(constrained_layout=True)
-    gs=fig.add_gridspec(n_rows,n_cols)
+        n_simple_ss=sum(len(s)==1 for s in ACCEPTED_SUMMARY_VALS[0]) # number of summary stats which map to a single dimension
+        n_cols=3 if (n_simple_ss==0) else 4
+        n_rows=max([1,np.lcm.reduce([fitting_model.n_params,max(1,n_simple_ss),fitting_model.dim_obs])])
 
-    # plot fitted model
-    row_step=n_rows//fitting_model.dim_obs
-    for i in range(fitting_model.dim_obs):
-        ax=fig.add_subplot(gs[i*row_step:(i+1)*row_step,-1])
-        y_obs_dim=[y[i] for y in y_obs]
-        Plotting.plot_accepted_observations(ax,fitting_model.n_obs,y_obs_dim,[],model_hat,dim=i)
+        fig=plt.figure(constrained_layout=True)
+        gs=fig.add_gridspec(n_rows,n_cols)
 
-    # plot traces
-    row_step=n_rows//fitting_model.n_params
-    for i in range(fitting_model.n_params):
-        name="Theta_{}".format(i)
-        ax=fig.add_subplot(gs[i*row_step:(i+1)*row_step,0])
-        accepted_vals=[x[i] for x in THETAS]
-        Plotting.plot_MCMC_trace(ax,name,accepted_parameter=accepted_vals,predicted_val=theta_hat[i])
+        # plot fitted model
+        row_step=n_rows//fitting_model.dim_obs
+        for i in range(fitting_model.dim_obs):
+            ax=fig.add_subplot(gs[i*row_step:(i+1)*row_step,-1])
+            y_obs_dim=[y[i] for y in y_obs]
+            Plotting.plot_accepted_observations(ax,fitting_model.n_obs,y_obs_dim,[],model_hat,dim=i)
 
-    # plot posteriors
-    for i in range(fitting_model.n_params):
-        name="Theta_{}".format(i)
-        ax=fig.add_subplot(gs[i*row_step:(i+1)*row_step,1])
-        accepted_vals=[x[i] for x in THETAS]
-        Plotting.plot_parameter_posterior(ax,name,accepted_parameter=accepted_vals,predicted_val=theta_hat[i],prior=priors[i],dim=i)
+        # plot traces
+        row_step=n_rows//fitting_model.n_params
+        for i in range(fitting_model.n_params):
+            name="Theta_{}".format(i)
+            ax=fig.add_subplot(gs[i*row_step:(i+1)*row_step,0])
+            accepted_vals=[x[i] for x in THETAS]
+            Plotting.plot_MCMC_trace(ax,name,accepted_parameter=accepted_vals,predicted_val=theta_hat[i])
 
-    # plot summary vals
-    row=0
-    row_step=n_rows//n_simple_ss
-    for i in range(len(summary_stats)):
-        if (len(ACCEPTED_SUMMARY_VALS[0][i])==1):
-            name="s_{}".format(i)
-            ax=fig.add_subplot(gs[row*row_step:(row+1)*row_step,2])
-            row+=1
-            accepted_vals=[s[i][0] for s in ACCEPTED_SUMMARY_VALS]
-            Plotting.plot_summary_stats(ax,name,accepted_s=accepted_vals,s_obs=s_obs[i],s_hat=s_hat[i],dim=i)
+        # plot posteriors
+        for i in range(fitting_model.n_params):
+            name="Theta_{}".format(i)
+            ax=fig.add_subplot(gs[i*row_step:(i+1)*row_step,1])
+            accepted_vals=[x[i] for x in THETAS]
+            Plotting.plot_parameter_posterior(ax,name,accepted_parameter=accepted_vals,predicted_val=theta_hat[i],prior=priors[i],dim=i)
 
-    plt.show()
+        # plot summary vals
+        row=0
+        row_step=n_rows//n_simple_ss
+        for i in range(len(summary_stats)):
+            if (len(ACCEPTED_SUMMARY_VALS[0][i])==1):
+                name="s_{}".format(i)
+                ax=fig.add_subplot(gs[row*row_step:(row+1)*row_step,2])
+                row+=1
+                accepted_vals=[s[i][0] for s in ACCEPTED_SUMMARY_VALS]
+                Plotting.plot_summary_stats(ax,name,accepted_s=accepted_vals,s_obs=s_obs[i],s_hat=s_hat[i],dim=i)
+
+        plt.show()
     return model_hat, THETAS
 
 def abc_smc(n_obs:int,y_obs:[[float]],
     fitting_model:Model,priors:["stats.Distribution"],
     num_steps:int,sample_size:int,
     scaling_factors:[float],perturbance_kernels:"[function]",perturbance_kernel_probability:"[function]",
-    acceptance_kernel:"function",summary_stats=None,distance_measure=l2_norm) -> (Model,[[float]]):
+    acceptance_kernel:"function",summary_stats=None,distance_measure=l2_norm,show_plots=True) -> (Model,[[float]]):
     """
     DESCRIPTION
     Sequential Monte-Carlo Sampling version of Approximate Bayesian Computation for the generative models defined in `Models.py`.
@@ -401,6 +407,7 @@ def abc_smc(n_obs:int,y_obs:[[float]],
 
     OPTIONAL PARAMETERS
     summary_stats ([function]) - functions which summarise `y_obs` and the observations of `fitting_model` in some way. (default=group by dimension)
+    show_plots (bool) - whether to generate and show plots (default=True)
 
     RETURNS
     Model - fitted model with best parameters
@@ -481,29 +488,30 @@ def abc_smc(n_obs:int,y_obs:[[float]],
     theta_hat=list(np.average(param_values,axis=0,weights=weights))
     model_hat=fitting_model.copy(theta_hat)
 
-    n_rows=max([1,np.lcm(fitting_model.n_params,fitting_model.dim_obs)])
+    if (show_plots):
+        n_rows=max([1,np.lcm(fitting_model.n_params,fitting_model.dim_obs)])
 
-    fig=plt.figure(constrained_layout=True)
-    gs=fig.add_gridspec(n_rows,2)
+        fig=plt.figure(constrained_layout=True)
+        gs=fig.add_gridspec(n_rows,2)
 
-    # plot fitted model
-    row_step=n_rows//fitting_model.dim_obs
-    for i in range(fitting_model.dim_obs):
-        ax=fig.add_subplot(gs[i*row_step:(i+1)*row_step,-1])
-        y_obs_dim=[y[i] for y in y_obs]
-        Plotting.plot_accepted_observations(ax,fitting_model.n_obs,y_obs_dim,[],model_hat,dim=i)
+        # plot fitted model
+        row_step=n_rows//fitting_model.dim_obs
+        for i in range(fitting_model.dim_obs):
+            ax=fig.add_subplot(gs[i*row_step:(i+1)*row_step,-1])
+            y_obs_dim=[y[i] for y in y_obs]
+            Plotting.plot_accepted_observations(ax,fitting_model.n_obs,y_obs_dim,[],model_hat,dim=i)
 
-    print("Total Simulations - {:,}".format(total_simulations))
-    print("theta_hat -",theta_hat)
+        print("Total Simulations - {:,}".format(total_simulations))
+        print("theta_hat -",theta_hat)
 
-    row_step=n_rows//fitting_model.n_params
-    for i in range(fitting_model.n_params):
-        ax=fig.add_subplot(gs[i*row_step:(i+1)*row_step,0])
-        name="theta_{}".format(i)
-        parameter_values=[theta[i] for theta in param_values]
-        Plotting.plot_smc_posterior(ax,name,parameter_values=parameter_values,weights=weights,predicted_val=theta_hat[i],prior=priors[i],dim=i)
+        row_step=n_rows//fitting_model.n_params
+        for i in range(fitting_model.n_params):
+            ax=fig.add_subplot(gs[i*row_step:(i+1)*row_step,0])
+            name="theta_{}".format(i)
+            parameter_values=[theta[i] for theta in param_values]
+            Plotting.plot_smc_posterior(ax,name,parameter_values=parameter_values,weights=weights,predicted_val=theta_hat[i],prior=priors[i],dim=i)
 
-    plt.show()
+        plt.show()
 
     return model_hat,param_values
 
@@ -612,75 +620,76 @@ def joyce_marjoram(summary_stats:["function"],n_obs:int,y_obs:[[float]],fitting_
 
         SAMPLES.append((theta_t,s_t))
 
-    if (printing): print()
+    if (printing):
+        print()
+        for i in range(len(summary_stats)):
+            print("var_{}={:,.3f}".format(i,np.var([x[1][i] for x in SAMPLES])))
 
     # consider adding each summary stat in turn
     ACCEPTED_SUMMARY_STATS_ID=[] # index of accepted summary stats
-    prev_prob=1
 
-    # prep for comparing summary stats
-    SAMPLES_curr=[]
-    s_obs_curr=[]
-    ACCEPTED_PARAMS_curr=[]
+    id_to_try=randint(0,len(summary_stats)-1)
+    ACCEPTED_SUMMARY_STATS_ID=[id_to_try]
+    tried=[]
 
-    """TODO-improve this so best stat is chosen first or do some sort of leave-one-out testing"""
+    while True:
+        if (printing): print("Currently accepted - ",ACCEPTED_SUMMARY_STATS_ID)
 
-    added=True
-    while added: # keep running until no new summary stat is accepted
-        added=False
-        if (printing): print("ACCEPTED_SUMMARY_STATS_ID - ",ACCEPTED_SUMMARY_STATS_ID)
-        best_ss=(0,-1) # prob,index
+        # samples using current accepted summary stats
+        samples_curr=[(theta,[s[j] for j in ACCEPTED_SUMMARY_STATS_ID]) for (theta,s) in SAMPLES]
+        s_obs_curr=[s_obs[j] for j in ACCEPTED_SUMMARY_STATS_ID]
+        accepted_params_curr=[]
+        for (theta_t,s_t) in samples_curr:
+            norm_vals=[l2_norm(s_t_i,s_obs_i) for (s_t_i,s_obs_i) in zip(s_t,s_obs_curr)]
+            if (KERNEL(l1_norm(norm_vals),BANDWIDTH*len(ACCEPTED_SUMMARY_STATS_ID))): # NOTE - l1_norm() can be replaced by anyother other norm
+                accepted_params_curr.append(theta_t)
 
-        # identify which params are accepted under proposed
-        for i in range(len(summary_stats)):
-            if i in ACCEPTED_SUMMARY_STATS_ID: continue # ignore stats already in set
-            if (printing): print("Considering adding {} to [{}]. ".format(i,",".join([str(x) for x in ACCEPTED_SUMMARY_STATS_ID])),end="")
+        # chooose next ss to try
+        available_ss=[x for x in range(len(summary_stats)-len(tried)) if (x not in ACCEPTED_SUMMARY_STATS_ID) and (x not in tried)]
+        if (len(available_ss)==0): return ACCEPTED_SUMMARY_STATS_ID
 
-            SAMPLES_prop=[(theta,[s[j] for j in ACCEPTED_SUMMARY_STATS_ID+[i]]) for (theta,s) in SAMPLES] # parameters & summary stat values
-            s_obs_prop=[s_obs[j] for j in ACCEPTED_SUMMARY_STATS_ID+[i]] # observed summary stat values
+        id_to_try=available_ss[randint(0,len(available_ss)-1)]
+        tried+=[id_to_try]
+        if (printing): print("Trying to add {} to [{}]".format(id_to_try,",".join([str(x) for x in ACCEPTED_SUMMARY_STATS_ID])))
 
-            # accept-reject
-            ACCEPTED_PARAMS_prop=[]
-            for (theta_t,s_t) in SAMPLES_prop:
-                norm_vals=[l2_norm(s_t_i,s_obs_i) for (s_t_i,s_obs_i) in zip(s_t,s_obs_prop)]
-                if (KERNEL(l1_norm(norm_vals),BANDWIDTH*len(ACCEPTED_SUMMARY_STATS_ID+[i]))): # NOTE - l1_norm() can be replaced by anyother other norm
-                    ACCEPTED_PARAMS_prop.append(theta_t)
+        # samples using current accepted summary stats and id_to_try
+        samples_prop=[(theta,[s[j] for j in ACCEPTED_SUMMARY_STATS_ID+[id_to_try]]) for (theta,s) in SAMPLES]
+        s_obs_prop=[s_obs[j] for j in ACCEPTED_SUMMARY_STATS_ID+[id_to_try]]
+        accepted_params_prop=[]
+        for (theta_t,s_t) in samples_prop:
+            norm_vals=[l2_norm(s_t_i,s_obs_i) for (s_t_i,s_obs_i) in zip(s_t,s_obs_prop)]
+            if (KERNEL(l1_norm(norm_vals),BANDWIDTH*len(ACCEPTED_SUMMARY_STATS_ID+[id_to_try]))): # NOTE - l1_norm() can be replaced by anyother other norm
+                accepted_params_prop.append(theta_t)
 
-            if (printing): print("(n_curr={},n_prop={})".format(len(ACCEPTED_PARAMS_curr),len(ACCEPTED_PARAMS_prop)),end="\n")
 
-            # if summary stat helps
-            if __compare_summary_stats(ACCEPTED_PARAMS_curr,ACCEPTED_PARAMS_prop,param_bounds=param_bounds,n_params=len(priors),n_bins=n_bins):
-                if (printing): print("Accepted summary stats - {}".format(i))
+        if (printing): print("N_(k-1)={:,}".format(len(accepted_params_curr)))
+        if (printing): print("N_k    ={:,}".format(len(accepted_params_prop)))
+        if (__compare_summary_stats(accepted_params_curr,accepted_params_prop,param_bounds,n_params=len(priors),n_bins=10)):
+            # add id_to_try
+            ACCEPTED_SUMMARY_STATS_ID+=[id_to_try]
+            if (printing): print("Accepting {}.\nCurrently accepted - ".format(id_to_try),ACCEPTED_SUMMARY_STATS_ID)
 
-                # confirm addition by considering removing each other summary stat in turn
-                removal=False
-                for j in ACCEPTED_SUMMARY_STATS_ID:
-                    if (printing): print("Comparing [{}] to [{}]. ".format(",".join([str(x) for x in ACCEPTED_SUMMARY_STATS_ID if x!=j]+[str(i)]),",".join([str(x) for x in ACCEPTED_SUMMARY_STATS_ID]+[str(i)])),end="")
-                    accepted_ss_ids_minus_one=[x for x in ACCEPTED_SUMMARY_STATS_ID if x!=j]+[i]
-                    SAMPLES_minus_one=[(theta,[s[j] for j in accepted_ss_ids_minus_one]) for (theta,s) in SAMPLES] # parameters & summary stat values
-                    s_obs_minus_one=[s_obs[j] for j in accepted_ss_ids_minus_one] # observed summary stat values
+            # consider removing previous summaries
+            if (printing): print("\nConsider removing previous summaries")
+            for i in range(len(ACCEPTED_SUMMARY_STATS_ID)-2,-1,-1):
+                ids_minus=[x for (j,x) in enumerate(ACCEPTED_SUMMARY_STATS_ID) if j!=i]
+                if (printing): print("Comparing [{}] to [{}]".format(",".join([str(x) for x in ACCEPTED_SUMMARY_STATS_ID]),",".join([str(x) for x in ids_minus])))
 
-                    # accept-reject
-                    ACCEPTED_PARAMS_minus_one=[]
-                    for (theta_t,s_t) in SAMPLES_minus_one:
-                        norm_vals=[l2_norm(s_t_i,s_obs_i) for (s_t_i,s_obs_i) in zip(s_t,s_obs_minus_one)]
-                        if (KERNEL(l1_norm(norm_vals),BANDWIDTH*len(accepted_ss_ids_minus_one))): # NOTE - l1_norm() can be replaced by anyother other norm
-                            ACCEPTED_PARAMS_minus_one.append(theta_t)
-                    if (printing): print("(n_minus_one={},n_prop={})".format(len(ACCEPTED_PARAMS_minus_one),len(ACCEPTED_PARAMS_prop)),end="\n")
+                # samples using reduced set
+                samples_minus=[(theta,[s[j] for j in ids_minus]) for (theta,s) in SAMPLES]
+                s_obs_minus=[s_obs[j] for j in ids_minus]
+                accepted_params_minus=[]
+                for (theta_t,s_t) in samples_minus:
+                    norm_vals=[l2_norm(s_t_i,s_obs_i) for (s_t_i,s_obs_i) in zip(s_t,s_obs_minus)]
+                    if (KERNEL(l1_norm(norm_vals),BANDWIDTH*len(ids_minus))): # NOTE - l1_norm() can be replaced by anyother other norm
+                        accepted_params_minus.append(theta_t)
 
-                    if __compare_summary_stats(ACCEPTED_PARAMS_minus_one,ACCEPTED_PARAMS_prop,param_bounds=param_bounds,n_params=len(priors),n_bins=n_bins):
-                        ACCEPTED_SUMMARY_STATS_ID=accepted_ss_ids_minus_one
-                        removal=True
-                        break
+                if (__compare_summary_stats(accepted_params_prop,accepted_params_minus,param_bounds,n_params=len(priors),n_bins=10)):
+                    if (printing): print("Removing - ",ACCEPTED_SUMMARY_STATS_ID[i])
+                    ACCEPTED_SUMMARY_STATS_ID=ids_minus
 
-                if (not removal): ACCEPTED_SUMMARY_STATS_ID+=[i]
+            if (printing): print("Reduced to - ",ACCEPTED_SUMMARY_STATS_ID)
 
-                SAMPLES_curr=SAMPLES_prop
-                s_obs_curr=s_obs_prop
-                ACCEPTED_PARAMS_curr=ACCEPTED_PARAMS_prop
-
-                added=True
-                break
 
         if (printing): print()
 

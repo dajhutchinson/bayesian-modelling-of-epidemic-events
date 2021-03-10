@@ -2,6 +2,7 @@ from scipy import stats
 import numpy as np
 
 import ABC
+import ABC_Cross_Validation
 from Models import LinearModel,ExponentialModel,SIRModel,GaussianMixtureModel_two
 
 lm=LinearModel(  # 1+10x
@@ -25,7 +26,8 @@ em_priors=[stats.uniform(0,3),stats.uniform(0,1)]
 
 sir_model=SIRModel(
     params=[100000,100,1,.5],
-    n_obs=30)
+    n_obs=30,
+    x_obs=[[x] for x in range(30)],)
 sir_priors=[stats.uniform(100000,0),stats.uniform(100,0),stats.uniform(0,1.5),stats.uniform(0,2)]
 sir_smc_priors=[stats.uniform(100000,1),stats.uniform(100,1),stats.uniform(0,1.5),stats.uniform(0,2)]
 
@@ -34,6 +36,46 @@ gmm=GaussianMixtureModel_two(
     n_obs=50,
     sd=(1,1))
 gmm_priors=[stats.norm(loc=0,scale=10),stats.norm(loc=0,scale=10),stats.beta(1,1)] # from https://www.tandfonline.com/doi/pdf/10.1080/00949655.2020.1843169
+
+"""
+    CROSS-VALIDATION
+"""
+# Linear Model
+# sampling_details={"sampling_method":"best","num_runs":1000,"sample_size":100}
+# start = (lambda ys:[ys[0][0]])
+# end = (lambda ys:[ys[-1][0]])
+# mean_grad = (lambda ys:[np.mean([ys[i+1][0]-ys[i][0] for i in range(len(ys)-1)])])
+# summary_stats=[start,end,mean_grad]
+# ABC_Cross_Validation.LOO_CB_abc_rejection(n_obs=10,x_obs=lm.x_obs,y_obs=lm.observe(),fitting_model=lm.copy([1,1]),priors=lm_priors,sampling_details=sampling_details,summary_stats=summary_stats)
+
+# SIR Model
+# peak_infections_date_ss=(lambda ys:[1000*ys.index(max(ys,key=lambda y:y[1]))])
+# peak_infections_value_ss=(lambda ys:[max(ys,key=lambda y:y[1])[1]])
+# summary_stats=[peak_infections_date_ss,peak_infections_value_ss]
+#
+# # SIR-ABC_rejection
+# sampling_details={"sampling_method":"best","num_runs":10000,"sample_size":1000,"distance_measure":ABC.log_l2_norm}
+# error=ABC_Cross_Validation.LOO_CV_abc_rejection(n_obs=30,x_obs=sir_model.x_obs,y_obs=sir_model.observe(),fitting_model=sir_model.copy([1,1,1,1]),priors=sir_priors,sampling_details=sampling_details,summary_stats=summary_stats)
+# print("Total error : {:,.3f}".format(error))
+
+# SIR-ABC_MCMC
+# perturbance_kernels = [lambda x:x]*2 + [lambda x:x+stats.norm(0,.1).rvs(1)[0]]*2
+#
+# error=ABC_Cross_Validation.LOO_CV_abc_mcmc(n_obs=30,x_obs=sir_model.x_obs,y_obs=sir_model.observe(),
+#     fitting_model=sir_model.copy([1,1,1,1]),priors=sir_priors,perturbance_kernels=perturbance_kernels,
+#     acceptance_kernel=ABC.gaussian_kernel,scaling_factor=5000,chain_length=10000,summary_stats=summary_stats)
+# print("Total error : {:,.3f}".format(error))
+
+# SIR-ABC_SMC
+# perturbance_variance=.1
+# perturbance_kernels = [lambda x:x]*2 + [lambda x:x+stats.norm(0,perturbance_variance).rvs(1)[0]]*2
+# perturbance_kernel_probability = [lambda x,y:1]*2 + [lambda x,y:stats.norm(0,perturbance_variance).pdf(x-y)]*2
+#
+# scaling_factors=list(np.linspace(50000,25000,6))
+#
+# error=ABC_Cross_Validation.LOO_CV_abc_smc(n_obs=30,x_obs=sir_model.x_obs,y_obs=sir_model.observe(),fitting_model=sir_model.copy([1,1,1,1]),priors=sir_smc_priors,
+#         perturbance_kernels=perturbance_kernels,perturbance_kernel_probability=perturbance_kernel_probability,acceptance_kernel=ABC.gaussian_kernel,scaling_factors=scaling_factors,
+#         num_steps=6,sample_size=50,summary_stats=summary_stats)
 
 """
     GMM
@@ -102,14 +144,15 @@ gmm_priors=[stats.norm(loc=0,scale=10),stats.norm(loc=0,scale=10),stats.beta(1,1
 """
     CHOOSE SUMMARY STATS
 """
-# Linear Model
+
+# Linear Model with known start point
 # mean_grad = (lambda ys:[np.mean([ys[i+1][0]-ys[i][0] for i in range(len(ys)-1)])])
-# rand=(lambda ys:[stats.uniform(0,10).rvs(1)[0]])
-# rand_2=(lambda ys:[mean_grad(ys)[0]*stats.uniform(0.5,1).rvs(1)[0]])
-# summary_stats=[rand,rand_2,mean_grad]
+# rand=(lambda ys:[stats.uniform(0,6).rvs(1)[0]]) # variance set st similar number of samples accepted as mean_grad
+# rand_grad = (lambda ys:[mean_grad(ys)[0]*stats.uniform(0,2).rvs(1)[0]])
+# summary_stats=[mean_grad,rand,rand_grad]
 #
 # param_bounds=[(1,1),(8,14)]
-# best_stats=ABC.joyce_marjoram(summary_stats,n_obs=10,y_obs=lm.observe(),fitting_model=lm.copy([1,1]),priors=lm_priors_intersect_known,param_bounds=param_bounds,n_samples=1000,n_bins=10)
+# best_stats=ABC.joyce_marjoram(summary_stats,n_obs=10,y_obs=lm.observe(),fitting_model=lm.copy([1,1]),priors=lm_priors_intersect_known,param_bounds=param_bounds,n_samples=10000,n_bins=10,printing=True)
 #
 # print(best_stats)
 """

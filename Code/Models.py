@@ -76,7 +76,7 @@ class Model():
         fig=plt.figure()
         plt.subplots_adjust(left=.05,right=.95,bottom=.05,top=.95)
 
-        x=list(range(self.n_obs))
+        x=self.x_obs
         y_obs=self.observe()
 
         if (constant_scale):
@@ -167,7 +167,7 @@ class LinearModel(Model): # a+bx+cy+...
         self.param_labels=None
 
         # observations
-        self.observations=[self.__calc(x) for x in self.x_obs]
+        self.observations=[self._calc(x) for x in self.x_obs]
 
     def update_params(self,new_params):
         """
@@ -181,7 +181,7 @@ class LinearModel(Model): # a+bx+cy+...
 
         self.params=new_params
         # update observations observations
-        self.observations=[self.__calc(x) for x in self.x_obs]
+        self.observations=[self._calc(x) for x in self.x_obs]
 
     def observe(self,inc_noise=True) -> [[float]]:
         """
@@ -196,9 +196,9 @@ class LinearModel(Model): # a+bx+cy+...
         [[float]] - sequence of observations (For LinearModel each observation is a 1d list)
         """
         if (inc_noise): return self.observations
-        return [self.__calc(x,False) for x in self.x_obs]
+        return [self._calc(x,False) for x in self.x_obs]
 
-    def __calc(self,x:[float],inc_noise=True) -> [float]:
+    def _calc(self,x:[float],inc_noise=True) -> [float]:
         """
         DESCRIPTION
         calculate the value of an observation at a specific point `x` in the varaible space.
@@ -288,7 +288,7 @@ class ExponentialModel(Model): # ae^{xb}
         self.add_noise=(lambda : stats.norm(0,np.sqrt(self.noise_var)).rvs(1)[0])
 
         # observations (ensure same noise each time `observe is called`)
-        self.observations=[self.__calc(x) for x in x_obs]
+        self.observations=[self._calc(x) for x in x_obs]
 
     def update_params(self,new_params):
         """
@@ -302,7 +302,7 @@ class ExponentialModel(Model): # ae^{xb}
 
         self.params=new_params
         # update observations observations
-        self.observations=[self.__calc(x) for x in self.x_obs]
+        self.observations=[self._calc(x) for x in self.x_obs]
 
     def observe(self,inc_noise=True) -> [[float]]:
         """
@@ -317,9 +317,9 @@ class ExponentialModel(Model): # ae^{xb}
         [[float]] - sequence of observations (For LinearModel each observation is a 1d list)
         """
         if (inc_noise): return self.observations
-        return [self.__calc(x,False) for x in self.x_obs]
+        return [self._calc(x,False) for x in self.x_obs]
 
-    def __calc(self,x:[float],inc_noise=True) -> [float]:
+    def _calc(self,x:[float],inc_noise=True) -> [float]:
         """
         DESCRIPTION
         calculate the value of an observation at a specific point `x` in the varaible space.
@@ -367,13 +367,14 @@ class ExponentialModel(Model): # ae^{xb}
 
 class SIRModel(Model):
 
-    def __init__(self,params:(int,float,float),n_obs:int):
+    def __init__(self,params:(int,float,float),n_obs:int,x_obs:[int]):
         """
         DESCRIPTION
         Classical SIR model
 
         params ((int,int,float,float)) - (population_size,initial_infectied_population_size,beta,gamma)
         n_obs (int) - number of time-periods to run model for
+        x_obs ([int]) - days on which to make observations
         """
 
         if (params[0]<params[1]): raise ValueError("Number of initially infected individuals cannot be greater than the population size.")
@@ -393,7 +394,8 @@ class SIRModel(Model):
 
         self.noise=0 # variance of additive gaussian noise (default=0)
 
-        self.observations=self.__calc()
+        self.x_obs=x_obs
+        self.observations=self._calc(x_obs)
 
     def update_params(self,new_params:[float]):
         """
@@ -410,7 +412,7 @@ class SIRModel(Model):
         self.beta=new_params[2]
         self.gamma=new_params[3]
 
-        self.observations=self.__calc()
+        self.observations=self._calc(self.x_obs)
 
     def observe(self,inc_noise=True) -> [[float]]:
         """
@@ -427,19 +429,24 @@ class SIRModel(Model):
         """
         return self.observations
 
-    def __calc(self) -> [(int,int,int)]:
+    def _calc(self,x_obs:[int]) -> [(int,int,int)]:
         """
         DESCRIPTION
         calculate the time-series of observations from the specified SIR model (using ODEs)
 
+        PARAMS
+        x_obs ([int]) - Days on which to make observations
+
         RETURNS
         [(int,int,int)] - time-series with each data-point being (S,I,R)
         """
-        observations=[(self.population_size-self.initially_infected,self.initially_infected,0)] # [(S,I,R)]
+        last_obs=(self.population_size-self.initially_infected,self.initially_infected,0)
+        x_flat=[x[0] for x in x_obs]
 
-        for t in range(self.n_obs-1):
-            last_obs=observations[-1]
+        if 0 in x_flat: observations=[last_obs] # [(S,I,R)]
+        else: observations=[]
 
+        for t in range(1,max(x_flat)+1):
             new_infections=int(self.beta*((last_obs[0]*last_obs[1])/self.population_size))
             new_removed   =int(self.gamma*last_obs[1])
 
@@ -448,7 +455,9 @@ class SIRModel(Model):
             d_R=new_removed
 
             new_obs=(last_obs[0]+d_S,last_obs[1]+d_I,last_obs[2]+d_R)
-            observations.append(new_obs)
+            if (t in x_flat): observations.append(new_obs)
+
+            last_obs=new_obs
 
         return observations
 
@@ -466,7 +475,7 @@ class SIRModel(Model):
         if (type(new_params)!=list): raise TypeError("`new_params` shoud be a list (not {})".format(type(new_params)))
         if (len(new_params)!=self.n_params): raise TypeError("`new_params` shoud of length `n_params` ({})".format(self.n_params))
 
-        new_model=SIRModel(new_params,self.n_obs)
+        new_model=SIRModel(new_params,self.n_obs,self.x_obs)
         return new_model
 
     def __str__(self) -> str:
@@ -511,7 +520,7 @@ class GaussianMixtureModel_two(Model):
 
         self.noise=0 # variance of additive gaussian noise (default=0)
 
-        self.observations=self.__calc()
+        self.observations=self._calc()
 
     def update_params(self,new_params:[float]):
         """
@@ -529,7 +538,7 @@ class GaussianMixtureModel_two(Model):
         self.weight_1=new_params[2]
         self.weight_2=1-self.weight_1
 
-        self.observations=self.__calc()
+        self.observations=self._calc()
 
     def observe(self,inc_noise=True) -> [[float]]:
         """
@@ -545,9 +554,9 @@ class GaussianMixtureModel_two(Model):
         [[float]] - sequence of observations
         """
         if (inc_noise): return self.observations
-        return self.__calc(inc_noise=False)
+        return self._calc(inc_noise=False)
 
-    def __calc(self,inc_noise=True) -> [(int,int,int)]:
+    def _calc(self,inc_noise=True) -> [(int,int,int)]:
         """
         DESCRIPTION
         calculate the time-series of observations from the specified gaussian mixtures model
