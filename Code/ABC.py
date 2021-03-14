@@ -1,7 +1,11 @@
 from Models import Model
-from scipy import stats
+from scipy import stats,special
 from scipy.signal import correlate2d
 import matplotlib.pyplot as plt
+
+from itertools import combinations
+
+from sys import maxsize
 
 import numpy as np
 import Plotting
@@ -153,7 +157,7 @@ def __sampling_stage_best_samples(NUM_RUNS:int,SAMPLE_SIZE:int,PRIORS:["stats.Di
 
         if (printing): print("({:,}/{:,})".format(i,NUM_RUNS),end="\r") # update user on sampling process
 
-    if (printing): print("\n")
+    if (printing): print("                                                 ",end="\r")
     SAMPLES=[x[1] for x in SAMPLES] # remove norm value
     ACCEPTED_PARAMS=[x[0] for x in SAMPLES]
     ACCEPTED_OBS=[x[1] for x in SAMPLES]
@@ -705,3 +709,135 @@ def joyce_marjoram(summary_stats:["function"],n_obs:int,y_obs:[[float]],fitting_
         if (printing): print()
 
     return ACCEPTED_SUMMARY_STATS_ID
+
+"""
+    MINIMISING ENTROPY
+"""
+
+def k_nn_estimate_entropy(n_params:int,parameter_samples:[(float)],k=4) -> float:
+    """
+    DESCRIPTION
+    Kth Nearest Neighbour estimate of entropy for a posterior distribution.
+
+    PARAMETERS
+    n_params (int) - Number of parameters being fitted.
+    parameter_samples ([(float)]) - Set of accepted sampled parameters.
+
+    OPTIONAL PARAMETERS
+    k (int) - Which nearest neighbour to consider (default=4)
+
+    RETURNS
+    float - estimated entropy
+    """
+    n=len(parameter_samples) # number accepted samples
+    if (k>n): raise ValueError("k cannot be greater than the number of samples")
+
+    gamma=special.gamma(1+n_params/2)
+    digamma=special.digamma(k)
+
+    h_hat=np.log(np.pi**(n_params/2)/gamma)
+    h_hat-=digamma
+    h_hat+=np.log(n)
+
+    constant=n_params/n
+    for i in range(n):
+        sample_i=parameter_samples[i]
+        distances=[]
+        for j in range(n): # find kth nearest neighbour
+            if (j==i): continue
+            sample_j=parameter_samples[j]
+            distances.append(l2_norm(sample_i,sample_j))
+        distances.sort()
+        h_hat+=constant*np.log(distances[3])
+
+    return h_hat
+
+def minimum_entropy(summary_stats:["function"],n_obs:int,y_obs:[[float]],fitting_model:Model,priors:["stats.Distribution"],n_samples=1000,n_accept=100,k=4,printing=False) -> ([int],[[float]]):
+    """
+
+    RETURNS
+    [int] - indexes of best summary stats
+    [[float]] - list of all accepted theta when "best summary stats"
+    """
+    lowest=([],maxsize,[])
+
+    # all permutations of summary stats
+    n_stats=len(summary_stats)
+    perms=[]
+    for n in range(1,n_stats+1):
+        perms+=[x for x in combinations([i for i in range(n_stats)],n)]
+
+    sampling_details={"sampling_method":"best","num_runs":n_samples,"sample_size":n_accept}
+
+    for perm in perms:
+        if (printing): print("Permutation = ",perm,sep="")
+        ss=[summary_stats[i] for i in perm]
+        _,accepted_theta=abc_rejcection(n_obs,y_obs,fitting_model,priors,sampling_details,summary_stats=ss,show_plots=False,printing=printing)
+
+        estimate_ent=k_nn_estimate_entropy(len(priors),accepted_theta,k=k)
+        if (printing): print("Estimate_ent of ",perm,"= {:,.2f}\n".format(estimate_ent),sep="")
+        if (estimate_ent<lowest[1]): lowest=(perm,estimate_ent,accepted_theta)
+
+    return lowest[0],lowest[2]
+
+"""
+    TWO-STEP MINIMISING ENTROPY
+"""
+
+def rsse(obs,target) -> float:
+    # Residual Sum of Squares Error
+
+    error=sum([l2_norm(o,target) for o in obs])
+    error/=len(obs)
+    error=np.sqrt(error)
+
+    return error
+
+def two_step_minimum_entropy(summary_stats:["function"],n_obs:int,y_obs:[[float]],fitting_model:Model,priors:["stats.Distribution"],n_samples=1000,n_accept=100,n_keep=10,k=4,printing=False) -> [int]:
+    """
+    OPTIONAL PARAMETERS
+    n_keep (int) - number of (best) accepted samples to keep from the set of stats which minimise entropy (`best_stats`) and use for evaluating second stage (default=10)
+
+    """
+    # find summary stats which minimise entropy
+    me_stats_id,accepted_theta=minimum_entropy(summary_stats,n_obs,y_obs,fitting_model,priors,n_samples,n_accept,k,printing)
+    me_stats=[summary_stats[i] for i in me_stats_id]
+    s_obs=[s(y_obs) for s in me_stats]
+    if (printing): print("ME stats found -",me_stats_id,"\n")
+
+    # identify the `n_keep` best set of parameters
+    theta_scores=[]
+    for (i,theta) in enumerate(accepted_theta):
+
+        fitting_model.update_params(theta)
+        y_t=fitting_model.observe()
+        s_t=[s(y_t) for s in me_stats]
+
+        weight=l1_norm([l2_norm(s_t_i,s_obs_i) for (s_t_i,s_obs_i) in zip(s_t,s_obs)])
+        theta_scores.append((weight,i))
+
+    theta_scores.sort(key=lambda x:x[0])
+    me_theta=[accepted_theta[x[1]] for x in theta_scores[:n_keep]]
+    if (printing): print("ME theta found.\n")
+
+    # all permutations of summary stats
+    n_stats=len(summary_stats)
+    perms=[]
+    for n in range(1,n_stats+1):
+        perms+=[x for x in combinations([i for i in range(n_stats)],n)]
+
+    lowest=([],maxsize,[])
+
+    # compare subsets of summary stats to
+    sampling_details={"sampling_method":"best","num_runs":n_samples,"sample_size":n_accept}
+    for perm in perms:
+        if (printing): print("Permutation = ",perm,sep="")
+        ss=[summary_stats[i] for i in perm]
+        _,accepted_theta=abc_rejcection(n_obs,y_obs,fitting_model,priors,sampling_details,summary_stats=ss,show_plots=False,printing=printing)
+
+        rsses=[rsse(accepted_theta,theta) for theta in me_theta]
+        mrsse=np.mean(rsses)
+        if (printing): print("MRSSE of ",perm,"= {:,.2f}\n".format(mrsse),sep="")
+        if (mrsse<lowest[1]): lowest=(perm,mrsse,accepted_theta)
+
+    return lowest[0],lowest[2]

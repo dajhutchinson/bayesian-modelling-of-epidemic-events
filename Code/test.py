@@ -38,6 +38,27 @@ gmm=GaussianMixtureModel_two(
 gmm_priors=[stats.norm(loc=0,scale=10),stats.norm(loc=0,scale=10),stats.beta(1,1)] # from https://www.tandfonline.com/doi/pdf/10.1080/00949655.2020.1843169
 
 """
+    2-Step MINIMUM ENTROPY
+"""
+# mean_grad = (lambda ys:[np.mean([ys[i+1][0]-ys[i][0] for i in range(len(ys)-1)])])
+# rand=(lambda ys:[stats.uniform(0,6).rvs(1)[0]]) # variance set st similar number of samples accepted as mean_grad
+# rand_grad = (lambda ys:[mean_grad(ys)[0]*stats.uniform(0,2).rvs(1)[0]])
+# summary_stats=[mean_grad,rand,rand_grad]
+#
+# best_stats,accepted_theta=ABC.two_step_minimum_entropy(summary_stats=summary_stats,n_obs=10,y_obs=lm.observe(),fitting_model=lm.copy([1,1]),priors=lm_priors_intersect_known,printing=True)
+# print(best_stats)
+"""
+    MINIMUM ENTROPY
+"""
+# mean_grad = (lambda ys:[np.mean([ys[i+1][0]-ys[i][0] for i in range(len(ys)-1)])])
+# rand=(lambda ys:[stats.uniform(0,6).rvs(1)[0]]) # variance set st similar number of samples accepted as mean_grad
+# rand_grad = (lambda ys:[mean_grad(ys)[0]*stats.uniform(0,2).rvs(1)[0]])
+# summary_stats=[mean_grad,rand,rand_grad]
+#
+# best_stats,_=ABC.minimum_entropy(summary_stats=summary_stats,n_obs=10,y_obs=lm.observe(),fitting_model=lm.copy([1,1]),priors=lm_priors_intersect_known,printing=False)
+# print(best_stats)
+
+"""
     CROSS-VALIDATION
 """
 # Exponential Model
