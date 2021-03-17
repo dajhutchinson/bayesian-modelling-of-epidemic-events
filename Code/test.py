@@ -43,9 +43,21 @@ gmm_priors=[stats.norm(loc=0,scale=10),stats.norm(loc=0,scale=10),stats.beta(1,1
 # mean_grad = (lambda ys:[np.mean([ys[i+1][0]-ys[i][0] for i in range(len(ys)-1)])])
 # rand=(lambda ys:[stats.uniform(0,6).rvs(1)[0]]) # variance set st similar number of samples accepted as mean_grad
 # rand_grad = (lambda ys:[mean_grad(ys)[0]*stats.uniform(0,2).rvs(1)[0]])
-# summary_stats=[mean_grad,rand,rand_grad]
+# first=(lambda ys:ys[0])
+# first_last=(lambda ys:[ys[0][0],ys[-1][0]])
+# summary_stats=[mean_grad,rand,rand_grad,first,first_last]
 #
 # best_stats,accepted_theta=ABC.two_step_minimum_entropy(summary_stats=summary_stats,n_obs=10,y_obs=lm.observe(),fitting_model=lm.copy([1,1]),priors=lm_priors_intersect_known,printing=True)
+# print(best_stats)
+
+# removed_peak_ss=(lambda ys:[ys[29][2]])
+# infected_peak_ss=(lambda ys:[ys[16][1]])
+# peak_infections_date_ss=(lambda ys:[1000*ys.index(max(ys,key=lambda y:y[1]))])
+# peak_infections_value_ss=(lambda ys:[max(ys,key=lambda y:y[1])[1]])
+# rand=(lambda ys:[stats.uniform(0,900).rvs(1)[0]])
+# summary_stats=[removed_peak_ss,infected_peak_ss,peak_infections_date_ss,peak_infections_value_ss,rand]
+#
+# best_stats,_=ABC.two_step_minimum_entropy(summary_stats=summary_stats,n_obs=30,y_obs=sir_model.observe(),fitting_model=sir_model.copy([1,1,1,1]),priors=sir_priors,n_samples=10000,n_accept=1000,n_keep=50,printing=True)
 # print(best_stats)
 """
     MINIMUM ENTROPY
@@ -53,10 +65,22 @@ gmm_priors=[stats.norm(loc=0,scale=10),stats.norm(loc=0,scale=10),stats.beta(1,1
 # mean_grad = (lambda ys:[np.mean([ys[i+1][0]-ys[i][0] for i in range(len(ys)-1)])])
 # rand=(lambda ys:[stats.uniform(0,6).rvs(1)[0]]) # variance set st similar number of samples accepted as mean_grad
 # rand_grad = (lambda ys:[mean_grad(ys)[0]*stats.uniform(0,2).rvs(1)[0]])
-# summary_stats=[mean_grad,rand,rand_grad]
+# first=(lambda ys:ys[0])
+# first_last=(lambda ys:[ys[0][0],ys[-1][0]])
+# summary_stats=[mean_grad,rand,rand_grad,first,first_last]
 #
-# best_stats,_=ABC.minimum_entropy(summary_stats=summary_stats,n_obs=10,y_obs=lm.observe(),fitting_model=lm.copy([1,1]),priors=lm_priors_intersect_known,printing=False)
+# best_stats,_=ABC.minimum_entropy(summary_stats=summary_stats,n_obs=10,y_obs=lm.observe(),fitting_model=lm.copy([1,1]),priors=lm_priors,printing=True)
 # print(best_stats)
+
+suscept_min_ss=(lambda ys:[ys[-1][0]])
+removed_peak_ss=(lambda ys:[ys[-1][2]])
+peak_infections_date_ss=(lambda ys:[1000*ys.index(max(ys,key=lambda y:y[1]))])
+peak_infections_value_ss=(lambda ys:[max(ys,key=lambda y:y[1])[1]])
+rand=(lambda ys:[stats.uniform(0,900).rvs(1)[0]])
+summary_stats=[removed_peak_ss,suscept_min_ss,peak_infections_date_ss,peak_infections_value_ss,rand]
+
+best_stats,_=ABC.minimum_entropy(summary_stats=summary_stats,n_obs=30,y_obs=sir_model.observe(),fitting_model=sir_model.copy([1,1,1,1]),priors=sir_priors,n_samples=10000,n_accept=1000,printing=True)
+print(best_stats)
 
 """
     CROSS-VALIDATION
