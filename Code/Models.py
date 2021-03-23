@@ -447,14 +447,16 @@ class SIRModel(Model):
         else: observations=[]
 
         for t in range(1,max(x_flat)+1):
-            new_infections=int(self.beta*((last_obs[0]*last_obs[1])/self.population_size))
+            new_infections=int(((last_obs[0]/self.population_size)*last_obs[1])*self.beta)
+            new_infections=min(new_infections,last_obs[0])
+
             new_removed   =int(self.gamma*last_obs[1])
 
             d_S=-new_infections
             d_I=new_infections-new_removed
             d_R=new_removed
 
-            new_obs=(last_obs[0]+d_S,last_obs[1]+d_I,last_obs[2]+d_R)
+            new_obs=(max(last_obs[0]+d_S,0),last_obs[1]+d_I,min(last_obs[2]+d_R,self.population_size))
             if (t in x_flat): observations.append(new_obs)
 
             last_obs=new_obs

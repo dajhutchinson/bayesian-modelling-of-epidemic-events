@@ -1,6 +1,7 @@
 from Models import Model
 from scipy import stats,special
 from scipy.signal import correlate2d
+from sklearn.linear_model import LinearRegression
 import matplotlib.pyplot as plt
 
 from itertools import combinations
@@ -348,6 +349,7 @@ def abc_mcmc(n_obs:int,y_obs:[[float]],
     model_hat=fitting_model.copy(theta_hat)
     s_hat=[s(model_hat.observe()) for s in summary_stats]
     if (printing): print("{:.3f} observations were new.".format(new/chain_length))
+    else: print("(New={:.3f})".format(new/chain_length),end="")
     # print("Auto-correlation - ",correlate2d(THETAS,THETAS))
 
     if (show_plots):
@@ -841,3 +843,60 @@ def two_step_minimum_entropy(summary_stats:["function"],n_obs:int,y_obs:[[float]
         if (mrsse<lowest[1]): lowest=(perm,mrsse,accepted_theta)
 
     return lowest[0],lowest[2]
+
+"""
+    SEMI-AUTO ABC
+"""
+
+def abc_semi_auto(n_obs:int,y_obs:[[float]],fitting_model:Model,priors:["stats.Distribution"],distance_measure=l2_norm,n_pilot_samples=10000,n_pilot_acc=1000,n_params_sample_size=100,summary_stats=None,printing=True) -> (["function"],[[float]]):
+
+    group_dim = lambda ys,i: [y[i] for y in ys]
+    summary_stats=summary_stats if (summary_stats) else ([(lambda ys:group_dim(ys,i)) for i in range(len(y_obs[0]))])
+
+    sampling_details={"sampling_method":"best","num_runs":n_pilot_samples,"sample_size":n_pilot_acc,"distance_measure":distance_measure,"params_sample_size":n_params_sample_size}
+
+    #perform pilot run
+    _,pilot_params=abc_rejcection(n_obs=n_obs,y_obs=y_obs,fitting_model=fitting_model,priors=priors,sampling_details=sampling_details,summary_stats=summary_stats,show_plots=False,printing=printing)
+
+    # calculate distribution of accepted params
+    new_priors=[]
+    for i in range(fitting_model.n_params):
+        pilot_params_dim=[x[i] for x in pilot_params]
+        dist=stats.gaussian_kde(pilot_params_dim)
+        new_priors.append(dist)
+    if (printing): print("Calculated posteriors from pilot.")
+
+    # Sample new parameters and simulate model
+    m=sampling_details["params_sample_size"] if ("params_sample_size" in sampling_details) else 1000
+
+    samples=[]
+    for i in range(m):
+        if (printing): print("{}/{}".format(i,m),end="\r")
+        theta_t=[list(p.resample(1))[0][0] for p in new_priors]
+
+        # observe theorised model
+        fitting_model.update_params(theta_t)
+        y_t=fitting_model.observe()
+        s_t=[s(y_t) for s in summary_stats]
+
+        samples.append((theta_t,s_t))
+    if (printing): print("Generated {} parameter sets.".format(m))
+
+    # create summary stats
+    # NOTE - other methods can be used
+    new_summary_stats=[]
+    X=[list(np.ravel(np.matrix(x[1]))) for x in samples] # flatten output data
+    X=np.array(X)
+    coefs=[]
+
+    for i in range(fitting_model.n_params):
+        y=np.array([x[0][i] for x in samples])
+
+        reg=LinearRegression().fit(X, y)
+        coefs.append(list(reg.coef_))
+
+    new_summary_stats=[lambda xs: list(np.dot(coefs,np.ravel(np.matrix(xs))))]
+    s_t=[s(samples[0][1]) for s in new_summary_stats]
+    if (printing): print("Generated summary statistics")
+
+    return new_summary_stats, coefs

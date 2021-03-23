@@ -38,6 +38,51 @@ gmm=GaussianMixtureModel_two(
 gmm_priors=[stats.norm(loc=0,scale=10),stats.norm(loc=0,scale=10),stats.beta(1,1)] # from https://www.tandfonline.com/doi/pdf/10.1080/00949655.2020.1843169
 
 """
+    SEMI-AUTO ABC
+"""
+# cross validate - rejection - SIR
+# sampling_details={"sampling_method":"best","num_runs":5000,"sample_size":500,"distance_measure":ABC.log_l2_norm}
+# error=ABC_Cross_Validation.LOO_CV_abc_rejection_semi_auto(n_obs=30,x_obs=sir_model.x_obs,y_obs=sir_model.observe(),fitting_model=sir_model.copy([1,1,1,1]),priors=sir_priors,sampling_details=sampling_details,pilot_distance_measure=ABC.l2_norm,n_pilot_samples=5000,n_pilot_acc=1000,n_params_sample_size=250,summary_stats=None)
+# print(error)
+
+# cross validate - mcmc - SIR
+# perturbance_kernels = [lambda x:x]*2 + [lambda x:x+stats.norm(0,.1).rvs(1)[0]]*2
+# error=ABC_Cross_Validation.LOO_CV_abc_mcmc_semi_auto(n_obs=30,x_obs=sir_model.x_obs,y_obs=sir_model.observe(),
+#     fitting_model=sir_model.copy([1,1,1,1]),priors=sir_priors,perturbance_kernels=perturbance_kernels,
+#     acceptance_kernel=ABC.gaussian_kernel,scaling_factor=5000,chain_length=5000,
+#     pilot_distance_measure=ABC.l2_norm,n_pilot_samples=5000,n_pilot_acc=1000,n_params_sample_size=250)
+
+# cross validate - smc - SIR
+perturbance_variance=.1
+perturbance_kernels = [lambda x:x]*2 + [lambda x:x+stats.norm(0,perturbance_variance).rvs(1)[0]]*2
+perturbance_kernel_probability = [lambda x,y:1]*2 + [lambda x,y:stats.norm(0,perturbance_variance).pdf(x-y)]*2
+
+scaling_factors=list(np.linspace(100000,25000,4))
+
+error=ABC_Cross_Validation.LOO_CV_abc_smc_semi_auto(n_obs=30,x_obs=sir_model.x_obs,y_obs=sir_model.observe(),
+    fitting_model=sir_model.copy([1,1,1,1]),priors=sir_smc_priors,perturbance_kernels=perturbance_kernels,
+    num_steps=4,sample_size=50,perturbance_kernel_probability=perturbance_kernel_probability,
+    acceptance_kernel=ABC.gaussian_kernel,scaling_factors=scaling_factors,
+    pilot_distance_measure=ABC.l2_norm,n_pilot_samples=2000,n_pilot_acc=400,n_params_sample_size=100)
+print(error)
+
+# # Generate then apply to rejection
+# summary_stats,coefs=ABC.abc_semi_auto(n_obs=30,y_obs=sir_model.observe(),fitting_model=sir_model.copy([1,1,1,1]),priors=sir_priors,distance_measure=ABC.log_l2_norm,n_pilot_samples=10000,n_pilot_acc=1000,n_params_sample_size=500)
+# sampling_details={"sampling_method":"best","num_runs":5000,"sample_size":500,"distance_measure":ABC.log_l2_norm}
+# fitted_model,accepted_params=ABC.abc_rejcection(n_obs=30,y_obs=sir_model.observe(),fitting_model=sir_model.copy([1,1,1,1]),priors=sir_priors,sampling_details=sampling_details,summary_stats=summary_stats)
+# print("True Model - {}\n".format(sir_model))
+# print("Fitted Model - {}".format(fitted_model))
+#
+# #  Generated then apply to ABC-MCMC
+# summary_stats,coefs=ABC.abc_semi_auto(n_obs=30,y_obs=sir_model.observe(),fitting_model=sir_model.copy([1,1,1,1]),priors=sir_priors,distance_measure=ABC.log_l2_norm,n_pilot_samples=10000,n_pilot_acc=1000,n_params_sample_size=500)
+# perturbance_kernels = [lambda x:x]*2 + [lambda x:x+stats.norm(0,.1).rvs(1)[0]]*2
+# fitted_model,_=ABC.abc_mcmc(n_obs=30,y_obs=sir_model.observe(),fitting_model=sir_model.copy([1,1,1,1]),priors=sir_priors,
+#     chain_length=5000,perturbance_kernels=perturbance_kernels,acceptance_kernel=ABC.gaussian_kernel,scaling_factor=450,summary_stats=summary_stats)
+# print("True Model - {}\n".format(sir_model))
+# print("Fitted Model - {}".format(fitted_model))
+
+
+"""
     2-Step MINIMUM ENTROPY
 """
 # mean_grad = (lambda ys:[np.mean([ys[i+1][0]-ys[i][0] for i in range(len(ys)-1)])])
@@ -72,15 +117,15 @@ gmm_priors=[stats.norm(loc=0,scale=10),stats.norm(loc=0,scale=10),stats.beta(1,1
 # best_stats,_=ABC.minimum_entropy(summary_stats=summary_stats,n_obs=10,y_obs=lm.observe(),fitting_model=lm.copy([1,1]),priors=lm_priors,printing=True)
 # print(best_stats)
 
-suscept_min_ss=(lambda ys:[ys[-1][0]])
-removed_peak_ss=(lambda ys:[ys[-1][2]])
-peak_infections_date_ss=(lambda ys:[1000*ys.index(max(ys,key=lambda y:y[1]))])
-peak_infections_value_ss=(lambda ys:[max(ys,key=lambda y:y[1])[1]])
-rand=(lambda ys:[stats.uniform(0,900).rvs(1)[0]])
-summary_stats=[removed_peak_ss,suscept_min_ss,peak_infections_date_ss,peak_infections_value_ss,rand]
-
-best_stats,_=ABC.minimum_entropy(summary_stats=summary_stats,n_obs=30,y_obs=sir_model.observe(),fitting_model=sir_model.copy([1,1,1,1]),priors=sir_priors,n_samples=10000,n_accept=1000,printing=True)
-print(best_stats)
+# suscept_min_ss=(lambda ys:[ys[-1][0]])
+# removed_peak_ss=(lambda ys:[ys[-1][2]])
+# peak_infections_date_ss=(lambda ys:[1000*ys.index(max(ys,key=lambda y:y[1]))])
+# peak_infections_value_ss=(lambda ys:[max(ys,key=lambda y:y[1])[1]])
+# rand=(lambda ys:[stats.uniform(0,900).rvs(1)[0]])
+# summary_stats=[removed_peak_ss,suscept_min_ss,peak_infections_date_ss,peak_infections_value_ss,rand]
+#
+# best_stats,_=ABC.minimum_entropy(summary_stats=summary_stats,n_obs=30,y_obs=sir_model.observe(),fitting_model=sir_model.copy([1,1,1,1]),priors=sir_priors,n_samples=10000,n_accept=1000,printing=True)
+# print(best_stats)
 
 """
     CROSS-VALIDATION
