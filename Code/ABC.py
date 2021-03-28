@@ -13,6 +13,31 @@ import Plotting
 from random import randint
 
 """
+    HELPER FUNCTIONS
+"""
+def generate_smc_perturbance_kernels(thetas:[[float]], printing=False) -> ([["function"]],[["function"]]):
+    """
+    DESCRIPTION
+    Generate lambda functions to be used as perturbance kernels (and their associated pdfs) for ABC-SMC. These are the kernels recommened in Beaumont et al. 2009.
+    Intended to be used for ABC-SMC with adaptive perturbance kernels.
+
+    PARAMETERS
+    thetas ([[float]]) - the set of parameters from previous sampling iteration.
+
+    OPTIONAL PARAMTERS
+    printing (bool) - whether to print log updates to console
+
+    RETURNS
+    [[func]],[[func]] - 1st=perturbance kernel functions, 2nd=pdfs for perturbance kernels
+    """
+    sigmas=np.var(thetas,ddof=1,axis=0)
+    if (printing): print("Perturbance Variances=",sigmas,"                       ",sep="")
+    perturbance_kernels=[lambda x:stats.norm(x,2*sigma).rvs(1)[0] for sigma in sigmas]
+    perturbance_kernel_probability=[lambda x,y:stats.norm(0,2*sigma).pdf(x-y) for sigma in sigmas]
+
+    return perturbance_kernels,perturbance_kernel_probability
+
+"""
     KERNELS
 """
 def abstract_kernel(x:float,epsilon:float) -> bool:
@@ -400,8 +425,9 @@ def abc_mcmc(n_obs:int,y_obs:[[float]],
 def abc_smc(n_obs:int,y_obs:[[float]],
     fitting_model:Model,priors:["stats.Distribution"],
     num_steps:int,sample_size:int,
-    scaling_factors:[float],perturbance_kernels:"[function]",perturbance_kernel_probability:"[function]",
-    acceptance_kernel:"function",summary_stats=None,distance_measure=l2_norm,show_plots=True,printing=True) -> (Model,[[float]]):
+    scaling_factors:[float],acceptance_kernel:"function",
+    adaptive_perturbance=False,perturbance_kernels=None,perturbance_kernel_probability=None,
+    summary_stats=None,distance_measure=l2_norm,show_plots=True,printing=True) -> (Model,[[float]]):
     """
     DESCRIPTION
     Sequential Monte-Carlo Sampling version of Approximate Bayesian Computation for the generative models defined in `Models.py`.
@@ -414,11 +440,12 @@ def abc_smc(n_obs:int,y_obs:[[float]],
     num_steps (int) - Number of steps (ie number of scaling factors).
     sample_size (int) - Number of parameters samples to keep per step.
     scaling_factors ([float]) - Scaling factor for `acceptance_kernel`.
-    perturbance_kernels ([function]) - Functions for varying parameters each monte-carlo steps.
-    perturbance_kernel_probability ([function]) - Probability of x being pertubered to value y
     acceptance_kernel (function) - Function to determine whether to accept parameters
 
     OPTIONAL PARAMETERS
+    adaptive_perturbance (bool) - Whether to use an adaptive perturbance kernel. Overrules `perturbance_kernels` and `perturbance_kernel_probability` definitions (default=False)
+    perturbance_kernels ([function]) - Functions for varying parameters each monte-carlo steps. (default=None (ie use adaptive))
+    perturbance_kernel_probability ([function]) - Probability of x being pertubered to value y. (default=None (ie use adaptive))
     summary_stats ([function]) - functions which summarise `y_obs` and the observations of `fitting_model` in some way. (default=group by dimension)
     distance_measure - (func) - distance function to use (See choices above)
     show_plots (bool) - whether to generate and show plots (default=True)
@@ -430,6 +457,7 @@ def abc_smc(n_obs:int,y_obs:[[float]],
     """
     # initial sampling
     if (num_steps!=len(scaling_factors)): raise ValueError("`num_steps` must equal `len(scaling_factors)`")
+    if (not adaptive_perturbance) and (not perturbance_kernel_probability) and (not perturbance_kernels): raise ValueError("If `adaptive_perturbance` is `False` then you must define `perturbance_kernels` and `perturbance_kernel_probability`")
 
     group_dim = lambda ys,i: [y[i] for y in ys]
     summary_stats=summary_stats if (summary_stats) else ([(lambda ys:group_dim(ys,i)) for i in range(len(y_obs[0]))])
@@ -460,9 +488,12 @@ def abc_smc(n_obs:int,y_obs:[[float]],
     for t in range(1,num_steps):
         i=0
         NEW_THETAS=[] # (weight,params)
+
+        if (adaptive_perturbance): perturbance_kernels,perturbance_kernel_probability=generate_smc_perturbance_kernels([x[1] for x in THETAS],printing)
+
         while (len(NEW_THETAS)<sample_size):
             i+=1
-            if (printing): print("({:,}/{:,} - {:,}) - {:,}/{:,} ({:.3f})".format(t,num_steps,i,len(NEW_THETAS),sample_size,scaling_factors[t]),end="\r")
+            if (printing): print("({:,}/{:,} - {:,}) - {:,}/{:,} (eps={:.3f})".format(t,num_steps,i,len(NEW_THETAS),sample_size,scaling_factors[t]),end="\r")
 
             # sample from THETA
             u=stats.uniform(0,1).rvs(1)[0]
@@ -493,6 +524,7 @@ def abc_smc(n_obs:int,y_obs:[[float]],
         total_simulations+=i
         weight_sum=sum([w for (w,_) in NEW_THETAS])
         THETAS=[(w/weight_sum,theta) for (w,theta) in NEW_THETAS]
+        print()
 
     if (printing): print()
 

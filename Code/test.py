@@ -53,18 +53,18 @@ gmm_priors=[stats.norm(loc=0,scale=10),stats.norm(loc=0,scale=10),stats.beta(1,1
 #     pilot_distance_measure=ABC.l2_norm,n_pilot_samples=5000,n_pilot_acc=1000,n_params_sample_size=250)
 
 # cross validate - smc - SIR
-perturbance_variance=.1
-perturbance_kernels = [lambda x:x]*2 + [lambda x:x+stats.norm(0,perturbance_variance).rvs(1)[0]]*2
-perturbance_kernel_probability = [lambda x,y:1]*2 + [lambda x,y:stats.norm(0,perturbance_variance).pdf(x-y)]*2
-
-scaling_factors=list(np.linspace(100000,25000,4))
-
-error=ABC_Cross_Validation.LOO_CV_abc_smc_semi_auto(n_obs=30,x_obs=sir_model.x_obs,y_obs=sir_model.observe(),
-    fitting_model=sir_model.copy([1,1,1,1]),priors=sir_smc_priors,perturbance_kernels=perturbance_kernels,
-    num_steps=4,sample_size=50,perturbance_kernel_probability=perturbance_kernel_probability,
-    acceptance_kernel=ABC.gaussian_kernel,scaling_factors=scaling_factors,
-    pilot_distance_measure=ABC.l2_norm,n_pilot_samples=2000,n_pilot_acc=400,n_params_sample_size=100)
-print(error)
+# perturbance_variance=.1
+# perturbance_kernels = [lambda x:x]*2 + [lambda x:x+stats.norm(0,perturbance_variance).rvs(1)[0]]*2
+# perturbance_kernel_probability = [lambda x,y:1]*2 + [lambda x,y:stats.norm(0,perturbance_variance).pdf(x-y)]*2
+#
+# scaling_factors=list(np.linspace(100000,25000,4))
+#
+# error=ABC_Cross_Validation.LOO_CV_abc_smc_semi_auto(n_obs=30,x_obs=sir_model.x_obs,y_obs=sir_model.observe(),
+#     fitting_model=sir_model.copy([1,1,1,1]),priors=sir_smc_priors,perturbance_kernels=perturbance_kernels,
+#     num_steps=4,sample_size=50,perturbance_kernel_probability=perturbance_kernel_probability,
+#     acceptance_kernel=ABC.gaussian_kernel,scaling_factors=scaling_factors,
+#     pilot_distance_measure=ABC.l2_norm,n_pilot_samples=2000,n_pilot_acc=400,n_params_sample_size=100)
+# print(error)
 
 # # Generate then apply to rejection
 # summary_stats,coefs=ABC.abc_semi_auto(n_obs=30,y_obs=sir_model.observe(),fitting_model=sir_model.copy([1,1,1,1]),priors=sir_priors,distance_measure=ABC.log_l2_norm,n_pilot_samples=10000,n_pilot_acc=1000,n_params_sample_size=500)
@@ -245,7 +245,7 @@ print(error)
 # fitted_model,_=ABC.abc_smc(n_obs=30,y_obs=sir_model.observe(),fitting_model=sir_model.copy([1,1,1,1]),priors=sir_smc_priors,
 #     num_steps=10,sample_size=100,scaling_factors=scaling_factors,perturbance_kernels=perturbance_kernels,perturbance_kernel_probability=perturbance_kernel_probability,acceptance_kernel=ABC.gaussian_kernel)
 #
-# print("True Model - {}".format(lm))
+# print("True Model - {}".format(sir_model))
 # print("Fitted Model - {}\n".format(fitted_model))
 
 """
@@ -352,3 +352,29 @@ print(error)
 #
 # print("True Model - {}".format(em))
 # print("Fitted Model - {}\n".format(fitted_model))
+
+# Adaptive perturbance - Linear Model
+start = (lambda ys:[ys[0][0]])
+end = (lambda ys:[ys[-1][0]])
+mean_grad = (lambda ys:[np.mean([ys[i+1][0]-ys[i][0] for i in range(len(ys)-1)])])
+summary_stats=[start,end,mean_grad]
+scaling_factors=list(np.linspace(10,1,10))
+
+fitted_model,_=ABC.abc_smc(n_obs=10,y_obs=lm.observe(),fitting_model=lm.copy([1,1]),priors=lm_priors,
+    num_steps=10,sample_size=100,scaling_factors=scaling_factors,adaptive_perturbance=True,acceptance_kernel=ABC.gaussian_kernel,summary_stats=summary_stats)
+
+print("True Model - {}".format(lm))
+print("Fitted Model - {}\n".format(fitted_model))
+
+# Adaptive perturbance - SIR Model
+peak_infections_date_ss=(lambda ys:[1000*ys.index(max(ys,key=lambda y:y[1]))])
+peak_infections_value_ss=(lambda ys:[max(ys,key=lambda y:y[1])[1]])
+
+scaling_factors=list(np.linspace(25000,600,10))
+
+fitted_model,_=ABC.abc_smc(n_obs=30,y_obs=sir_model.observe(),fitting_model=sir_model.copy([1,1,1,1]),priors=sir_smc_priors,
+    num_steps=10,sample_size=100,scaling_factors=scaling_factors,adaptive_perturbance=True,acceptance_kernel=ABC.gaussian_kernel,
+    summary_stats=[peak_infections_date_ss,peak_infections_value_ss])
+
+print("True Model - {}".format(sir_model))
+print("Fitted Model - {}\n".format(fitted_model))
