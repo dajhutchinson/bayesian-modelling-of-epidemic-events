@@ -492,9 +492,7 @@ def abc_smc(n_obs:int,y_obs:[[float]],
 
         total_simulations+=i
         weight_sum=sum([w for (w,_) in NEW_THETAS])
-        NEW_THETAS=[(w/weight_sum,theta) for (w,theta) in NEW_THETAS]
-
-        THETAS=NEW_THETAS
+        THETAS=[(w/weight_sum,theta) for (w,theta) in NEW_THETAS]
 
     if (printing): print()
 
