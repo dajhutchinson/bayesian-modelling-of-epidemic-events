@@ -37,6 +37,19 @@ def generate_smc_perturbance_kernels(thetas:[[float]], printing=False) -> ([["fu
 
     return perturbance_kernels,perturbance_kernel_probability
 
+def calculate_scaling_factor(distances,acceptance_kernel,alpha) -> float:
+    """
+    DESCRIPTION
+    Calculate a scaling factor for the next iteration of ABC-SMC given the set of distances which were accepted under the last scaling factor.
+    I assume the acceptance kernel is symmetric and distances are positive.
+    """
+    if (acceptance_kernel is uniform_kernel):
+        distances.sort()
+        lim_distance=distances[int(np.ceil(alpha*len(distances)))]
+        return lim_distance
+    else:
+        raise TypeError("`adaptive_abc_smc` is only properly implemented for the acceptance kernel to be `uniform_kernel`. Please choose this.")
+
 """
     KERNELS
 """
@@ -561,6 +574,160 @@ def abc_smc(n_obs:int,y_obs:[[float]],
         plt.show()
 
     return model_hat,param_values
+
+"""
+    ADAPTIVE ABC
+"""
+def adaptive_abc_smc(n_obs:int,y_obs:[[float]],
+    fitting_model:Model,priors:["stats.Distribution"],
+    max_steps:int,sample_size:int,acceptance_kernel:"function",alpha:float,
+    initial_scaling_factor=maxsize,terminal_scaling_factor=0,max_simulations=None,
+    summary_stats=None,distance_measure=l2_norm,show_plots=True,printing=True) -> (Model,[[float]]):
+    """
+    DESCRIPTION
+    Fully adaptive Sequential Monte-Carlo Sampling version of Approximate Bayesian Computation for the generative models defined in `Models.py`.
+    (Adaptive wrt perturbance kernel and bandwidths)
+
+    PARAMETERS
+    n_obs (int) - Number of observations available.
+    y_obs ([[float]]) - Observations from true model.
+    fitting_model (Model) - Model the algorithm will aim to fit to observations.
+    priors (["stats.Distribution"]) - Priors for the value of parameters of `fitting_model`.
+    max_steps (int) - Maximum number of resampling iterations (algorithm terminates if it reaches this value)
+    sample_size (int) - Number of parameters samples to keep per step.
+    acceptance_kernel (function) - Function to determine whether to accept parameters
+    alpha (float) - Analogous to proportion of accepted samples to carry to next step. Used to determine acceptance kernel bandwidths. MUST be in (0,1).
+
+    OPTIONAL PARAMETERS
+    initial_scaling_factor (float in (0,1)) - Bandwidth the acceptance kernel begins at (default=maxsize)
+    terminal_scaling_factor (float in (0,1)) - What value of bandwith to terminate the algorithm at. (default=0)
+    max_simulations (int) - Maximum number of simulations (default=None=no limit). Only checked at the end of each iteration
+    summary_stats ([function]) - functions which summarise `y_obs` and the observations of `fitting_model` in some way. (default=group by dimension)
+    distance_measure - (func) - distance function to use (See choices above)
+    show_plots (bool) - whether to generate and show plots (default=True)
+    printing (bool) - whether to print updates to terminal (default=True)
+
+    RETURNS
+    Model - fitted model with best parameters
+    [[float]] - set of all accepted parameter values (use for further investigation)
+    """
+    # initial sampling
+    if (alpha<=0) and (alpha>=1): raise ValueError("`alpha` must be in (0,1)")
+
+    group_dim = lambda ys,i: [y[i] for y in ys]
+    summary_stats=summary_stats if (summary_stats) else ([(lambda ys:group_dim(ys,i)) for i in range(len(y_obs[0]))])
+    s_obs=[s(y_obs) for s in summary_stats]
+    scaling_factor=initial_scaling_factor
+
+    # initial sampling
+    THETAS=[] # (weight,params)
+    distances=[]
+    i=0
+    while (len(THETAS)<sample_size):
+        i+=1
+        theta_temp=[pi_i.rvs(1)[0] for pi_i in priors]
+
+        # observed theorised model
+        fitting_model.update_params(theta_temp)
+        y_temp=fitting_model.observe()
+        s_temp=[s(y_temp) for s in summary_stats]
+
+        # accept-reject
+        norm_vals=[distance_measure(s_temp_i,s_obs_i) for (s_temp_i,s_obs_i) in zip(s_temp,s_obs)]
+        if (acceptance_kernel(l1_norm(norm_vals),scaling_factor)):
+            distances.append(l1_norm(norm_vals))
+            THETAS.append((1/sample_size,theta_temp))
+        if(printing): print("({:,}) - {:,}/{:,}".format(i,len(THETAS),sample_size),end="\r")
+    if (printing): print()
+
+    total_simulations=i
+
+    # resampling & reweighting step
+    t=0
+    while(t<max_steps and scaling_factor>terminal_scaling_factor):
+        if (max_simulations and total_simulations>=max_simulations): break
+        elif(printing): print("Total Sims = {:,} < {:,}\n".format(total_simulations,max_simulations))
+        
+        i=0
+        NEW_THETAS=[] # (weight,params)
+
+        perturbance_kernels,perturbance_kernel_probability=generate_smc_perturbance_kernels([x[1] for x in THETAS],printing)
+        scaling_factor=calculate_scaling_factor(distances,acceptance_kernel,alpha)
+        distances=[]
+
+        while (len(NEW_THETAS)<sample_size):
+            i+=1
+            if (printing): print("({:,}/{:,} - {:,}) - {:,}/{:,} (eps={:,.3f}>{:,.3f})".format(t,max_steps,i,len(NEW_THETAS),sample_size,scaling_factor,terminal_scaling_factor),end="\r")
+
+            # sample from THETA
+            u=stats.uniform(0,1).rvs(1)[0]
+            theta_t=None
+            for (weight,theta_i) in THETAS:
+                u-=weight
+                if (u<=0): theta_t=theta_i; break
+
+            # perturb sample
+            theta_temp=[k(theta_i) for (k,theta_i) in zip(perturbance_kernels,theta_t)]
+            while any([p.pdf(theta)==0.0 for (p,theta) in zip(priors,theta_temp)]): theta_temp=[k(theta_i) for (k,theta_i) in zip(perturbance_kernels,theta_t)]
+
+            # observed theorised model
+            fitting_model.update_params(theta_temp)
+            y_temp=fitting_model.observe()
+            s_temp=[s(y_temp) for s in summary_stats]
+
+            # accept-reject
+            norm_vals=[l2_norm(s_temp_i,s_obs_i) for (s_temp_i,s_obs_i) in zip(s_temp,s_obs)]
+            if (acceptance_kernel(l1_norm(norm_vals),scaling_factor)):
+                distances.append(l1_norm(norm_vals))
+                weight_numerator=sum([p.pdf(theta) for (p,theta) in zip(priors,theta_temp)])
+                weight_denominator=0
+                for (weight,theta) in THETAS:
+                    weight_denominator+=sum([weight*p(theta_i,theta_temp_i) for (p,theta_i,theta_temp_i) in zip(perturbance_kernel_probability,theta,theta_temp)]) # probability theta_temp was sampled
+                weight=weight_numerator/weight_denominator
+                NEW_THETAS.append((weight,theta_temp))
+
+        total_simulations+=i
+        weight_sum=sum([w for (w,_) in NEW_THETAS])
+        THETAS=[(w/weight_sum,theta) for (w,theta) in NEW_THETAS]
+        print()
+        t+=1
+
+    if (printing): print()
+
+    param_values=[theta for (_,theta) in THETAS]
+    weights=[w for (w,_) in THETAS]
+    theta_hat=list(np.average(param_values,axis=0,weights=weights))
+    model_hat=fitting_model.copy(theta_hat)
+
+    if (printing):
+        print("Total Simulations - {:,}".format(total_simulations))
+        print("theta_hat -",theta_hat)
+
+    if (show_plots):
+        n_rows=max([1,np.lcm(fitting_model.n_params,fitting_model.dim_obs)])
+
+        fig=plt.figure(constrained_layout=True)
+        gs=fig.add_gridspec(n_rows,2)
+
+        # plot fitted model
+        row_step=n_rows//fitting_model.dim_obs
+        for i in range(fitting_model.dim_obs):
+            ax=fig.add_subplot(gs[i*row_step:(i+1)*row_step,-1])
+            y_obs_dim=[y[i] for y in y_obs]
+            Plotting.plot_accepted_observations(ax,fitting_model.x_obs,y_obs_dim,[],model_hat,dim=i)
+
+
+        row_step=n_rows//fitting_model.n_params
+        for i in range(fitting_model.n_params):
+            ax=fig.add_subplot(gs[i*row_step:(i+1)*row_step,0])
+            name="theta_{}".format(i)
+            parameter_values=[theta[i] for theta in param_values]
+            Plotting.plot_smc_posterior(ax,name,parameter_values=parameter_values,weights=weights,predicted_val=theta_hat[i],prior=priors[i],dim=i)
+
+        plt.show()
+
+    return model_hat,param_values
+
 
 """
     SUMMARY STATISTIC SELECTION
