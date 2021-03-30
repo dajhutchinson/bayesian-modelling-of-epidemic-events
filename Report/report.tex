@@ -1,0 +1,195 @@
+\documentclass[11pt,a4paper,margin=0]{article}
+
+\usepackage[margin=2.5cm, paperwidth=8.3in, paperheight=11.7in]{geometry}
+\usepackage{amsmath,amsfonts,bbm,fancyhdr,graphicx,hyperref,natbib,tikz}
+\usetikzlibrary{automata,positioning}
+\graphicspath{ {img/} }
+% \usepackage[section,nohyphen]{DomH}
+% \headertitle{Bayesian Modelling of Epidemic Processes}
+
+\tolerance=1
+\emergencystretch=\maxdimen
+\hyphenpenalty=10000
+\hbadness=10000
+
+\setlength\parindent{0pt}
+\allowdisplaybreaks
+
+% space between paragraphs
+\setlength{\parskip}{.3\baselineskip}
+
+% Footnote numbering style
+\renewcommand{\thefootnote}{[\arabic{footnote}]}
+
+\begin{document}
+
+\title{Bayesian Modelling of Epidemic Processes}
+\author{D. Hutchinson}
+\date{\today}
+\maketitle
+\newpage
+
+\section*{Abstract}\label{sec_abstract}
+\newpage
+
+\tableofcontents\newpage
+
+\section{Introduction}\label{sec_introduction}
+
+  \par What is a model? A (simple) mathematical formulation of a process which incorporates parameters of interest and likely some stochastic processes. Models need to be computational tractable (i.e. fairly simple)
+  \par ``All models are wrong, some are useful''.
+  \par What to use models for? check intuition, explanation \& prediction.
+  \par What is ``posterior estimation''?
+  \par The problem - Posterior estimation when likelihood is intractable. ``Likelihood-free'' estimation. (Classical example of determining most recent common ancestor of two DNA strands. Likelihood is intractable due to number of branches growing factorially. (\cite{selecting_summary_stats_in_ABC_for_calibration})
+
+\subsection*{Motivation}\label{sec_motivation}
+
+  \par Bayes Rule? Describe each component \& why is likelihood intractable?
+  \par Why now? More, better data. Greater computational power.
+  \par What can posterior be used for?
+
+\subsection*{Motivating Examples}\label{sec_motivating_examples}
+
+  \par DNA mutation (\cite{modern_computational_approaches_for_analysing_molecular_genetic_variation_data})
+
+\subsection*{History}\label{sec_history}
+
+  \par Traditional parameter estimation methods - ``Maximum Likelihood''.
+  \par Neutrality testing - (Hypothesis testing), compare results against a null hypothesis for a parameter value.
+
+\subsection*{Successful Applications of these Methods}\label{sec_successful_applications}
+
+\section{Bayesian Modelling}
+
+  \par Bayes' Rule
+  \par vs. Frequentist modelling
+  \par Stochastic vs deterministic models
+  \par Consistency
+
+\newpage
+\section{Approximate Bayesian Computation}\label{sec_ABC}
+
+  \par What are ``Simulation Methods''?  (Possible now due to greater computational power and quality/quantity of data available) Two versions: allow for running models with stochastic components and testing variety of results; or, simulation for statistical inference and parameter estimation (vary parameters in simulation and compare results to observed data).
+  \par Simulation methods are useful here as it is easier to simulate from a distribution than to calculate it.
+  \par ABC extends many Bayesian simulation methods to only require approximate matching of observed and simulated data, rather than exact. (ABC allows for more simplified models?). Trade-offs?
+  \par In general, we never know if our calculated posterior is actually close to the true posterior.
+  \par ABC simulates from the likelihood, rather than explicitly determine the likelihood.
+  \par ABC has two uses: calibrating model, comparing models.
+  \par What is the computational effiency?
+  \par How to tune tolerance $\varepsilon$? Run tests showing performance with different tolerances (plots of posteriors when using different tolerances).
+  \par Curse of dimensionality (regression methods can counter this)
+
+\subsection*{Accept-Reject-ABC}\label{sec_accept_reject_ABC}
+  \par Perform poorly when prior and posterior and very different (especially when overlap is small).
+  \par Worth tracking ``acceptance rate'' to test algorithms performance. Don't want too high or too low, time v quality.
+  \par Variations - Sample until $N$ accepted (how to determine width of acceptance); Sample $M$ times and keep best $N$ (how to determine best); Sample $M$ times, keep all and weight parameters by distance of simulated data from observed data (weighted linear-regression).
+  \par Accept-reject algorithms for MLE (rather than Bayesian). (Use mode of posterior distribution as MLE or use simulation to approximate likelihood).
+  \par Using a uniform kernel can be interpreted as sampling from a model which has uniformly distributed additive error.
+  \par Independent samples
+  \par Acceptance-rate analogous to evidence.
+  \par User choices: summary stats; threshold; distance measure.
+  \par Acceptance-rate vs tolerance plot?
+  \par re
+
+\subsection{Importance Sampling}\label{sec_ABC_IS}
+
+  \par Use when have a better knowledge about parameter value distribution. (May be good for RONA as we are given good R rate estimates?)
+  \par Sample parameters $\theta$ from an ``Importance distribution'' $\xi(\theta)$ rather than a ``prior'' $\pi(\theta)$. Weight each accepted parameter $\theta$ as $\frac{\pi(\theta)}{\xi(\theta)}$.
+  \par Less variance between observed and simulated summary statistic values.
+  \par Could use rejection algorithm to determine a good importance distribution.
+  \par Independent samples
+  \par \url{https://bookdown.org/rdpeng/advstatcomp/importance-sampling.html}
+
+\subsection*{ABC-MCMC, -SMC \& -PMC}\label{sec_ABC_MCMC}
+
+  \par MCMC, SMC are search processes
+  \par ABC-MCMC=\cite{mcmc_wo_likelihood} (Markov Chain Monte Carlo).
+  \par ABC-SMC=\cite{SMC_wo_likelihood} (Sequential Monte Carlo).
+  \par ABC-PMC=\cite{adaptive_ABC} (Population Monte-Carlo).
+  \par Good approach for large data sets, and when prior \& posterior are likely to be very different.
+  \par Sequences of dependent samples
+  \par Adaptive approach to ABC-SMC (\cite{adaptive_SMC_method_for_ABC})
+  \par When does MCMC converge?
+  \par MCMC w/o summary stats converges to the true posterior $\prob(\theta|D)$.
+  \par What is the burn-in period like? How good/important is mixing?
+  \par Advantage of ABC-MCMC over ABC-rejection? Fewer simulations required to get $n$ accepted samples (for a given tolerance $\varepsilon$).
+  \par Acceptance-rate vs tolerance plot?
+  \par Stationary distribution of the MCMC is an estimate of the posterior?
+  \par How to choose perturbation kernels (\cite{on_optimality_of_kernels_for_approximate_bayesian_computation_using_SMC}).
+
+\subsection*{Regression Adjustment}
+
+  \par Beaumont et al - Local Linear Regressions (LOCL)
+  \par Blum and Francois' - Nonlinear Conditional heteroscedastic regressions (NCH). (Uses neural networks)
+
+\subsection*{Review}\label{sec_ABC_review}
+
+  Which algorithm to use in different scenarios - complexity of model, amount of data available.
+
+\newpage
+\section{Summary Statistic Selection}\label{sec_summary_stats}
+
+In this chapter I motivate the research into summary statistic selection and discuss features which are desirable in a summary statistic. I then describe five methods for summary statistic selection methods: three which use handcrafted summary statistics; and two which generate their own; Finally, I use a toy example of an SIR model to compare these methods.
+
+\subsection*{Motivation}\label{sec_summary_stats_motivation}
+
+The study of summary statistics has relevance beyond ABC methods, largely due to the recent ``Big-Data Revolution'' which has seen the rate at which data can be collected and stored significantly outpace improvements in computational power. This has motivated research into effective methods to reduce the size of datasets so that more computationally intensive algorithms can be used to analyse the data. % TODO give examples of papers from other fields
+
+\par A summary statistic $S$ is a statistic which reduces the dimensionality of some observed data, in a deterministic fashion, whilst retaining as much information about the observed data as possible. Reducing the dimensionality of data is desirable as it reduces the computational requirements to analyse the data.
+
+\[ s:\mathbb{R}^m\to\mathbb{R}^p\text{ with }m>p \]
+
+Ideally, a summary statistic would compress the observed data without any information loss (A property known as ``sufficiency''). However, sufficient summary statistics are very rare in practice and we often have to trade-off information retention against dimensionality reduction.
+
+\par For more complex models, with many parameters, it becomes difficult for a single summary statistic to accurately summarise the observed data, thus, in practice it is common to apply a set of summary statistics $\{s_1,\dots,s_k\}$ to the same dataset with each targeting a different aspect of the model. As long as the sum of the dimensions of the outputs from the summary statistics in the set is less than the cardinality of the observed data, then using a set of summary statistics still produces effective dimensionality reduction.
+
+\[ m>\sum_{i=1}^kp_i\text{ where }s_i:\mathbb{R}^m\to\mathbb{R}^{p_i} \]
+
+The success of ABC methods depends mainly on three user choices: choice of summary statistic; choice of distance measure; and choice of acceptance kernel. Of these, summary statistic choice is arguably the most important as the other two mainly effect the rate at which the algorithm converges on the posterior mean. Whereas, choosing summary statistics which are uninformative can lead to the parameter posteriors returned by the algorithm being drastically different from the true parameter posteriors. This is trivial to realise if you consider a scenario where $s(x)=c$, for some constant $c\in\mathbb{R}$, is used as the sole summary statistic as this would result in the returned posteriors being the same as the priors supplied to the algorithm.
+
+\par In practice, the quality of the posteriors returned from an ABC method is limited by the amount of computational time which is dedicated to running the algorithm. For some problems, such as ......... % TODO
+, it is reasonable to dedicate the majority of your computing time on summary statistic selection, rather than on model fitting, as it is clear that the more computationally efficient ABC methods (e.g. ABC-Rejection Sampling) will be sufficient to fit the model, given a good choice of summary statistics.
+
+\subsection*{Current Thinking}\label{sec_summary_stats_current_thinking}
+
+Traditionally, summary statistics for ABC methods are chosen manually using expert, domain-specific knowledge. Utilising this expert knowledge is desirable as these statistics will incentivise exploring regions of the parameter space which have been scientifically shown to be relevant to the given problem and thus more likely to contain the true parameter values (Similarly, these statistics will disincentivise exploring regions which have been shown to not be of interest). % TODO re-write this sentence
+Often these hand-crafted statistics are highly interpretable which is important when using ABC methods to fit models which will influence real-world decisions as you will likely need to convince stakeholders that your results are reasonable.
+
+\par However, relying on expert knowledge to choose summary statistics limits the scenarios where ABC methods can be applied to only those where there has already been significant research. And, leads to statistics being chosen due to their prevalence in a field rather than their suitability to ABC methods. Moreover, the use of handcrafted summary statistics means that any misunderstandings or errors in a field will be encoded into the model fitting process, possibly leading to misspecification.
+
+\par When using a set of summary statistics, expert knowledge is generally not sufficient to determine how best to weight each summary statistic. Some of the methods I describe below allow can be used to automate the process of determining these weights by specifying multiple versions of the same summary statistic but with each version having a different weight.
+
+\subsection{Properties of Summary Statistics}
+  \par Unbiased, efficient, consistent, (All covered by ``sufficient'').
+
+  % Computational efficiency
+  % Degree reduction (ie greater compression)
+  % Interpretability
+
+\subsubsection*{Sufficiency}\label{sec_sufficiency}
+
+\subsection{Methods for Summary Statistic Selection}\label{sec_summary_stats_methods}
+
+\par When thinking about summary statistic selection it is useful to consider the summary statistics as a feature of your theorised model. This makes the process of selecting summary statistics analogous to model selection, with each combination of summary statistics being considered is a different model. This is the motivation behind most summary statistic selection methods.
+
+\subsubsection*{Approximate Sufficient Subset \cite{Approximately_sufficient_statistics_and_bayesian_computation}}
+\subsubsection*{Minimising Entropy \cite{on_optimal_selection_of_summary_stats_for_ABC}}
+\subsubsection*{Two-Step Minimum Entropy \cite{on_optimal_selection_of_summary_stats_for_ABC}}
+\subsubsection*{Semi-Automatic ABC \cite{constructing_summary_statistics_for_approximate_bayesian_computation_semi_automatic_ABC}}
+\subsubsection*{Non-Linear Projection}
+\subsubsection*{Toy Example}
+
+\subsection{Model Selection}
+
+  \par Theorems which state when a model is misspecified that bayesian inference will put mass on the distributions ``closest to the ground truth'' rely on strong regularity conditions. \cite{inconsistency_of_bayesian_inference_for_misspecified_linear_models_and_a_proposal_for_reparing_it}
+  \par Introduce learning rate (SafeBayes) \cite{inconsistency_of_bayesian_inference_for_misspecified_linear_models_and_a_proposal_for_reparing_it}
+
+\newpage
+\section{ABC and Epidemic Events}\label{sec_epidemic_events}
+
+% bibliography
+\newpage
+\bibliographystyle{royal}
+\bibliography{References}
+
+\end{document}
