@@ -103,6 +103,32 @@ def LOO_CV_abc_smc(n_obs:int,x_obs:[[float]],y_obs:[[float]],fitting_model:Model
         error=__record_results(fitting_model,fitted_model,removed,error)
 
     return error
+
+def LOO_CV_adaptive_abc_smc(n_obs:int,x_obs:[[float]],y_obs:[[float]],fitting_model:Models.Model,priors:["stats.Distribution"],
+        max_steps:int,max_simulations:int,alpha:float,terminal_scaling_factor=None,sample_size=100,summary_stats=None) -> float:
+
+    error=0
+    for i in range(len(y_obs)):
+        if (i==0) and (type(fitting_model) is Models.LinearModel): continue
+        removed=(x_obs[i],y_obs[i])
+        print("{}/{}. ".format(i,len(y_obs)),end="")
+
+        x_minus=x_obs[:i]+x_obs[i+1:]
+        y_minus=y_obs[:i]+y_obs[i+1:]
+
+        n_minus=n_obs-1
+
+        model_minus=fitting_model.copy([1 for _ in range(len(priors))])
+        model_minus.x_obs=x_minus
+        model_minus.n_obs=n_minus
+
+        fitted_model,_=ABC.adaptive_abc_smc(n_obs=n_minus,y_obs=y_minus,fitting_model=model_minus,priors=priors,
+            max_steps=max_steps,sample_size=sample_size,alpha=alpha,max_simulations=max_simulations,terminal_scaling_factor=terminal_scaling_factor,
+            acceptance_kernel=ABC.uniform_kernel,show_plots=False,printing=False)
+
+        error=__record_results(fitting_model,fitted_model,removed,error)
+
+    return error
 """
     CV SEMI-AUTO
 """

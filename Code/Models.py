@@ -515,6 +515,8 @@ class GaussianMixtureModel_two(Model):
         self.weight_1=params[2]
         self.weight_2=1-self.weight_1
 
+        self.x_obs=[i for i in range(n_obs)]
+
         self.param_labels=None
 
         self.n_obs=n_obs # number of observations made by `observe`

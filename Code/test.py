@@ -354,27 +354,52 @@ gmm_priors=[stats.norm(loc=0,scale=10),stats.norm(loc=0,scale=10),stats.beta(1,1
 # print("Fitted Model - {}\n".format(fitted_model))
 
 # Adaptive perturbance - Linear Model
-start = (lambda ys:[ys[0][0]])
-end = (lambda ys:[ys[-1][0]])
-mean_grad = (lambda ys:[np.mean([ys[i+1][0]-ys[i][0] for i in range(len(ys)-1)])])
-summary_stats=[start,end,mean_grad]
-scaling_factors=list(np.linspace(10,1,10))
-
-fitted_model,_=ABC.abc_smc(n_obs=10,y_obs=lm.observe(),fitting_model=lm.copy([1,1]),priors=lm_priors,
-    num_steps=10,sample_size=100,scaling_factors=scaling_factors,adaptive_perturbance=True,acceptance_kernel=ABC.gaussian_kernel,summary_stats=summary_stats)
-
-print("True Model - {}".format(lm))
-print("Fitted Model - {}\n".format(fitted_model))
+# start = (lambda ys:[ys[0][0]])
+# end = (lambda ys:[ys[-1][0]])
+# mean_grad = (lambda ys:[np.mean([ys[i+1][0]-ys[i][0] for i in range(len(ys)-1)])])
+# summary_stats=[start,end,mean_grad]
+# scaling_factors=list(np.linspace(10,1,10))
+#
+# fitted_model,_=ABC.abc_smc(n_obs=10,y_obs=lm.observe(),fitting_model=lm.copy([1,1]),priors=lm_priors,
+#     num_steps=10,sample_size=100,scaling_factors=scaling_factors,adaptive_perturbance=True,acceptance_kernel=ABC.gaussian_kernel,summary_stats=summary_stats)
+#
+# print("True Model - {}".format(lm))
+# print("Fitted Model - {}\n".format(fitted_model))
 
 # Adaptive perturbance - SIR Model
-peak_infections_date_ss=(lambda ys:[1000*ys.index(max(ys,key=lambda y:y[1]))])
-peak_infections_value_ss=(lambda ys:[max(ys,key=lambda y:y[1])[1]])
+# peak_infections_date_ss=(lambda ys:[1000*ys.index(max(ys,key=lambda y:y[1]))])
+# peak_infections_value_ss=(lambda ys:[max(ys,key=lambda y:y[1])[1]])
 
-scaling_factors=list(np.linspace(25000,600,10))
+# scaling_factors=list(np.logspace(6,4,10,base=10))
+#
+# fitted_model,_=ABC.abc_smc(n_obs=30,y_obs=sir_model.observe(),fitting_model=sir_model.copy([1,1,1,1]),priors=sir_smc_priors,
+    # num_steps=10,sample_size=100,scaling_factors=scaling_factors,adaptive_perturbance=True,acceptance_kernel=ABC.gaussian_kernel)
+#
+# print("True Model - {}".format(sir_model))
+# print("Fitted Model - {}\n".format(fitted_model))
 
-fitted_model,_=ABC.abc_smc(n_obs=30,y_obs=sir_model.observe(),fitting_model=sir_model.copy([1,1,1,1]),priors=sir_smc_priors,
-    num_steps=10,sample_size=100,scaling_factors=scaling_factors,adaptive_perturbance=True,acceptance_kernel=ABC.gaussian_kernel,
-    summary_stats=[peak_infections_date_ss,peak_infections_value_ss])
+"""
+    ADAPTIVE-ABC
+"""
+# Linear Model
+# start = (lambda ys:[ys[0][0]])
+# mean_grad = (lambda ys:[np.mean([ys[i+1][0]-ys[i][0] for i in range(len(ys)-1)])])
+# summary_stats=[start,mean_grad]
+#
+# fitted_model,_=ABC.adaptive_abc_smc(n_obs=30,y_obs=lm.observe(),
+#     fitting_model=lm.copy([1,1]),priors=lm_priors,
+#     max_steps=100,sample_size=100,acceptance_kernel=ABC.uniform_kernel,alpha=.9,
+#     # max_simulations=1000,
+#     initial_scaling_factor=10,terminal_scaling_factor=1,
+#     summary_stats=summary_stats)
+#
+# print("True Model - {}".format(lm))
+# print("Fitted Model - {}\n".format(fitted_model))
+
+# SIR Model
+fitted_model,_=ABC.adaptive_abc_smc(n_obs=30,y_obs=sir_model.observe(),fitting_model=sir_model.copy([1,1,1,1]),priors=sir_smc_priors,
+    max_steps=100,sample_size=100,max_simulations=4307,
+    acceptance_kernel=ABC.uniform_kernel,alpha=.9)
 
 print("True Model - {}".format(sir_model))
 print("Fitted Model - {}\n".format(fitted_model))

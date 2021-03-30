@@ -503,6 +503,7 @@ def abc_smc(n_obs:int,y_obs:[[float]],
         NEW_THETAS=[] # (weight,params)
 
         if (adaptive_perturbance): perturbance_kernels,perturbance_kernel_probability=generate_smc_perturbance_kernels([x[1] for x in THETAS],printing)
+        if (not printing): print("*",sep="",end="")
 
         while (len(NEW_THETAS)<sample_size):
             i+=1
@@ -537,7 +538,7 @@ def abc_smc(n_obs:int,y_obs:[[float]],
         total_simulations+=i
         weight_sum=sum([w for (w,_) in NEW_THETAS])
         THETAS=[(w/weight_sum,theta) for (w,theta) in NEW_THETAS]
-        print()
+        if (printing): print()
 
     if (printing): print()
 
@@ -645,9 +646,10 @@ def adaptive_abc_smc(n_obs:int,y_obs:[[float]],
     # resampling & reweighting step
     t=0
     while(t<max_steps and scaling_factor>terminal_scaling_factor):
+        if (not printing): print("*",sep="",end="")
         if (max_simulations and total_simulations>=max_simulations): break
         elif(printing): print("Total Sims = {:,} < {:,}\n".format(total_simulations,max_simulations))
-        
+
         i=0
         NEW_THETAS=[] # (weight,params)
 
@@ -657,7 +659,7 @@ def adaptive_abc_smc(n_obs:int,y_obs:[[float]],
 
         while (len(NEW_THETAS)<sample_size):
             i+=1
-            if (printing): print("({:,}/{:,} - {:,}) - {:,}/{:,} (eps={:,.3f}>{:,.3f})".format(t,max_steps,i,len(NEW_THETAS),sample_size,scaling_factor,terminal_scaling_factor),end="\r")
+            if (printing): print("({:,}/{:,} - {:,}) - {:,}/{:,} (eps={:,.3f}>{:,.3f})".format(t,max_steps,i,len(NEW_THETAS),sample_size,scaling_factor,terminal_scaling_factor),end="\r",flush=True)
 
             # sample from THETA
             u=stats.uniform(0,1).rvs(1)[0]
@@ -689,7 +691,7 @@ def adaptive_abc_smc(n_obs:int,y_obs:[[float]],
         total_simulations+=i
         weight_sum=sum([w for (w,_) in NEW_THETAS])
         THETAS=[(w/weight_sum,theta) for (w,theta) in NEW_THETAS]
-        print()
+        if (printing): print()
         t+=1
 
     if (printing): print()
@@ -790,7 +792,7 @@ def __compare_summary_stats(accepted_params_curr:[[float]],accepted_params_prop:
 
 
 def joyce_marjoram(summary_stats:["function"],n_obs:int,y_obs:[[float]],fitting_model:Model,priors:["stats.Distribution"],param_bounds:[(float,float)],
-    KERNEL=uniform_kernel,BANDWIDTH=1,n_samples=10000,n_bins=10,printing=True) -> [int]:
+    distance_measure=l2_norm,KERNEL=uniform_kernel,BANDWIDTH=1,n_samples=10000,n_bins=10,printing=True) -> [int]:
     """
     DESCRIPTION
     Use the algorithm in Paul Joyce, Paul Marjoram 2008 to find an approxiamtely sufficient set of summary statistics (from set `summary_stats`)
@@ -854,7 +856,7 @@ def joyce_marjoram(summary_stats:["function"],n_obs:int,y_obs:[[float]],fitting_
         s_obs_curr=[s_obs[j] for j in ACCEPTED_SUMMARY_STATS_ID]
         accepted_params_curr=[]
         for (theta_t,s_t) in samples_curr:
-            norm_vals=[l2_norm(s_t_i,s_obs_i) for (s_t_i,s_obs_i) in zip(s_t,s_obs_curr)]
+            norm_vals=[distance_measure(s_t_i,s_obs_i) for (s_t_i,s_obs_i) in zip(s_t,s_obs_curr)]
             if (KERNEL(l1_norm(norm_vals),BANDWIDTH*len(ACCEPTED_SUMMARY_STATS_ID))): # NOTE - l1_norm() can be replaced by anyother other norm
                 accepted_params_curr.append(theta_t)
 
@@ -871,7 +873,7 @@ def joyce_marjoram(summary_stats:["function"],n_obs:int,y_obs:[[float]],fitting_
         s_obs_prop=[s_obs[j] for j in ACCEPTED_SUMMARY_STATS_ID+[id_to_try]]
         accepted_params_prop=[]
         for (theta_t,s_t) in samples_prop:
-            norm_vals=[l2_norm(s_t_i,s_obs_i) for (s_t_i,s_obs_i) in zip(s_t,s_obs_prop)]
+            norm_vals=[distance_measure(s_t_i,s_obs_i) for (s_t_i,s_obs_i) in zip(s_t,s_obs_prop)]
             if (KERNEL(l1_norm(norm_vals),BANDWIDTH*len(ACCEPTED_SUMMARY_STATS_ID+[id_to_try]))): # NOTE - l1_norm() can be replaced by anyother other norm
                 accepted_params_prop.append(theta_t)
 
@@ -894,7 +896,7 @@ def joyce_marjoram(summary_stats:["function"],n_obs:int,y_obs:[[float]],fitting_
                 s_obs_minus=[s_obs[j] for j in ids_minus]
                 accepted_params_minus=[]
                 for (theta_t,s_t) in samples_minus:
-                    norm_vals=[l2_norm(s_t_i,s_obs_i) for (s_t_i,s_obs_i) in zip(s_t,s_obs_minus)]
+                    norm_vals=[distance_measure(s_t_i,s_obs_i) for (s_t_i,s_obs_i) in zip(s_t,s_obs_minus)]
                     if (KERNEL(l1_norm(norm_vals),BANDWIDTH*len(ids_minus))): # NOTE - l1_norm() can be replaced by anyother other norm
                         accepted_params_minus.append(theta_t)
 
@@ -951,19 +953,21 @@ def k_nn_estimate_entropy(n_params:int,parameter_samples:[(float)],k=4) -> float
 
     return h_hat
 
-def minimum_entropy(summary_stats:["function"],n_obs:int,y_obs:[[float]],fitting_model:Model,priors:["stats.Distribution"],n_samples=1000,n_accept=100,k=4,printing=False) -> ([int],[[float]]):
+def minimum_entropy(summary_stats:["function"],n_obs:int,y_obs:[[float]],fitting_model:Model,priors:["stats.Distribution"],max_subset_size=None,n_samples=1000,n_accept=100,k=4,printing=False) -> ([int],[[float]]):
     """
 
     RETURNS
     [int] - indexes of best summary stats
     [[float]] - list of all accepted theta when "best summary stats"
     """
+
     lowest=([],maxsize,[])
 
     # all permutations of summary stats
     n_stats=len(summary_stats)
+    max_subset_size=max_subset_size if (max_subset_size) else n_stats
     perms=[]
-    for n in range(1,n_stats+1):
+    for n in range(1,min(n_stats+1,max_subset_size+1)):
         perms+=[x for x in combinations([i for i in range(n_stats)],n)]
 
     sampling_details={"sampling_method":"best","num_runs":n_samples,"sample_size":n_accept}
