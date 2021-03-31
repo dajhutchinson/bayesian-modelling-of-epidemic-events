@@ -163,7 +163,25 @@
   \end{theorem}
 
   \begin{proof}{Fisher-Neyman Factorisation Theorem}
-    TODO
+    \everymath={\displaystyle}
+    \begin{itemize}
+      \item[$\longrightarrow$] Let $s$ be a sufficient statistic and $h(x)=\prob(X=x|s(X)=s(x))$ be a function which is independent of $\theta$.
+      \par Let $g(t;\theta)=\prob(S(x)=s(x))$. Then
+      \[\begin{array}{rcl}
+        f(x;\theta)&=&\prob(X=x|s(X)=s(x))\cdot\prob(s(X)=s(x))\\
+        &=&g(x)k(t(x);\theta)
+      \end{array}\]
+      \item[$\longleftarrow$] Suppose
+      \[ f(x;\theta)=h(x)g(s(X);\theta)\text{ for }x\in\mathcal{X},\theta\in\Theta \]
+      Then
+      \[\begin{array}{rcl}
+        \prob(X=x|s(X)=c)&=&\frac{h(x)g(s(x);\theta)}{\sum_{y\in\mathcal{X}:s(y)=c}h(y)g(s(y);\theta)}\cdot\indexed\{s(x)=c\}\cdot x\\
+        &=&\frac{h(x)g(c;\theta)}{g(c;\theta)\sum_{y\in\mathcal{X}:s(y)=c}g(y)}\cdot \indexed\{s(x)=c\}\cdot x\\
+        &=&\frac{h(x)}{\sum_{y\in\mathcal{X}:s(y)=c}g(y)}\cdot \indexed\{s(x)=c\}\cdot x
+      \end{array}\]
+      This final expression is independent of $\theta$
+    \end{itemize}
+    \proved
   \end{proof}
 
   \begin{remark}{Usefulness of Fisher-Neyman Factorisation Theorem}
