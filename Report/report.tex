@@ -24,6 +24,7 @@
 \renewcommand{\thefootnote}{[\arabic{footnote}]}
 \newcommand*{\indexed}{\mathbbm{1}}
 \newcommand*{\prob}{\mathbb{P}}
+\newcommand*{\expect}{\mathbb{E}}
 \newtheoremstyle{break}
   {\topsep}{\topsep}%
   {\itshape}{}%
@@ -327,10 +328,36 @@
     However, there is no function which can map from $s_2$ to $s_1$ as it would have to map the value 1 to both $(1,0,\dots,0)$ and $(0,1,\dots,0)$. This proves that the identity function $s_1$ is not a minimally sufficient statistic, but does not prove that the sum function $s_2$ is a minimally sufficient statistic as we have not considered all possible sufficient statistics for this distribution.
   \end{example}
 
+  Below I give a condition which all minimally sufficient statistics have. This condition makes confirming whether a sufficient statistic is minimally sufficient, or not, significantly easier
+
   \begin{box_theorem}[Condition for Minimal Sufficiency]
     % TODO http://www.stat.cmu.edu/~siva/705/lec12.pdf
+    Let $\mathbf{x},\mathbf{y}$ be two samples from a model with parameters $\theta$ and $s(\cdot)$ be a statistic.
+    \begin{quote}
+      Statistic $s$ is minimally sufficient if $\frac{\prob(\mathbf{y};\theta)}{\prob(\mathbf{x};\theta)}$ is independent of $\theta$ iff $s(\mathbf{y})=s(\mathbf{x})$.
+    \end{quote}
+    \cite{minimal_sufficiency_lecture_notes}
     \begin{proof}
-
+      Let $s(\cdot)$ be a statistic for model $X$ with parameters $\theta$ and assume that $\frac{\prob(\mathbf{y};\theta)}{\prob(\mathbf{x};\theta)}$ is independent of $\theta$ iff $s(\mathbf{y})=s(\mathbf{x})$. I first show that this $s$ is sufficient and then that it is minimally sufficient.
+      \par Note that this statistic $s$ produces a partition of the sample space $A=\{A_c:\exists\ \mathbf{x}\in\mathcal{X},\ s(\mathbf{x})=c\}$. For each set $A_c$ of the partition $A$ fix a point $\mathbf{x}_c\in\mathcal{X}$ to represent it.
+      \par Let $\mathbf{x}$ be a sample of $X$ and define $\mathbf{y}=\mathbf{x}_{s(\mathbf{x})}$. Note that sample $\mathbf{y}$ is a function of $s(\mathbf{x})$ only and $s(\mathbf{x})=s(\mathbf{y})$. Consider the joint distribution of $\mathbf{x}$
+      \[\prob(\mathbf{x};\theta)=\prob(\mathbf{x};\theta)\frac{\prob(\mathbf{y};\theta)}{\prob(\mathbf{y};\theta)}=\prob(\mathbf{y};\theta)\frac{\prob(\mathbf{x};\theta)}{\prob(\mathbf{y};\theta)} \]
+      By our assumptions of $s$, we have that $\frac{\prob(\mathbf{x};\theta)}{\prob(\mathbf{y};\theta)}$ is independent of $\theta$. Thus, we can produce the following decomposition
+      \[\begin{array}{rcl}
+        \prob(\mathbf{x};\theta)&=&h(\mathbf{x})g(s(\mathbf{x});\theta)\\
+        \text{where}&\\
+        h(\mathbf{x})&=&\frac{\prob(\mathbf{x};\theta)}{\prob(\mathbf{y};\theta)}\\
+        g(s(\mathbf{x});\theta)&=&\prob(s(\mathbf{y});theta)
+      \end{array}\]
+      By the Fisher-Neyman factorisation criterion we can deduce that $s$ is sufficient.
+      \par Now, let $t$ be another sufficient statistic for $\theta$ and let $\mathbf{x},\mathbf{y}\in\mathcal{X}$ st $t(\mathbf{x})=t(\mathbf{y})$. By the Fisher-Neyman factorisation criterion, we have
+      \[\begin{array}{rcl}
+        \prob(\mathbf{x};\theta)&=&h(\mathbf{x})g(t(\mathbf{x});\theta)\\
+        &=&\frac{h(\mathbf{x})}{h(\mathbf{y})}h(\mathbf{y})g(t(\mathbf{y});\theta)\\
+        &=&\frac{h(\mathbf{x})}{h(\mathbf{y})}\prob(\mathbf{y};\theta)\text{ by Fisher-Neyman factorisation}\\
+        \implies\frac{\prob(\mathbf{x};\theta)}{\prob(\mathbf{y};\theta)}&=&\frac{h(\mathbf{x})}{h(\mathbf{y})}
+      \end{array}\]
+      This shows that $\frac{\prob(\mathbf{x};\theta)}{\prob(\mathbf{y};\theta)}$ is independent of $\theta$, meaning $s(\mathbf{x})=s(\mathbf{y})$ by our assumptions of $s$. This result means there exists a function $f$ st $s(\mathbf{x})=f(t(\mathbf{x}))\ \forall\ \mathbf{x}\in\mathcal{X}$. Moreover, due to the arbitrary definition of $t$, for each sufficient statistic of $\theta$ there exists a function which maps from it to our statistic $s$, fulfilling the definition of $s$ being minimally sufficient.
     \end{proof}
   \end{box_theorem}
 
@@ -345,14 +372,46 @@
   % TODO Rao-Blackwell Theorem (http://www.stats.ox.ac.uk/~steffen/teaching/bs2siMT04/si3c.pdf)
   % Our intention is to use summary statistics to estimate parameter values, the Rao-Blackwell Theorem provides a method for producing unbiased estimators using sufficient statistics.
 
+  The Rao-Blackwell theorem (\textbf{Theorem \ref{the_rao_blackwell_theorem}}) can be applied to transform an unbiased estimator in such a way that the resulting estimator has lower variance and thus reduced mean-squared error.
+   This is desirable as it is often ``easy'' to derive a crude estimator and then this theorem can be applied in order to improve its performance. % TODO reword this
+   A Rao-Blackwell transformation is idempotent as applying it to an already transformed estimator returns the same estimator, the proof of this follows immediately from the Tower Law.
+
+  \begin{box_theorem}[Rao-Blackwell Theorem]\label{the_rao_blackwell_theorem}
+    Let $X$ be a model with parameters $\theta$, $U=u(X)$ be an unbiased estimator for function $g(\theta)$ and $s(X)$ is a sufficient statistic for $\theta$.
+    \begin{quote}
+      The statistic $v(X):=\expect[u|T=t(X)]$ is an unbiased estimator of $g(\theta)$ and $\text{Var}(v(X))\leq\text{Var}(u(X))$.
+    \end{quote}
+    The statistic $v(X)$ is known as the Rao-Blackwell Estimator.
+    \cite{rao_blackwell_rao_part,rao_blackwell_blackwell_part}
+    \begin{proof}
+      The proof that $v(X)$ is unbiased is immediate from the Tower Law
+      \[\begin{array}{rcl}
+        \expect[v(X)]&=&\expect[\expect[u|T=t(X)]]\\
+        &=&\expect[u]\\
+        &=&g(\theta)
+      \end{array}\]
+      Now consider the variance of $v(X)$
+      \[\begin{array}{rrl}
+        \text{Var}(v(X))&=&\text{MSE}[v(X)]-\text{Bias}[v(X)]^2=\text{MSE}[v(X)]\\
+        &=&\expect[(v(X)-g(\theta))^2]\\
+        &=&\expect[(\expect[v|T=t(X)]-g(\theta))^2]\\
+        &=&\expect[(\expect[v-g(\theta)|T=t(X)])^2]\\
+        &\footnotemark\leq&\expect[(v-g(\theta))^2|T=t(X)]\\
+        &=&\text{Var}(u(X))\\
+        \implies\text{Var}(v(X))&\leq&\text{Var}(u(X))
+      \end{array}\]
+      \footnotetext{$\text{Var}(X)=\expect[X^2]-\expect[X]^2\implies\expect[X^2]\geq\expect[X]^2$}
+    \end{proof}
+  \end{box_theorem}
+
   \par In ABC
 
   % TODO sufficient statistics are rare (Pitman–Koopman–Darmois theorem)
 
   \begin{box_theorem}[Pitman–Koopman–Darmois Theorem]\label{the_pitman_koopman_darmois}
-    %TODO
+    Among families of probability distributions whose domain does not vary with the parameter being estimated, only in exponential families are there sufficient statistics whose dimension are bounded as the sample size increases.
     \begin{proof}
-      See ...
+      See \cite[]{pkd_theorem_darmois_part,pkd_theorem_pitman_part,pkd_theorem_koopman_part} for the original papers and their proofs.
     \end{proof}
   \end{box_theorem}
 
