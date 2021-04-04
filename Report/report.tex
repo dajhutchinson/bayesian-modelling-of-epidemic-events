@@ -12,7 +12,7 @@
 \hyphenpenalty=10000
 \hbadness=10000
 
-\setlength\parindent{0pt}
+\setlength\parindent{5ex}
 \allowdisplaybreaks
 
 % space between paragraphs
@@ -35,15 +35,7 @@
 
 \newmdtheoremenv{box_definition}{Definition}[section]
 \newmdtheoremenv{box_theorem}{Theorem}[section]
-
-\NewEnviron{example}[1]{ % before body
-  \noindent\fbox{\parbox{\textwidth}{
-    \textbf{Example - }\textit{#1}
-    \vspace{-\parskip}\BODY
-    \\
-  }}
-  }
-
+\newmdtheoremenv{box_example}{Example}[section]
 
 \begin{document}
 
@@ -141,6 +133,8 @@
   \par Stationary distribution of the MCMC is an estimate of the posterior?
   \par How to choose perturbation kernels (\cite[]{on_optimality_of_kernels_for_approximate_bayesian_computation_using_SMC}).
 
+\subsection*{Model Choice}
+
 \subsection*{Regression Adjustment}
 
   \par Beaumont et al - Local Linear Regressions (LOCL)
@@ -227,7 +221,7 @@
 
   \par Here is an example which proves that the sum of sampled values is a sufficient summary statistic for a normal distribution with unknown mean
 
-  \begin{example}{Sufficient Statistic for Normal Distribution with Unknown Mean}
+  \begin{box_example}[Sufficient Statistic for Normal Distribution with Unknown Mean]\label{example_sufficient_stats_normal}
     \everymath={\displaystyle}
     \par\par Let $X\sim\text{Normal}(\mu,\sigma^2_0)$, with $\mu\in\mathbb{R}$ unknown and $\sigma_0^2\in\mathbb{R}$ known, and $\mathbf{x}$ be $n$ independent observations of $X$.
     \par We have that
@@ -252,7 +246,7 @@
       &=&\sqrt{\frac{1}{n(2\pi\sigma_0^2)^{n-1}}}\cdot\exp\left\{-\frac1{2\sigma_0^2}\sum_{i=1}^n(X_i-s)^2\right\}
     \end{array}\]
     This shows that the conditional distribution of $\mathbf{X}$ given $s(\mathbf{X})$ is independent of $\mu$, the unknown parameter, and thus the sample mean is a sufficient statistic for a normal distribution with unknown mean
-  \end{example}
+  \end{box_example}
 
   \par This example shows that finding sufficient summary statistics can be a highly manually and did require us to ``guess'' at the possible formulation of a summary statistic, then verify that it was sufficient. The Fisher-Neyman factorisation criterion (\textbf{Theorem \ref{fisher_neyman_factorisation_criterion}}), first recognised by Fisher in \cite[]{fnf_fisher_part}, specifies a property which all sufficient statistics have. This property is used as basis for a more formulaic approach to finding sufficient statistics by seperating the terms of the conditional probability of a model given the summary statistic value in those which depend on the summary statistic and those which do not.
 
@@ -293,7 +287,7 @@
 
   \par The example below demonstrates how the Fisher-Neyman Factorisation Theorem can be used to find a sufficient summary statistic for a Poisson model where the mean $\lambda$ is unknown
 
-  \begin{example}{Using Fisher-Neyman Factorisation Theorem to find sufficient statistics for a Poisson distribution with unknown mean}
+  \begin{box_example}[Using Fisher-Neyman Factorisation Theorem to find sufficient statistics for a Poisson distribution with unknown mean]\label{example_sufficient_stats_poisson}
     \everymath={\displaystyle}
     \par\par Let $X\sim\text{Poisson}(\lambda)$, with $\lambda\in\mathbb{R}^{>}$ unknown, $\mathbf{x}$ be $n$ independent observations of $X$ and $\textstyle\bar{x}:=\frac1n\sum_{i=1}^nx_i$ be the sample mean of these $n$ observations.
     \par Consider the joint distribution of these $n$ observations
@@ -309,7 +303,7 @@
     In order to define the function $g(s(\mathbf{x});\theta)$ we first need to define the summary statistic $s(\mathbf{x})$. This is straightforward as all the sampled data $\mathbf{x}$ only occurs in a sum in (2), so we define $\textstyle s(\mathbf{x})=\sum_{i=1}^n x_i$. Meaning we can define $g(\mathbf{x};\theta)$ as
     \[ g(\mathbf{x};\theta)=\theta^{s(\mathbf{x})}e^{-n\theta} \]
     With these definitions we fulfil the conditions of the Fisher-Neyman Factorisation theorem, meaning $s(\mathbf{X})=\sum_{i=1}^nX_i$ is a sufficient statistic for the mean for a Poisson distribution.
-  \end{example}
+  \end{box_example}
 
   \par In most cases sufficient statistics for a parameter are not unique. Moreover, each sufficient statistic does not necessarily produce the same level of compression. Consider a normal distribution with unknown mean, here both the sample mean and identity function are both sufficient statistics, however the sample mean is a much more desirable statistic to use as it provides compression. This lack of uniqueness motivates the concept of minimal sufficiency.
 
@@ -322,12 +316,12 @@
 
   \par As with identifying sufficient statistics, determining whether or not a sufficient statistic is minimally sufficient is not a trivial task. I demonstrate this in the example below
 
-  \begin{example}{Minimally Sufficient Statistic for IID Bernoulli Random Variables}
+  \begin{box_example}[Minimally Sufficient Statistic for IID Bernoulli Random Variables]\label{example_minimally_sufficient_bernoulli}
     Suppose $X_1,\dots,X_n$ are independent and identically distribution Bernoulli random variables. Note that the identity function $s_1(\mathbf{X})=\mathbf{X}$ and the sum function $s_2(\mathbf{X})=\sum_{i=1}^nX_i$ are both sufficient statistics.
     \par We can map from $s_1$ to $s_2$ as follows
     \[ s_2(\mathbf{X})=\sum_{i=1}^n [s_2(\mathbf{X})]_i \]
     However, there is no function which can map from $s_2$ to $s_1$ as it would have to map the value 1 to both $(1,0,\dots,0)$ and $(0,1,\dots,0)$. This proves that the identity function $s_1$ is not a minimally sufficient statistic, but does not prove that the sum function $s_2$ is a minimally sufficient statistic as we have not considered all possible sufficient statistics for this distribution.
-  \end{example}
+  \end{box_example}
 
   \textbf{Theorem \ref{the_condition_for_minimal_sufficiency}} states that if the ratio of the marginal distributions of two samples from a model are independent of the model parameters if, and only if, the samples map to the same value under some statistic $s$, then $s$ is minimally sufficient. This propert can be used to identify minimally sufficient summary statistics, either by assisting in deduction or by checking a proposed statistic.
 
@@ -364,7 +358,9 @@
 
   % TODO Rao-Blackwell Theorem (http://www.stats.ox.ac.uk/~steffen/teaching/bs2siMT04/si3c.pdf)
   % Our intention is to use summary statistics to estimate parameter values, the Rao-Blackwell Theorem provides a method for producing unbiased estimators using sufficient statistics.
-  \par Statistics carry information about sampled data, but in bayesian modelling most problems center around estimating parameter values. In some cases a sufficient statistic may be a good estimator of a model paramater, for example, it was shown in an earlier example that the sample mean is a sufficient statistic for the population mean of a normal distribution. This is not always the case, it was shown earlier than the sum of sampled values is a sufficient statistic for the mean of a poisson distribution but this is not a good estimator. The Rao-Blackwell theorem (\textbf{Theorem \ref{the_rao_blackwell_theorem}}) provides a general relationship between estimators and sufficient statistics by demonstrating a transformation of an unbiased estimator, using a sufficient statistic, which produces an unbiased estimator with decreased variance and thus reduced mean-squared error.
+  \par Statistics carry information about sampled data, but in bayesian modelling most problems center around estimating parameter values. In some cases a sufficient statistic may be a good estimator of a model paramater, in \textbf{Example \ref{example_sufficient_stats_normal}} it was shown that the sample mean is a sufficient statistic for the population mean of a normal distribution. This is not always the case, in \textbf{Example \ref{example_sufficient_stats_poisson}} it was shown that the sum of sampled values is a sufficient statistic for the mean of a poisson distribution but this is not a good estimator.
+
+  \par The Rao-Blackwell theorem (\textbf{Theorem \ref{the_rao_blackwell_theorem}}) provides a general relationship between estimators and sufficient statistics by demonstrating a transformation of an unbiased estimator, using a sufficient statistic, which produces an unbiased estimator with decreased variance and thus reduced mean-squared error.
   This is desirable as it is often ``easy'' to derive a crude estimator and then this theorem can be applied in order to improve its performance. % TODO reword this
   A Rao-Blackwell transformation is idempotent as applying it to an already transformed estimator returns the same estimator, the proof of this follows immediately from the Tower Law.
 
@@ -402,19 +398,21 @@
 
 \subsubsection*{In Practice}
   % Sufficiency and ABC (If summary stats are not sufficient then the posterior will only ever be an approxiamtion)
-  In Bayesian modelling problems we want to deduce the posterior for some model parameters to as high a degree of accuracy as possible. Let $f^*(\theta|X(\theta)=x_{obs})$ be the true posterior for model parameters $\theta$ and $\hat{f}(\theta|S(X(\theta))=S(x_{obs}))$ be the estimated posterior produced by our modelling method, given $x_{obs}$ was observed from the true model and summary statistics $S(\cdot)$ were used. If the summary statistics $S(\cdot)$ are sufficient then the estimated posterior $\hat{f}$ will converge towards the true posterior $f^*$, given enough simulations, however,if $S(\cdot)$ are not sufficient then $\hat{f}$ can never (consistently) converge on the true posterior $f^*$, and rather will always be an approximation. Thus, finding sufficient statistics for our models is highly desirable in bayesian modelling.
+  In Bayesian modelling problems we want to deduce the posterior for some model parameters to as high a degree of accuracy as possible. Let $f^*(\theta|X(\theta)=x_{obs})$ be the true posterior for model parameters $\theta$ and $\hat{f}(\theta|S(X(\theta))=S(x_{obs}))$ be the estimated posterior produced by our modelling method, given $x_{obs}$ was observed from the true model and summary statistics $S(\cdot)$ were used. If the summary statistics $S(\cdot)$ are sufficient then the estimated posterior $\hat{f}$ will converge towards the true posterior $f^*$, given enough simulations, however,if $S(\cdot)$ are not sufficient then $\hat{f}$ can never (consistently) converge on the true posterior $f^*$, and rather will always be an approximation. Thus, finding sufficient statistics for our models is highly desirable in bayesian modelling. %TODO make this more succinct
 
   % good sufficient statistics are rare (Pitman–Koopman–Darmois theorem)
-  \par However, although sufficient statistics do exist for all models, as the identity function is a sufficient statistic for all models, they are not necessarily the best choice of summary statistic when implementing computational methods as they may provide very little dimensionality reduction relative to some other statistics which still maintain a large about of the relevant data from a sample. Moreover, the Pitman-Koopman-Darmoois theorem \textbf{Theorem \ref{the_pitman_koopman_darmois}} shows that  summary statistics which provide a high level of dimensionality reduction only exist for probability distributions from exponential families.
+  \par However, although sufficient statistics do exist for all models, as the identity function is a sufficient statistic for all models, they are not necessarily the best choice of summary statistic when implementing computational methods as they may provide very little dimensionality reduction relative to other statistics which still manage to maintain a large about of the relevant data from a sample. Moreover, the Pitman-Koopman-Darmoois theorem \textbf{Theorem \ref{the_pitman_koopman_darmois}} shows that summary statistics which provide a high level of dimensionality reduction only exist for probability distributions from exponential families.
 
   \begin{box_theorem}[Pitman–Koopman–Darmois Theorem]\label{the_pitman_koopman_darmois}
     Among families of probability distributions whose domain does not vary with the parameter being estimated, only in exponential families are there sufficient statistics whose dimension are bounded as the sample size increases. \cite[]{pkd_lecture_notes}
     \begin{proof}
-      See \cite[]{pkd_theorem_darmois_part,pkd_theorem_pitman_part,pkd_theorem_koopman_part} for the original papers and their proofs.
+      See \cite[]{pkd_theorem_darmois_part,pkd_theorem_pitman_part,pkd_theorem_koopman_part} for the original proofs.
     \end{proof}
   \end{box_theorem}
 
   \par This lack of computationally efficient sufficient statistics, for most models, motivated the concept of ``approximate sufficiency'' in \cite[]{Approximately_sufficient_statistics_and_bayesian_computation} which aims to balance the number of summary statistics with the amount of information being retained from a sample. I discuss this concept more when I present the summary statistic selection algorithm from \cite[]{Approximately_sufficient_statistics_and_bayesian_computation} paper in \textbf{Section \ref{sec_approximate_sufficient_subset}}.
+
+  \par In \cite{on_model_selection_with_summary_statistics} Ruli demonstrates that the using summary statistics which are sufficient for parameters produces unreliable results when performing model selection. This is due to it being impossible to distinguish between models which have the same sufficient statistics for their parameters. For example, the sum sampled values is a sufficient statistics for the means of both geometric and poisson models, and so cannot be used to compare these two models. Rather, cross-model sufficient statistics would be required to distinguish between these models in practice, which is impossible in practice. % TODO say why this is bad (e.g. This limits the ability to compare even simple models, and sufficient statistics rarely exist for more complex models)
 
   % TODO IRL example (The Ewens Sampling Formula)
   To close this section I shall mention some real world scenarios where useable sufficient statistics do exist........
@@ -426,6 +424,7 @@
 
 \subsubsection{Approximate Sufficient Subset}\label{sec_approximate_sufficient_subset}
   \cite[]{Approximately_sufficient_statistics_and_bayesian_computation}
+  %TODO
 
 \subsubsection{Minimising Entropy}
   \cite[]{on_optimal_selection_of_summary_stats_for_ABC}
