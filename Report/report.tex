@@ -147,9 +147,11 @@
 \newpage
 \section{Summary Statistic Selection}\label{sec_summary_stats}
 
-  In this chapter I motivate the research into summary statistic selection and discuss features which are desirable in a summary statistic. I then describe five methods for summary statistic selection methods: three which use handcrafted summary statistics; and two which generate their own; Finally, I use a toy example of an SIR model to compare these methods.
+  In this chapter I motivate the research into summary statistic selection \ref{sec_summary_stats_motivation} and discuss features to consider when selecting summary statistics \ref{sec_properties_of_summary_statistics}. I then describe five methods for summary statistic selection methods: three which use hand-crafted summary statistics \ref{sec_approximate_sufficient_subset}-\ref{sec_two_step_minimum_entropy}; and two which automatically generate summary statistics \ref{sec_semi_automatic_abc}-\ref{sec_non_linear_projection}; To close the section, a toy example of an SIR model to compare these methods \ref{sec_summary_statistics_toy}.
 
-\subsection*{Motivation}\label{sec_summary_stats_motivation}
+\subsection{Motivation}\label{sec_summary_stats_motivation}
+
+  % TODO - there would be little reason to use summary statistics if it wasn't for computational limitations (otherwise use whole dataset)
 
   The study of summary statistics has relevance beyond ABC methods, largely due to the recent ``Big-Data Revolution'' which has seen the rate at which data can be collected and stored significantly outpace improvements in computational power. This has motivated research into effective methods to reduce the size of datasets so that more computationally intensive algorithms can be used to analyse the data. % TODO give examples of papers from other fields
 
@@ -159,7 +161,7 @@
 
   Ideally, a summary statistic would compress the sampled data without any information loss (A property known as ``sufficiency''). However, sufficient summary statistics are very rare in practice and we often have to trade-off information retention against dimensionality reduction.
 
-  \par For more complex models, with many parameters, it becomes difficult for a single summary statistic to accurately summarise the sampled data, thus, in practice it is common to apply a set of summary statistics $\{s_1,\dots,s_k\}$ to the same dataset with each targeting a different aspect of the model. As long as the sum of the dimensions of the outputs from the summary statistics in the set is less than the cardinality of the sampled data, then using a set of summary statistics still produces effective dimensionality reduction. % TODO reword this to be clear that several summary statistics can  be combined into one, but it is more intuitive to consider them as seperate functions
+  \par For more complex models, with many parameters, it becomes difficult for a single summary statistic to accurately summarise the sampled data, thus, in practice it is common to apply a set of summary statistics $\{s_1,\dots,s_k\}$ to the same dataset with each targeting a different aspect of the model. As long as the sum of the dimensions of the outputs from the summary statistics in the set is less than that of the sampled data, then using a set of summary statistics still produces effective dimensionality reduction. % TODO reword this to be clear that several summary statistics can  be combined into one, but it is more intuitive to consider them as seperate functions
 
   \[ m>\sum_{i=1}^kp_i\text{ where }s_i:\mathbb{R}^m\to\mathbb{R}^{p_i} \]
 
@@ -168,34 +170,41 @@
   \par In practice, the quality of the posteriors returned from an ABC method is limited by the amount of computational time which is dedicated to running the algorithm. For some problems, such as ......... % TODO
   , it is reasonable to dedicate the majority of your computing time on summary statistic selection, rather than on model fitting, as it is clear that the more computationally efficient ABC methods (e.g. ABC-Rejection Sampling) will be sufficient to fit the model, given a good choice of summary statistics.
 
-\subsection*{Current Thinking}\label{sec_summary_stats_current_thinking}
+  % \subsection*{Current Thinking}\label{sec_summary_stats_current_thinking}
 
-  Traditionally, summary statistics for ABC methods are chosen manually using expert, domain-specific knowledge. Utilising this expert knowledge is desirable as these statistics will incentivise exploring regions of the parameter space which have been scientifically shown to be relevant to the given problem and thus more likely to contain the true parameter values (Similarly, these statistics will disincentivise exploring regions which have been shown to not be of interest). % TODO re-write this sentence
-  Often these hand-crafted statistics are highly interpretable which is important when using ABC methods to fit models which will influence real-world decisions as you will likely need to convince stakeholders that your results are reasonable.
+  \par Traditionally, summary statistics for ABC methods are chosen manually using expert, domain-specific knowledge. Utilising this expert knowledge is desirable as these statistics will incentivise exploring regions of the parameter space which have been scientifically shown to be relevant to the given problem and thus more likely to contain the true parameter values (Similarly, these statistics will disincentivise exploring regions which have been shown to not be of interest). % TODO re-write this sentence
 
   % TODO - Having a more mathematically rigourous approach is desirable
 
-  \par However, relying on expert knowledge to choose summary statistics limits the scenarios where ABC methods can be applied to only those where there has already been significant research. And, leads to statistics being chosen due to their prevalence in a field rather than their suitability to ABC methods. Moreover, the use of handcrafted summary statistics means that any misunderstandings or errors in a field will be encoded into the model fitting process, possibly leading to misspecification.
+  \par However, relying on expert knowledge to choose summary statistics limits the scenarios where ABC methods can be applied to only those where there has already been significant research. And, leads to statistics being chosen due to their prevalence in a field rather than their suitability to ABC methods. Moreover, the use of hand-crafted summary statistics means that any limitations in current understanding of a field will be encoded into the model fitting process, possibly leading to misspecification.
 
   \par When using a set of summary statistics, expert knowledge is generally not sufficient to determine how best to weight each summary statistic. Some of the methods I describe below allow can be used to automate the process of determining these weights by specifying multiple versions of the same summary statistic but with each version having a different weight.
 
-\subsection{Properties of Summary Statistics}
-  \par Unbiased, efficient, consistent, (All covered by ``sufficient'').
+\subsection{Properties of Summary Statistics}\label{sec_properties_of_summary_statistics}
 
-  % Computational efficiency
   % Degree reduction (ie greater compression)
+  \par When evaluating a summary statistic for use in ABC there are several properties, both mathematical and practical, to consider. I first discuss practical properties to consider, and then the key mathematical property of sufficiency.
+
+\subsection*{Practical Properties}
+
+  \par The key reason for using summary statistics is for the computational efficiencies which result from their dimensionality reduction as this means more simulations can be processed in the same time-period. This naturally means summary statistics which result in greater dimensionality reduction are more preferable, but similarly means that a summary statistic which is computationally inefficient to calculate is less desirable.
+
+  % Computational efficiency & overflow
+  % TODO correlation is very inefficient as it considers many
+  \par For a model which produces data of dimension $n\times m$ (i.e. $n$ readings, each with $m$ features) most standard summary statistics are calculated in $O(n\cdot m)$  time. However, this is only a theoretical result and in practice there are meaningful differences in the computational requirements of each summary statistics. Calculating the mean and maximum values for each feature takes $O(n\cdot m)$ time in theory but, since calculating the mean relies on arithmetic operations and the maximum on comparison operations, they will take different amounts of time in practice. Some statistics, namely order statistics, are variable in the their time complexity for different data sets which will affect the reliability of models which utilise the. Integer overflow is a possible issue for some summary statistics, although it is often easy to avoid when actively been considered during the implementation of an algorithm. Moreover, for statistics with non-linear computational complexity (e.g. correlation between each pair of features), the size of the dataset being analysed needs to be considered when evaluating summary statistic choice.
+
   % Interpretability
+  \par For real-world modelling problems, the interpretability of summary statistics used in the final model is a key factor in how useful this solution is. Senior stakeholders in a problem will want to use the final model to justify their future decisions, this is much easier to do when the factors the model is considering, and the weights it assigns to them, are readily understandable. Hand-crafted statistics are almost always the most readily understandable than automatically generated statistics, as such generated statistics are rarely used in commercial problems\footnote{The current popularity of using ``Neural Networks'' in commercial settings does buck this trend. I hope this fad will subside soon in favour of more interpretable alternatives. I believe it is worth noting that the new European Union payment services directive (PSD2) requires that certain models used by financial institutions be ``explainable'' in order to improve the customer experience and to ensure no one is discriminated against due to their protected characteristics.}. In cases where it is chosen to used automatically generated statistics, one can develop an intuition for their model by varying the inputs, or removing certain features, and observing how the output varies.
 
 \subsubsection*{Sufficiency}\label{sec_sufficiency}
-
-\subsubsection*{Theory}
+  % \subsubsection*{Theory}
 
   \begin{box_definition}[Sufficient Statistic]\label{def_sufficient_statistic}
     Let $s:\mathbb{R}^m\to\mathbb{R}^n$ be a statistic and $X$ be a model with parameters $\theta$. The statistic $s$ is said to be sufficient for the parameters $\theta$ if the conditional distribution of the model $X$, given the value of the statistic $s(X)$, is independent of the model parameter. \cite[]{dictionary_of_statistical_terms}
     \[ \prob(X|s(X))=\prob(X|s(X),\theta) \]
   \end{box_definition}
 
-  More verbosely, a statistic is sufficient for a parameter(s) if it captures all the information which a sample of the model carries about said parameter(s). This means, knowing the value of a sufficient statistic is as informative as knowing the true model parameters. This is clearly a desirable property as in practice we can always calculate the value of the summary statistic using the sampled data, but cannot know the true parameter values (otherwise we would not be trying to predict them). Sufficient statistics exist for all models as, trivially, the identity function is a sufficient statistic for all models.
+  \par More verbosely, a statistic is sufficient for a parameter(s) if it captures all the information which a sample of the model carries about said parameter(s). This means, knowing the value of a sufficient statistic is as informative as knowing the true model parameters. This is clearly a desirable property as in practice we can always calculate the value of the summary statistic using the sampled data, but cannot know the true parameter values (otherwise we would not be trying to predict them). Sufficient statistics exist for all models as, trivially, the identity function is a sufficient statistic for all models.
 
   \par It can be intuitively helpful to consider a sufficient statistic as a data reduction method. Moreover, a sufficient summary statistic provides a loss-less compression of sampled data as it reduces the dimensionality of the data and but still captures all relevant information.
 
@@ -217,7 +226,7 @@
     \end{proof}
   \end{box_theorem}
 
-  \textbf{Theorem \ref{the_sufficiency_of_superset}} shows that if we have a set of summary statistics which are sufficient for a set of parameters, then adding more summary statistics will never increase (or decrease) the amount of relevant information being extracted from the sampled data.
+  \par \textbf{Theorem \ref{the_sufficiency_of_superset}} shows that if we have a set of summary statistics which are sufficient for a set of parameters, then adding more summary statistics will never increase (or decrease) the amount of relevant information being extracted from the sampled data.
 
   \par Here is an example which proves that the sum of sampled values is a sufficient summary statistic for a normal distribution with unknown mean
 
@@ -317,7 +326,7 @@
   \par As with identifying sufficient statistics, determining whether or not a sufficient statistic is minimally sufficient is not a trivial task. I demonstrate this in the example below
 
   \begin{box_example}[Minimally Sufficient Statistic for IID Bernoulli Random Variables]\label{example_minimally_sufficient_bernoulli}
-    Suppose $X_1,\dots,X_n$ are independent and identically distribution Bernoulli random variables. Note that the identity function $s_1(\mathbf{X})=\mathbf{X}$ and the sum function $s_2(\mathbf{X})=\sum_{i=1}^nX_i$ are both sufficient statistics.
+    Let $X_1,\dots,X_n$ are independent and identically distribution Bernoulli random variables. Note that the identity function $s_1(\mathbf{X})=\mathbf{X}$ and the sum function $s_2(\mathbf{X})=\sum_{i=1}^nX_i$ are both sufficient statistics.
     \par We can map from $s_1$ to $s_2$ as follows
     \[ s_2(\mathbf{X})=\sum_{i=1}^n [s_2(\mathbf{X})]_i \]
     However, there is no function which can map from $s_2$ to $s_1$ as it would have to map the value 1 to both $(1,0,\dots,0)$ and $(0,1,\dots,0)$. This proves that the identity function $s_1$ is not a minimally sufficient statistic, but does not prove that the sum function $s_2$ is a minimally sufficient statistic as we have not considered all possible sufficient statistics for this distribution.
@@ -392,16 +401,17 @@
     \end{proof}
   \end{box_theorem}
 
-  The Lehmann-Scheffe theorem \cite[]{lehmann_scheffe_theorem} states that if the statistic used in a Rao-Blackwell transformation is both sufficient and complete, then the resulting estimator is in fact the unique minimum-variance unbiased-estimator. This result is independent of how good the initial estimator was. % https://en.wikipedia.org/wiki/Lehmann%E2%80%93Scheff%C3%A9_theorem
+  \par The Lehmann-Scheffe theorem \cite[]{lehmann_scheffe_theorem} states that if the statistic used in a Rao-Blackwell transformation is both sufficient and complete, then the resulting estimator is in fact the unique minimum-variance unbiased-estimator. This result is independent of how good the initial estimator was. % https://en.wikipedia.org/wiki/Lehmann%E2%80%93Scheff%C3%A9_theorem
 
   % TODO (MAYBE) likelihood and sufficiency (http://www.stat.cmu.edu/~siva/705/lec11.pdf)
 
-\subsubsection*{In Practice}
-  % Sufficiency and ABC (If summary stats are not sufficient then the posterior will only ever be an approxiamtion)
-  In Bayesian modelling problems we want to deduce the posterior for some model parameters to as high a degree of accuracy as possible. Let $f^*(\theta|X(\theta)=x_{obs})$ be the true posterior for model parameters $\theta$ and $\hat{f}(\theta|S(X(\theta))=S(x_{obs}))$ be the estimated posterior produced by our modelling method, given $x_{obs}$ was observed from the true model and summary statistics $S(\cdot)$ were used. If the summary statistics $S(\cdot)$ are sufficient then the estimated posterior $\hat{f}$ will converge towards the true posterior $f^*$, given enough simulations, however,if $S(\cdot)$ are not sufficient then $\hat{f}$ can never (consistently) converge on the true posterior $f^*$, and rather will always be an approximation. Thus, finding sufficient statistics for our models is highly desirable in bayesian modelling. %TODO make this more succinct
+  % \subsubsection*{In Practice}
+
+  % Sufficiency and ABC (If summary stats are not sufficient then the posterior will only ever be an approximation)
+  \par In Bayesian modelling problems we want to deduce the posterior for some model parameters to as high a degree of accuracy as possible. Let $f^*(\theta|X(\theta)=x_{obs})$ be the true posterior for model parameters $\theta$ and $\hat{f}(\theta|S(X(\theta))=S(x_{obs}))$ be the estimated posterior produced by our modelling method, given $x_{obs}$ was observed from the true model and summary statistics $S(\cdot)$ were used. If the summary statistics $S(\cdot)$ are sufficient then the estimated posterior $\hat{f}$ will converge towards the true posterior $f^*$, given enough simulations, however, if $S(\cdot)$ are not sufficient then $\hat{f}$ can never (consistently) converge on the true posterior $f^*$, and rather will always be an approximation. Thus, finding sufficient statistics for our models is highly desirable in Bayesian modelling. %TODO make this more succinct
 
   % good sufficient statistics are rare (Pitman–Koopman–Darmois theorem)
-  \par However, although sufficient statistics do exist for all models, as the identity function is a sufficient statistic for all models, they are not necessarily the best choice of summary statistic when implementing computational methods as they may provide very little dimensionality reduction relative to other statistics which still manage to maintain a large about of the relevant data from a sample. Moreover, the Pitman-Koopman-Darmoois theorem \textbf{Theorem \ref{the_pitman_koopman_darmois}} shows that summary statistics which provide a high level of dimensionality reduction only exist for probability distributions from exponential families.
+  \par However, although sufficient statistics do exist for all models, as the identity function is a sufficient statistic for all models, they are not necessarily the best choice of summary statistic when implementing computational methods as they may provide very little dimensionality reduction relative to other statistics which still manage to maintain a large about of the relevant data from a sample. Moreover, the Pitman-Koopman-Darmois theorem \textbf{Theorem \ref{the_pitman_koopman_darmois}} shows that summary statistics which provide a high level of dimensionality reduction only exist for probability distributions from exponential families.
 
   \begin{box_theorem}[Pitman–Koopman–Darmois Theorem]\label{the_pitman_koopman_darmois}
     Among families of probability distributions whose domain does not vary with the parameter being estimated, only in exponential families are there sufficient statistics whose dimension are bounded as the sample size increases. \cite[]{pkd_lecture_notes}
@@ -412,11 +422,10 @@
 
   \par This lack of computationally efficient sufficient statistics, for most models, motivated the concept of ``approximate sufficiency'' in \cite[]{Approximately_sufficient_statistics_and_bayesian_computation} which aims to balance the number of summary statistics with the amount of information being retained from a sample. I discuss this concept more when I present the summary statistic selection algorithm from \cite[]{Approximately_sufficient_statistics_and_bayesian_computation} paper in \textbf{Section \ref{sec_approximate_sufficient_subset}}.
 
-  \par In \cite{on_model_selection_with_summary_statistics} Ruli demonstrates that the using summary statistics which are sufficient for parameters produces unreliable results when performing model selection. This is due to it being impossible to distinguish between models which have the same sufficient statistics for their parameters. For example, the sum sampled values is a sufficient statistics for the means of both geometric and poisson models, and so cannot be used to compare these two models. Rather, cross-model sufficient statistics would be required to distinguish between these models in practice, which is impossible in practice. % TODO say why this is bad (e.g. This limits the ability to compare even simple models, and sufficient statistics rarely exist for more complex models)
+  \par It is demonstrated in \cite[]{on_model_selection_with_summary_statistics} that the using summary statistics which are sufficient for parameters produces unreliable results when performing model selection. This is due to it being impossible to distinguish between models which have the same sufficient statistics for their parameters. For example, the sum sampled values is a sufficient statistics for the means of both geometric and Poisson models, and so cannot be used to compare these two models. Rather, cross-model sufficient statistics would be required to distinguish between these models in practice, which is impossible in practice. % TODO say why this is bad (e.g. This limits the ability to compare even simple models, and sufficient statistics rarely exist for more complex models)
 
-  % TODO IRL example (The Ewens Sampling Formula)
-  To close this section I shall mention some real world scenarios where useable sufficient statistics do exist........
-
+  % IRL example (The Ewens Sampling Formula)
+  \par To close this section, I shall mention the Ewens' Sampling formula \cite{ewens_sampling_formula} which illustrates a real-world scenario useable and useful sufficient statistics have been found. The Ewens' Sampling formula provides, under certain conditions, a parametric probability distribution for the frequencies of unique types of allele observed in a sample of gametes when using the Infinite Alleles model. The mutation rate is the only parameter of this distribution and it is notable that the total number of types is a sufficient statistic for the mutation rate \cite[]{partition_structures_and_sufficient_statistics}. This is appealing as ABC methods are used widely in population genetics research (See \cite[]{bayesian_inference_of_the_demographic_history_of_chimpanzees,ABC_in_population_genetics,modern_computational_approaches_for_analysing_molecular_genetic_variation_data} among many others).
 
 \subsection{Methods for Summary Statistic Selection}\label{sec_summary_stats_methods}
 
@@ -426,17 +435,18 @@
   \cite[]{Approximately_sufficient_statistics_and_bayesian_computation}
   %TODO
 
-\subsubsection{Minimising Entropy}
+\subsubsection{Minimising Entropy}\label{sec_minimsing_entropy}
   \cite[]{on_optimal_selection_of_summary_stats_for_ABC}
 
-\subsubsection{Two-Step Minimum Entropy}
+\subsubsection{Two-Step Minimum Entropy}\label{sec_two_step_minimum_entropy}
   \cite[]{on_optimal_selection_of_summary_stats_for_ABC}
 
-\subsubsection{Semi-Automatic ABC}
+\subsubsection{Semi-Automatic ABC}\label{sec_semi_automatic_abc}
   \cite[]{constructing_summary_statistics_for_approximate_bayesian_computation_semi_automatic_ABC}
 
-\subsubsection{Non-Linear Projection}
-\subsubsection{Toy Example}
+\subsubsection{Non-Linear Projection}\label{sec_non_linear_projection}
+
+\subsubsection{Toy Example}\label{sec_summary_statistics_toy}
 
 \subsection{Model Selection}
 
