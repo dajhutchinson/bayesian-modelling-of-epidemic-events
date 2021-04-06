@@ -47,6 +47,7 @@
 \newmdtheoremenv{box_algorithm}{Algorithm}[section]
 \newmdtheoremenv{box_definition}{Definition}[section]
 \newmdtheoremenv{box_example}{Example}[section]
+\newmdtheoremenv{box_remark}{Remark}[section]
 \newmdtheoremenv{box_theorem}{Theorem}[section]
 
 \begin{document}
@@ -197,7 +198,7 @@
 \subsection{Properties of Summary Statistics}\label{sec_properties_of_summary_statistics}
 
   % Degree reduction (ie greater compression)
-  \par When evaluating a summary statistic for use in ABC there are several properties, both mathematical and practical, to consider. I first discuss practical properties to consider, and then the key mathematical property of sufficiency.
+  \par When evaluating a summary statistic for use in ABC there are several properties, both mathematical and practical, to consider.
 
 \subsection*{Practical Properties}
 
@@ -206,6 +207,10 @@
   % Computational efficiency & overflow
   % TODO correlation is very inefficient as it considers many
   \par For a model which produces data of dimension $n\times m$ (i.e. $n$ readings, each with $m$ features) most standard summary statistics are calculated in $O(n\cdot m)$  time. However, this is only a theoretical result and in practice there are meaningful differences in the computational requirements of each summary statistics. Calculating the mean and maximum values for each feature takes $O(n\cdot m)$ time in theory but, since calculating the mean relies on arithmetic operations and the maximum on comparison operations, they will take different amounts of time in practice. Some statistics, namely order statistics, are variable in the their time complexity for different data sets which will affect the reliability of models which utilise the. Integer overflow is a possible issue for some summary statistics, although it is often easy to avoid when actively been considered during the implementation of an algorithm. Moreover, for statistics with non-linear computational complexity (e.g. correlation between each pair of features), the size of the dataset being analysed needs to be considered when evaluating summary statistic choice.
+
+  % weights and scaling
+  \par ABC-methods rely on distance measures to determine whether a simulation is good, or not. This means that the range of values a summary statistic can take will have an affect on how influential that summary statistic is to the final model fit. In most cases it is easiest to standardise all statistic to have the same mean and variance. This can be implemented to occur adaptively within the ABC-method. There may be cases % TODO are there any?
+  where assigning different weights to different summary statistics makes sense and produces a better model fit, but these are hard to justify from a theoretical approach. The selection methods I discuss which compare hand-crafted statistics (Sections \ref{sec_approximate_sufficient_subset}-\ref{sec_two_step_minimum_entropy}) can be used to compare possible weightings by including several versions of the same summary statistic, each with a different scaling, in the set of statistics being compared. This will however increase computation time due to the increase size of the set of statistics and may make the results harder to interpret\footnote{Multiple sets of weighted summary statistics will be equivalent due to having the same ratio of weights}.
 
   % Interpretability
   \par For real-world modelling problems, the interpretability of summary statistics used in the final model is a key factor in how useful this solution is. Senior stakeholders in a problem will want to use the final model to justify their future decisions, this is much easier to do when the factors the model is considering, and the weights it assigns to them, are readily understandable. Hand-crafted statistics are almost always the most readily understandable than automatically generated statistics, as such generated statistics are rarely used in commercial problems\footnote{The current popularity of using ``Neural Networks'' in commercial settings does buck this trend. I hope this fad will subside soon in favour of more interpretable alternatives. I believe it is worth noting that the new European Union payment services directive (PSD2) requires that certain models used by financial institutions be ``explainable'' in order to improve the customer experience and to ensure no one is discriminated against due to their protected characteristics.}. In cases where it is chosen to used automatically generated statistics, one can develop an intuition for their model by varying the inputs, or removing certain features, and observing how the output varies.
@@ -222,25 +227,30 @@
 
   \par It can be intuitively helpful to consider a sufficient statistic as a data reduction method. Moreover, a sufficient summary statistic provides a loss-less compression of sampled data as it reduces the dimensionality of the data and but still captures all relevant information.
 
-  \par \textbf{Theorem \ref{the_sufficiency_of_superset}} states that if we have a set of summary statistics which are sufficient for a set of parameters, then adding more summary statistics will never increase (or decrease) the amount of relevant information being extracted from the sampled data.
-
-  \begin{box_theorem}\label{the_sufficiency_of_superset}
-    Let $S_{1:k-1}(\cdot):=\{s_1(\cdot),\dots,s_{k-1}(\cdot)\}$ be a collection of $k-1$ summary statistics and suppose that $S_{1:k-1}$ is sufficient for the parameters $\theta$ of some model $X$. Then $S_{1:k-1}\cup\{s_k\}$ is also sufficient for the parameters $\theta$, for all summary statistics $s_k$.
+  \begin{box_remark}[Supersets of Sufficient Statistics]\label{the_sufficiency_of_superset}
+    Let $s_{1:k-1}(\cdot):=\{s_1(\cdot),\dots,s_{k-1}(\cdot)\}$ be a collection of $k-1$ summary statistics and suppose that $s_{1:k-1}$ is sufficient for the parameters $\theta$ of some model $X$. Then $s_{1:k-1}\cup\{s_k\}$ is also sufficient for the parameters $\theta$, for all summary statistics $s_k$.
     \begin{proof}
       \everymath={\displaystyle}
-      Let $S_{1:k}:=S_{1:k-1}\cup\{s_k\}$. Consider the posterior for model parameters $\theta$ given the summary statistics $S_{1:k}$
+      Consider a model with parameters $\theta$ and let $s_1,\dots,s_k$ be summary statistics where the set $s_{1:k-1}:=\{s_1,\dots,s_{k-1}\}$ is sufficient for parameter $\theta$. Note that the likelihood of set $s_k:=s_{1:k-1}\cup\{s_k\}$ given the model parameters $\theta$ can be stated as
+      \[ \prob(s_{1:k}(X)|\theta)=\prob(s_k(X)|s_{1:k-1}(X),\theta)\prob(s_{1:k-1}|\theta) \]
+      Now consider the following decomposition of the posterior for the model parameters $\theta$ given summary statistics $s_{1:k}$
       \[\begin{array}{rcl}
-        \prob(\theta|S_{1:k})&=&\frac{\prob(\theta,S_{1:k})}{\prob(S_{1:k})}\\
-        &=&\frac{\prob(\theta,S_{1:k})}{\prob(S_{1:k})}\cdot\frac{\prob(S_{1:k-1})}{\prob(S_{1:k-1})}\\
-        &=&\frac{\prob(\theta,S_k|S_{1:k-1})}{\prob(S_k|S_{1:k-1})}\\
-        &=&\frac{\prob(\theta,S_k|S_{1:k-1})}{\prob(S_k|S_{1:k-1},\theta)}\text{ as }S_{1:k-1}\text{ is sufficient}\\
-        &=&\frac{\prob(\theta,S_{1:k})}{\prob(S_{1:k-1})}\cdot\frac{\prob(\theta,S_{1:k-1})}{\prob(\theta,S_{1:k})}\\
-        &=&\frac{\prob(\theta,S_{1:k-1})}{\prob(S_{1:k-1})}\\
-        &=&\prob(\theta|S_{1:k-1})
+        \prob(\theta|s_{1:k}(X))&=&\frac{\prob(s_{1:k}(X)|\theta)\prob(\theta)}{\prob(s_{1:k}(X))}\\
+        &=&\frac{\prob(s_k(X)|s_{1:k-1}(X),\theta)\prob(s_{1:k-1}|\theta)\prob(\theta)}{\prob(s_k(X)|s_{1:k-1}(X))\prob(s_{1:k-1}(X))}\\
       \end{array}\]
-      This shows that if $S_{1:k-1}$ is sufficient for $\theta$, then the posterior for $\theta$ will be the same for any superset of $S_{1:k-1}$. This means that all supersets of a sufficient set of statistics is also sufficient.
+      Since the set $s_{1:k-1}$ is sufficient for $\theta$ we have that
+      \[ \prob(s_k(X)|s_{1:k-1}(X))=\prob(s_k(X)|s_{1:k-1}(X),\theta)\]
+      Applying this result to the decomposition above, we deduce that the posterior for the model parameters $\theta$ given $s_{1:k}$ or $s_{1:k-1}$ are identical.
+      \[\begin{array}{rcl}
+        \prob(\theta|s_{1:k}(X))&=&\frac{\prob(s_k(X)|s_{1:k-1}(X),\theta)\prob(s_{1:k-1}|\theta)\prob(\theta)}{\prob(s_k(X)|s_{1:k-1}(X),\theta)\prob(s_{1:k-1}(X))}\\
+        &=&\frac{\prob(s_{1:k-1}|\theta)\prob(\theta)}{\prob(s_{1:k-1}(X))}\\
+        &=&\prob(\theta|s_{1:k-1}(X))
+      \end{array}\]
+      Thus the set $s_{1:k}$ is sufficient for model parameters $\theta$. Due to the arbitrary nature of $s_{1:k-1}$ and $s_k$, this result holds for all supersets of sufficient summary statistics.
     \end{proof}
-  \end{box_theorem}
+  \end{box_remark}
+
+  \par \textbf{Remark \ref{the_sufficiency_of_superset}} states that if we have a set of summary statistics which are sufficient for a set of parameters, then adding more summary statistics will never increase (or decrease) the amount of relevant information being extracted from the sampled data.
 
   \par \textbf{Example \ref{example_sufficient_stats_normal}} shows that the sum of sampled values is a sufficient summary statistic for a normal distribution with unknown mean.
 
@@ -442,40 +452,57 @@
 
   \par When thinking about summary statistic selection it is useful to consider the summary statistics themselves as a feature of your theorised model. This makes the process of selecting summary statistics analogous to model selection, with each combination of summary statistics being considered as a different model. This is the motivation behind most summary statistic selection methods.
 
+  % TODO some of these algorithms are worth running multiple times and then choosing the set of statistics which are returned most often, or creating a mixtures model
+
 \subsubsection{Approximate Sufficient Subset}\label{sec_approximate_sufficient_subset}
-  In \cite[]{Approximately_sufficient_statistics_and_bayesian_computation} a sequential process is proposed for selecting a subset of summary statistics from a larger set of hand-crafted statistics, in such a way that ABC methods perform approximately as well when using the subset compared to using the superset.
+  \par In \cite[]{Approximately_sufficient_statistics_and_bayesian_computation} present the first algorithm for automating the selection of summary statistic. The key idea of their approach is to find a subset of summary statistics, from a large set of hand-crafted statistics, such that ABC methods perform approximately as well when using the subset. This requires a method for empirically evaluating the information extracted by sets of summary statistics. The use of hand-crafted statistics, as discussed in length above, comes with its own advantages and limitations.
 
-  \par For the theoretical basis of their algorithm, Joyce \& Marjoram define the concepts of score and $\varepsilon$-approximate sufficiency. This are used to determine how extra information each additional summary statistic extracts.
+  \begin{box_remark}[Difference of Log-Likelihood]\label{rem_difference_of_log_likelihood}
+    Let $s_1,\dots,s_k$ be summary statistics for a model $X$ with parameters $\theta$. Define sets $s_{1:k-1}:=\{s_1,\dots,s_{k-1}\},\ s_{1:k}:=\{s_1,\dots,s_k\}$ and consider the likelihood of the set $s_{1:k}$ with respect to the model parameters $\theta$
+    \[\begin{array}{rrcl}
+    &\prob(s_{1:k}(X)|\theta)&=&\prob(s_k(X)|s_{1:k-1}(X),\theta)\cdot\prob(s_{1:k-1}(X)|\theta)\\
+    \implies&\ln\prob(s_{1:k}(X)|\theta)&=&\ln\prob(s_k(X)|s_{1:k-1}(X),\theta)+\ln\prob(s_{1:k-1}(X)|\theta)\\
+    \implies&\ln\prob(s_{1:k}(X)|\theta)-\ln\prob(s_{1:k-1}(X)|\theta)&=&\ln\prob(s_k(X)|s_{1:k-1}(X),\theta)
+    \end{array}\]
+  \end{box_remark}
 
-  \begin{box_definition}[Score $\delta_k$]\label{def_score}
-    % TODO
-    \cite[]{Approximately_sufficient_statistics_and_bayesian_computation}
+  \par For the theoretical basis of their algorithm, Joyce \& Marjoram first show that the difference in log-likelihood value between two sets of summary statistics can be directly quantified as $\ln\prob(s_k(X)|s_{1:k-1}(X),\theta)$ (\textbf{Remark \ref{rem_difference_of_log_likelihood}}). This gives a single value which needs to be estimated. It is worth noting that if the set $s_{1:k-1}$ is sufficient for model parameter $\theta$ then the quantity $\ln\prob(s_k(X)|s_{1:k-1}(X),\theta)$ would be independent of $\theta$ and thus mean $s_k$ does not contribute to inferences about $\theta$. This result motivates  Joyce \& Marjoram use of log-likelihood in their definition of score. The greater the score value of a statistic, the more extra information it extracts and thus we want to find the statistics with the greatest scores. Moreover, if the score of a statistic differs significantly from 0 then it should be accepted.
+
+  \begin{box_definition}[Score $\delta_k$, \cite{Approximately_sufficient_statistics_and_bayesian_computation}]\label{def_score}
+    Let $s_1,\dots,s_k$ be $k$ summary statistics. The score of $s_k$ relative to the set $s_{1:k-1}:=\{s_1,\dots,s_{k-1}\}$ is defined as
+    \[ \delta_k:=\sup_\theta\left\{\ln\prob(s_k|s_{1:k-1})\right\}-\inf_\theta\left\{\ln\prob(s_k|s_{1:k-1})\right\} \]
   \end{box_definition}
 
-  \begin{box_definition}[$\varepsilon$-Approximate Suffiency]\label{def_approximate_suffiency}
-    % TODO
-    \cite[]{Approximately_sufficient_statistics_and_bayesian_computation}
+  \begin{box_definition}[$\varepsilon$-Approximate Sufficiency, \cite{Approximately_sufficient_statistics_and_bayesian_computation}]\label{def_approximate_suffiency}
+    Let $s_1,\dots,s_k$ be $k$ summary statistics. The set $s_{1:k-1}:=\{s_1,\dots,s_{k-1}\}$ $\varepsilon$-sufficient for statistic $s_k$ if the score of $s_k$ relative to $s_{1:k-1}$ is no greater that $\varepsilon$.
+    \[ \delta_k\leq\varepsilon \]
   \end{box_definition}
 
-  \begin{box_algorithm}[Select an Approximately Sufficient Subset of Summary Statistics - Theoretical]
+  \par ABC methods are applied in scenarios where likelihoods are intractable. This means that the score of a statistic is intractable too. Thus, Joyce \& Marjoram only use the score to motivate their algorithm and in practice use different approaches to compare statistics. I discuss this in more detail later when I explore the practicalities of their algorithm. % TODO is this true? or do their methods estimate score
+
+  \begin{box_algorithm}[Approximately Sufficient Subset of Summary Statistics, \cite{Approximately_sufficient_statistics_and_bayesian_computation}]\label{alg_approximately_sufficient_subsets}
     \begin{algorithm}[H]
       \SetKwInOut{Require}{require}
-      \Require{Set of summary statistics $S$}
+      \Require{Set of summary statistics $S$; Score threshold $\varepsilon$}
       $S'\leftarrow\emptyset$\\
-      % calculate score
+      \While{true}{
+        Calculate the score for each statistic in $S$ wrt $S'$\label{alg_line_calculate_score}\\
+        $\delta_{max}\leftarrow\max_{s\in S}\text{Score}(s;S')$\label{alg_approximately_sufficient_subsets_max_score}\\
+        $s_{max}\leftarrow\text{argmax}_{s\in S}\text{Score}(s;S')$\label{alg_approximately_sufficient_subsets_max_statistic}\\
+        \lIf{$\delta_{max}>\varepsilon$}{\label{alg_approximately_sufficient_subsets_if_statement}
+          $S'\leftarrow S'\cup\{s\}$
+        } \lElse {
+          \Return{S'}
+        }
+      }
     \end{algorithm}
   \end{box_algorithm}
 
-  \begin{box_algorithm}[Select an Approximately Sufficient Subset of Summary Statistics - Practical]
-    \begin{algorithm}[H]
-      \SetKwInOut{Require}{require}
-      \Require{Set of summary statistics $S$}
-      $S'\leftarrow\emptyset$\\
-      % calculate score
-    \end{algorithm}
-  \end{box_algorithm}
+  \par Joyce \& Marjorams' algorithm (\textbf{Algorithm \ref{alg_approximately_sufficient_subsets}}) starts with an empty set and proceeds to, each iteration, add the summary statistics with the greatest score wrt the set of already selected statistics, until it believes that the none of the remaining unselected summary statistics extracts a significant amount of extra information about the model parameters. They define the concept of $\varepsilon$-approximate sufficient sets to formalise this stopping condition. The algorithm can be thought of as running until the set of accepted summary statistics is $\varepsilon$-approximate sufficient for each unchosen summary statistic, individually. $\varepsilon$ is a parameter of the algorithm, with smaller values likely leading to more summary statistics being accepted as the threshold for the amount of extra information extracted by each new statistic is lower. Alternatively, we could fix the number of summary statistics we want to be accepted from the superset.
 
-  \begin{box_algorithm}[Evaluate Proposed Statistic]
+  \par As mentioned, in practice the score cannot be calculated. Joyce \& Marjoram instead determined that a proposed statistic introduces significant information if the posterior of parameters accepted under its usage was significantly different from the posterior when it was not used. This approach, set out in \textbf{Algorithm \ref{alg_evaluate_proposed_statistic}}, consists of estimating the expected value and standard deviation for the number of occurrences of each parameter value; and then accepting the proposed statistic if any of the observed number of occurrences was more than four standard deviations away from its expected value. For this approach to be computationally tractable the posterior space is discretised in $M$ bins whose counts can be compared. When this approach is applied the stopping condition of the main algorithm is changed to be \textit{``Stop if no proposed statistics were accepted in the last cycle''}. There are alternative stopping conditions which could be used, it is reasonable to place a cap on the number of statistics allowed to be accepted. Some simple caching techniques can be applied to improve computational efficiency.
+
+  \begin{box_algorithm}[Evaluate Proposed Statistic]\label{alg_evaluate_proposed_statistic}
     \begin{algorithm}[H]
       \footnotetext{The expected values $E$ (Line \ref{alg_expected_value}), the standard deviations $sd$ (Line \ref{alg_standard_deviation}) and the condition of the if statement (Line \ref{alg_line_condition}) are each evaluated piece-wise.}
       \SetKwInOut{Require}{require}
@@ -492,6 +519,33 @@
     \end{algorithm}
   \end{box_algorithm}
 
+  \par \textbf{Algorithm \ref{alg_evaluate_proposed_statistic}} requires sets of parameters which were accepted under each set of summary statistics in order to compare the posteriors. These sets are acquired by running a large number of simulations of the theorised model, using parameters sampled from the model priors, and then using the ABC-Rejection Sampling to determine which parameters would be accepted under each set of summary statistics\footnote{Considerations need to be made for how the bandwidth of the kernel scale with the number of parameters. The simplest solution is for it to scale linearly.}. This approach has the desirable property that we only need to sample parameters once, and then can use the same set of samples each time we run \textbf{Algorithm \ref{alg_evaluate_proposed_statistic}}. This property allows us to justify sampling a very large number of parameters which will make the posterior estimates more accurate. Using this approach means the approximation factor $\varepsilon$ is no longer a parameter of the algorithm, but the distance measure, acceptance kernel and bandwidth used in the ABC-Rejection Sampling step are now parameters, as well as the number of bins $M$ and number of model simulations.
+
+  \par A big limitation of using \textbf{Algorithm \ref{alg_evaluate_proposed_statistic}} is that it does not produce a numerical value which can be used to rank each proposed statistic, as score does. This means we cannot choose to keep adding the highest scoring statistic, as in \textbf{Algorithm \ref{alg_approximately_sufficient_subsets}}, and instead have to consider statistics in a somewhat arbitrary order. This means that the order in which statistics are considered will affect the result of the algorithm\footnote{You could compare each possible subset but this would highly inefficient as it potentially requires ${K! \choose 2}$ runnings of Algorithms \ref{alg_evaluate_proposed_statistic}, where $K$ is the number of statistics being considered, and there is no guarantee this would produce a definitive best set, due to the complex relationships between statistics.}. A solution to this is to consider statistics in a random order and whenever a statistic is accepted, consider removing each statistic which has already been chosen. When implementing this approach considerations need to be made to avoid infinite loops where the same statistics keep getting added and removed.
+
+  \par \textbf{Algorithm \ref{alg_evaluate_proposed_statistic}} performs poorly when applied with uninformative statistics. This can be seen by noticing that a summary statistic which is just random noise will almost always produce a posterior which is significantly different from an informative set of statistics.
+
+  % \begin{box_algorithm}[Practical Version of \textbf{Algorithm \ref{alg_approximately_sufficient_subsets}}]
+  %     \begin{algorithm}[H]
+  %       \SetKwInOut{Require}{require}
+  %       \Require{Set of summary statistics $S$; Score threshold $\varepsilon$}
+  %       $S'\leftarrow\emptyset$\\
+  %       $\Theta,Y_{obs}\leftarrow$simulate $N$ sets of parameters and observations\\
+  %       \While{$S_{check}$}{
+  %         $s_{prop}\leftarrow$Random($S_{check}$)\\
+  %         $S_{check}\leftarrow S_{check}\setminus\{s_{prop}\}$\\
+  %         $\Theta_{S'}\leftarrow$Parameters in $\Theta$ accepted when using $S'$\\
+  %         $\Theta_{S'\cup\{s_{prop}\}}\leftarrow$Parameters in $\Theta$ accepted when using $S'\cup\{s_{prop}\}$\\
+  %         \lIf{\textbf{Algorithm \ref{alg_evaluate_proposed_statistic}}$(\Theta_{S'},\Theta_{s'\cup\{s_prop}\},M)$}{
+  %           $S'\leftarrow S'\cup\{s\}$\\
+  %
+  %         } \lElse {
+  %           \Return{S'}
+  %         }
+  %       }
+  %       \Return{S'}
+  %     \end{algorithm}
+  %   \end{box_algorithm}
 
 \subsubsection{Minimising Entropy}\label{sec_minimsing_entropy}
   \cite[]{on_optimal_selection_of_summary_stats_for_ABC}
