@@ -613,8 +613,8 @@
         $\Theta\leftarrow$Perform ABC-Rejection Sampling using $S'$\\
         $\hat{H}_{S'}\leftarrow\hat{H}(\Theta)$
       }
-      $S_{ME}\leftarrow\text{argmin}_{S'\subseteq S}\hat{H}_{S'}$\\
-      \Return{$S_{ME}$}
+      $S_{ME}^*\leftarrow\text{argmin}_{S'\in 2^S}\hat{H}_{S'}$\\
+      \Return{$S_{ME}^*$}
     \end{algorithm}
   \end{box_algorithm}
 
@@ -629,7 +629,30 @@
 
 \subsubsection{Two-Step Minimum Entropy}\label{sec_two_step_minimum_entropy}
 
-  The second algorithm from \cite[]{on_optimal_selection_of_summary_stats_for_ABC} is an extension of the first.
+  The second algorithm from \cite[]{on_optimal_selection_of_summary_stats_for_ABC} is an extension of the first. It uses the set of statistics $S_{ME}^*$ returned by \textbf{Algorithm \ref{alg_minimum_entropy_summary_statistic_selection}} to artificially increase the size of the observed dataset by treating the simulated samples which are accepted when $S_{ME}^*$ is used as if they were observed data. % TODO something about how this increased size of observations is useful
+
+  \begin{box_definition}[Residual Sum of Squares Error, \cite{on_optimal_selection_of_summary_stats_for_ABC}]
+    Let $X:=\{X_1,\dots,X_n\}$ be a set of observations and $X^*$ be a target value. Residual sum of squares error (RSSE) measures the difference between the observed values and the target value by calculating the mean of the square of the residuals. A smaller RSSE value indicates less error as the observed values do not deviate much from the target value.
+    \[ RSSE(X,X^*):=\sqrt{\frac1n\sum_{i=1}^n\|X_i-X^*\|} \]
+    where $\|\cdot\|$ is the Euclidean distance.
+    \par Now define $X^*:=\{X_1^*,\dots,X_m^*\}$ to be a set of target values. The mean residual sum of squares error (MRSSE) is the mean RSSE value for each target value wrt the observed data $X$.
+    \[ MRSSE(X,X^*):=\frac1m\sum_{i=1}^mRSSE(X,X_i^*) \]
+  \end{box_definition}
+
+  \begin{box_algorithm}[Two-Step ME Summary Statistic Selection\cite{on_optimal_selection_of_summary_stats_for_ABC}]\label{alg_two_step_me}
+    \begin{algorithm}[H]
+      \SetKwInOut{Require}{require}
+      \Require{Set of summary statistics $S$, Number of simulations to accept $n_{obs}$}
+      $S_{ME}\leftarrow$\textbf{Algorithm \ref{alg_minimum_entropy_summary_statistic_selection}}($S$)\\
+      $\hat{\Theta}_{ME}\leftarrow$ $n_{obs}$ simulated parameter sets which minimise $\|S_{ME}(x_{sim})-S_{ME}(x_{obs}^*)\|$\\
+      \For{$S'\in 2^{S}$}{
+        $\Theta_{acc}\leftarrow$Parameter values accepted from ``Best Samples'' ABC-RS($S',n_{obs}$)\\
+        $MRSSE_{S'}\leftarrow\displaystyle\frac1{n_{obs}}\sum_{i=1}^{n_{obs}} RSSE(\Theta_{acc},\hat\Theta_{ME,i})$
+      }
+      $S^*\leftarrow\text{argmin}_{S'\in 2^S}MRSSE_{S'}$\\
+      \Return{$S^*$}
+    \end{algorithm}
+  \end{box_algorithm}
 
 \subsubsection{Semi-Automatic ABC}\label{sec_semi_automatic_abc}
   \cite[]{constructing_summary_statistics_for_approximate_bayesian_computation_semi_automatic_ABC}
