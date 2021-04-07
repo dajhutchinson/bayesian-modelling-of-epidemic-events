@@ -58,6 +58,14 @@
 \maketitle
 \newpage
 
+% \section*{Dedication}\label{sec_dedication}
+% Me, I'm taking this one. And Chris Lovasz whose streams kept me passively entertained during this project.
+% \newpage
+
+% \section*{Accompanying Resources}\label{sec_accompanying_resources}
+% % TODO link to github for code and notebooks
+% \newpage
+
 \section*{Abstract}\label{sec_abstract}
 \newpage
 
@@ -108,7 +116,7 @@
   \par How to tune tolerance $\varepsilon$? Run tests showing performance with different tolerances (plots of posteriors when using different tolerances).
   \par Curse of dimensionality (regression methods can counter this)
 
-\subsection*{Accept-Reject-ABC}\label{sec_accept_reject_ABC}
+\subsection*{ABC-Rejection Sampling}\label{sec_abc_rejection_sampling}
   \par Perform poorly when prior and posterior and very different (especially when overlap is small).
   \par Worth tracking ``acceptance rate'' to test algorithms performance. Don't want too high or too low, time v quality.
   \par Variations - Sample until $N$ accepted (how to determine width of acceptance); Sample $M$ times and keep best $N$ (how to determine best); Sample $M$ times, keep all and weight parameters by distance of simulated data from sampled data (weighted linear-regression).
@@ -160,7 +168,7 @@
 \newpage
 \section{Summary Statistic Selection}\label{sec_summary_stats}
 
-  In this chapter I motivate the research into summary statistic selection \ref{sec_summary_stats_motivation} and discuss features to consider when selecting summary statistics \ref{sec_properties_of_summary_statistics}. I then describe five methods for summary statistic selection methods: three which use hand-crafted summary statistics \ref{sec_approximate_sufficient_subset}-\ref{sec_two_step_minimum_entropy}; and two which automatically generate summary statistics \ref{sec_semi_automatic_abc}-\ref{sec_non_linear_projection}; To close the section, a toy example of an SIR model to compare these methods \ref{sec_summary_statistics_toy}.
+  In this chapter I motivate the research into summary statistic selection \textit{Section \ref{sec_summary_stats_motivation}} and discuss features to consider when selecting summary statistics \textit{Section \ref{sec_properties_of_summary_statistics}}. I then describe six methods for summary statistic selection methods: four which use hand-crafted summary statistics \textit{Sections \ref{sec_approximate_sufficient_subset}-\ref{sec_two_step_minimum_entropy}}; and two which automatically generate summary statistics \textit{Sections \ref{sec_semi_automatic_abc}-\ref{sec_non_linear_projection}}. These approaches are covered in the chronological order in which they were original proposed. To close the section I use a toy example of an SIR model to compare these methods \textit{Section \ref{sec_summary_statistics_toy}}.
 
 \subsection{Motivation}\label{sec_summary_stats_motivation}
 
@@ -168,64 +176,61 @@
 
   \par The study of summary statistics has relevance beyond ABC methods, largely due to the recent ``Big-Data Revolution'' which has seen the rate at which data can be collected and stored significantly outpace improvements in computational power. This has motivated research into effective methods to reduce the size of datasets so that more computationally intensive algorithms can be used to analyse the data. % TODO give examples of papers from other fields
 
-  \par A summary statistic $s$ is a statistic which reduces the dimensionality of some sampled data, in a deterministic fashion, whilst retaining as much information about the sampled data as possible. Reducing the dimensionality of data is desirable as it reduces the computational requirements to analyse the data.
+  \par A summary statistic $s$ is a statistic which reduces the dimensionality of some sampled data, in a deterministic fashion, whilst retaining as much information about the sampled data as possible. Reducing the dimensionality of data is desirable as it reduces the computational requirements to analyse the data. Ideally, a summary statistic would compress the sampled data without any information loss (A property known as ``sufficiency''). However, low-dimension sufficient summary statistics are rare in practice and we often have to trade-off information retention against dimensionality reduction.
 
   \[ s:\mathbb{R}^m\to\mathbb{R}^p\text{ with }m>p \]
 
-  \par In most cases each dimension of the output of a summary statistic is the result of an independent computation. As such, it is generally easier to consider these dimensions as independent summary statistics when considering them for selection. % TODO reword or expand this (probs move)
-
-  \par Ideally, a summary statistic would compress the sampled data without any information loss (A property known as ``sufficiency''). However, low-dimension sufficient summary statistics are rare in practice and we often have to trade-off information retention against dimensionality reduction.
-
-  \par For more complex models, with many parameters, it becomes difficult for a single summary statistic to accurately summarise the sampled data, thus, in practice it is common to apply a set of summary statistics $\{s_1,\dots,s_k\}$ to the same dataset with each targeting a different aspect of the model. As long as the sum of the dimensions of the outputs from the summary statistics in the set is less than that of the sampled data, then using a set of summary statistics still produces effective dimensionality reduction. % TODO reword this to be clear that several summary statistics can  be combined into one, but it is more intuitive to consider them as seperate functions
+  \par In most cases each dimension of the output of a summary statistic is the result of an independent calculation. As such, it is often conceptually easier to consider each dimension as an independent summary statistics when selecting summary statistics. This idea of each dimension of independence also makes it conceptually easy to combine summary statistics by appending the result of one statistic onto the end of the other, as new dimensions. % TODO reword or expand this (probs move)
+  As long as the sum of the dimensions of the outputs from the summary statistics in the set is less than that of the sampled data, then using a set of summary statistics still produces effective dimensionality reduction.
 
   \[ m>\sum_{i=1}^kp_i\text{ where }s_i:\mathbb{R}^m\to\mathbb{R}^{p_i} \]
 
-  The success of ABC methods depends mainly on three user choices: choice of summary statistic; choice of distance measure; and choice of acceptance kernel. Of these, summary statistic choice is arguably the most important as the other two mainly effect the rate at which the algorithm converges on the posterior mean. Whereas, choosing summary statistics which are uninformative can lead to the parameter posteriors returned by the algorithm being drastically different from the true parameter posteriors. This is trivial to realise if you consider a scenario where $s(x)=c$, for some constant $c\in\mathbb{R}$, is used as the sole summary statistic as this would result in the returned posteriors being the same as the priors supplied to the algorithm.
+  The success of ABC methods depends mainly on three user choices: choice of summary statistic; choice of distance measure; and choice of acceptance kernel. Of these, summary statistic choice is arguably the most important as the other two mainly affect the rate at which the algorithm converges on the posterior mean. Whereas, choosing summary statistics which are uninformative can lead to the parameter posteriors returned by the algorithm being drastically different from the true parameter posteriors. This is trivial to realise if you consider a scenario where $s(x)=c$, for some constant $c\in\mathbb{R}$, is used as the sole summary statistic as this would result in all (or none) of the simulations being accepted as thus the returned posterior will be the same as the supplied prior.
 
   \par In practice, the quality of the posteriors returned from an ABC method is limited by the amount of computational time which is dedicated to running the algorithm. For some problems, such as ......... % TODO
-  , it is reasonable to dedicate the majority of your computing time on summary statistic selection, rather than on model fitting, as it is clear that the more computationally efficient ABC methods (e.g. ABC-Rejection Sampling) will be sufficient to fit the model, given a good choice of summary statistics.
+  , it is reasonable to dedicate the majority of your computing time on summary statistic selection, rather than on model fitting, as it is clear that even the simplest ABC methods (e.g. ABC-Rejection Sampling) will be sufficient to fit the model, given a good choice of summary statistics.
 
-  % \subsection*{Current Thinking}\label{sec_summary_stats_current_thinking}
+  \subsection*{Traditional Thinking}\label{sec_summary_stats_traditional_thinking}
 
   \par Traditionally, summary statistics for ABC methods are chosen manually using expert, domain-specific knowledge. Utilising this expert knowledge is desirable as these statistics will incentivise exploring regions of the parameter space which have been scientifically shown to be relevant to the given problem and thus more likely to contain the true parameter values (Similarly, these statistics will disincentivise exploring regions which have been shown to not be of interest). % TODO re-write this sentence
 
   % TODO - Having a more mathematically rigourous approach is desirable
 
-  \par However, relying on expert knowledge to choose summary statistics limits the scenarios where ABC methods can be applied to only those where there has already been significant research. And, leads to statistics being chosen due to their prevalence in a field rather than their suitability to ABC methods. Moreover, the use of hand-crafted summary statistics means that any limitations in current understanding of a field will be encoded into the model fitting process, possibly leading to misspecification.
+  \par However, relying on expert knowledge to choose summary statistics limits the scenarios where ABC methods can be applied to only those where there has already been significant research. And, leads to statistics being chosen due to their prevalence in a field rather than their suitability to computational methods. Moreover, the use of hand-crafted summary statistics means that any limitations in current understanding of a field will be encoded into the model fitting process, possibly leading to misspecification.
 
-  \par When using a set of summary statistics, expert knowledge is generally not sufficient to determine how best to weight each summary statistic. Some of the methods I describe below allow can be used to automate the process of determining these weights by specifying multiple versions of the same summary statistic but with each version having a different weight.
+  \par When using a set of summary statistics, expert knowledge is generally not sufficient to determine how best to weight each summary statistic. Some of the methods I describe below can be used to automate the process of determining these weights by specifying multiple versions of the same summary statistic, with each version having a different weight. % TODO mention that this is not easy to implement due to easy pitfalls
 
 \subsection{Properties of Summary Statistics}\label{sec_properties_of_summary_statistics}
 
   % Degree reduction (ie greater compression)
-  \par When evaluating a summary statistic for use in ABC there are several properties, both mathematical and practical, to consider.
+  \par When evaluating a summary statistic for use in ABC there are main properties, both practical and mathematical, to consider.
 
 \subsection*{Practical Properties}
 
-  \par The key reason for using summary statistics is for the computational efficiencies which result from their dimensionality reduction as this means more simulations can be processed in the same time-period. This naturally means summary statistics which result in greater dimensionality reduction are more preferable, but similarly means that a summary statistic which is computationally inefficient to calculate is less desirable.
+  \par The key reason for using summary statistics is for the computational efficiencies which result from their dimensionality reduction. Reducing the size of a dataset means less operations need to be performed to analyse it, meaning more simulations can be processed in the same time-period. This naturally means summary statistics which result in greater dimensionality reduction are preferable, but similarly means that a summary statistic which is computationally inefficient to calculate is less desirable.
 
   % Computational efficiency & overflow
   % TODO correlation is very inefficient as it considers many
-  \par For a model which produces data of dimension $n\times m$ (i.e. $n$ readings, each with $m$ features) most standard summary statistics are calculated in $O(n\cdot m)$  time. However, this is only a theoretical result and in practice there are meaningful differences in the computational requirements of each summary statistics. Calculating the mean and maximum values for each feature takes $O(n\cdot m)$ time in theory but, since calculating the mean relies on arithmetic operations and the maximum on comparison operations, they will take different amounts of time in practice. Some statistics, namely order statistics, are variable in the their time complexity for different data sets which will affect the reliability of models which utilise the. Integer overflow is a possible issue for some summary statistics, although it is often easy to avoid when actively been considered during the implementation of an algorithm. Moreover, for statistics with non-linear computational complexity (e.g. correlation between each pair of features), the size of the dataset being analysed needs to be considered when evaluating summary statistic choice.
+  \par For a model which produces data of dimension $n\times m$ (i.e. $n$ readings, each with $m$ features) most standard summary statistics are calculated in $O(n\cdot m)$  time. However, this is only a theoretical result and in practice there are meaningful differences in the computational requirements of each summary statistics. Calculating the mean and maximum values for each feature takes $O(n\cdot m)$ time in theory but, since calculating the mean relies on arithmetic operations and the maximum on comparison operations, they will take different amounts of time in practice. Statistics which rely on search or sorting operations (most notably order statistics) are variable in the their time complexity for different data sets which will affect the reliability of models which use them. Integer overflow is a possible issue for some summary statistics, although this is often easy to avoid when actively being considered during the implementation of an algorithm. Moreover, for statistics with non-linear computational complexity (e.g. correlation between each pair of features), the size of the dataset being analysed needs to be considered when evaluating summary statistic choice.
 
   % weights and scaling
-  \par ABC-methods rely on distance measures to determine whether a simulation is good, or not. This means that the range of values a summary statistic can take will have an affect on how influential that summary statistic is to the final model fit. In most cases it is easiest to standardise all statistic to have the same mean and variance. This can be implemented to occur adaptively within the ABC-method. There may be cases % TODO are there any?
-  where assigning different weights to different summary statistics makes sense and produces a better model fit, but these are hard to justify from a theoretical approach. The selection methods I discuss which compare hand-crafted statistics (Sections \ref{sec_approximate_sufficient_subset}-\ref{sec_two_step_minimum_entropy}) can be used to compare possible weightings by including several versions of the same summary statistic, each with a different scaling, in the set of statistics being compared. This will however increase computation time due to the increase size of the set of statistics and may make the results harder to interpret\footnote{Multiple sets of weighted summary statistics will be equivalent due to having the same ratio of weights}.
+  \par ABC-methods rely on distance measures to determine whether a simulation is good, or not. This means that the range and scale of values a summary statistic will likely produce will have an affect on how influential that summary statistic is to the final model fit. In most cases it is reasonable to standardise all statistics to have the same mean and variance, effectively giving the same weighting to each statistic. This can be implemented to occur adaptively within the ABC-method. There may be cases % TODO are there any?
+  where assigning different weights to different summary statistics makes sense, and produces a better model fit, but these are hard to justify from a theoretical approach. The selection methods I discuss which compare hand-crafted statistics (Sections \ref{sec_approximate_sufficient_subset}-\ref{sec_two_step_minimum_entropy}) can be used to compare possible weightings by including several versions of the same summary statistic, each with a different scaling, in the set of statistics being compared. This will however increase computation time due to the increase size of the set of statistics and may make the results harder to interpret\footnote{Multiple sets of weighted summary statistics will be equivalent due to having the same ratio of weights}.
 
   % Interpretability
-  \par For real-world modelling problems, the interpretability of summary statistics used in the final model is a key factor in how useful this solution is. Senior stakeholders in a problem will want to use the final model to justify their future decisions, this is much easier to do when the factors the model is considering, and the weights it assigns to them, are readily understandable. Hand-crafted statistics are almost always the most readily understandable than automatically generated statistics, as such generated statistics are rarely used in commercial problems\footnote{The current popularity of using ``Neural Networks'' in commercial settings does buck this trend. I hope this fad will subside soon in favour of more interpretable alternatives. I believe it is worth noting that the new European Union payment services directive (PSD2) requires that certain models used by financial institutions be ``explainable'' in order to improve the customer experience and to ensure no one is discriminated against due to their protected characteristics.}. In cases where it is chosen to used automatically generated statistics, one can develop an intuition for their model by varying the inputs, or removing certain features, and observing how the output varies.
+  \par For real-world modelling problems, the interpretability of summary statistics used in the final model is a key factor in how useful the solution is. Senior stakeholders in a problem will want to use the final model to justify their future decisions, this is much easier to do when the factors the model is considering, and the weights it assigns to them, are readily understandable. Hand-crafted statistics are almost always the most readily understandable statistics, as such generated statistics are rarely used in commercial problems\footnote{The current popularity of using ``Neural Networks'' in commercial settings does buck this trend. I hope this fad will subside soon in favour of more interpretable alternatives. I believe it is worth noting that the new European Union payment services directive (PSD2) requires that certain models used by financial institutions be ``explainable'' in order to improve the customer experience and to ensure no one is discriminated against due to their protected characteristics.}. In cases where it is chosen to use automatically generated statistics; one can develop an intuition for their model by varying the inputs, or removing certain features, and observing how the output varies. This is naturally harder to
 
 \subsubsection*{Sufficiency}\label{sec_sufficiency}
   % \subsubsection*{Theory}
 
-  \begin{box_definition}[Sufficient Statistic]\label{def_sufficient_statistic}
-    Let $s:\mathbb{R}^m\to\mathbb{R}^n$ be a statistic and $X$ be a model with parameters $\theta$. The statistic $s$ is said to be sufficient for the parameters $\theta$ if the conditional distribution of the model $X$, given the value of the statistic $s(X)$, is independent of the model parameter. \cite[]{dictionary_of_statistical_terms}
+  \begin{box_definition}[Sufficient Statistic \cite{sufficient_statistics}]\label{def_sufficient_statistic}
+    Let $s:\mathbb{R}^m\to\mathbb{R}^n$ be a statistic and $X$ be a model with parameters $\theta$. The statistic $s$ is said to be sufficient for the parameters $\theta$ if the conditional distribution of the model $X$, given the value of the statistic $s(X)$, is independent of the model parameter.
     \[ \prob(X|s(X))=\prob(X|s(X),\theta) \]
   \end{box_definition}
 
-  \par Verbosely, a statistic is sufficient for a parameter(s) if it captures all the information which a sample of the model carries about said parameter(s). This means, knowing the value of a sufficient statistic is as informative as knowing the true model parameters. This is clearly a desirable property as in practice we can always calculate the value of the summary statistic using the sampled data, but cannot know the true parameter values (otherwise we would not be trying to predict them). Sufficient statistics exist for all models as, trivially, the identity function is a sufficient statistic for all models.
+  \par Verbosely, a statistic is sufficient for a model parameter(s) if it captures all the information which a sample of the model carries about said parameter(s). This means that knowing the value of a sufficient statistic is as informative as knowing the true model parameters. This is clearly a desirable property as in practice we can always calculate the value of the summary statistic using the sampled data, but cannot know the true parameter values (otherwise we would not be trying to predict them). Sufficient statistics exist for all models as, trivially, the identity function is a sufficient statistic for all models.
 
-  \par It can be intuitively helpful to consider a sufficient statistic as a data reduction method. Moreover, a sufficient summary statistic provides a loss-less compression of sampled data as it reduces the dimensionality of the data and but still captures all relevant information.
+  \par It can be intuitively helpful to consider a sufficient statistic as a data reduction method. Moreover, a sufficient summary statistic provides a loss-less compression of sampled data as it reduces the dimensionality of the data but retains all relevant information.
 
   \begin{box_remark}[Supersets of Sufficient Statistics]\label{the_sufficiency_of_superset}
     Let $s_{1:k-1}(\cdot):=\{s_1(\cdot),\dots,s_{k-1}(\cdot)\}$ be a collection of $k-1$ summary statistics and suppose that $s_{1:k-1}$ is sufficient for the parameters $\theta$ of some model $X$. Then $s_{1:k-1}\cup\{s_k\}$ is also sufficient for the parameters $\theta$, for all summary statistics $s_k$.
@@ -250,9 +255,9 @@
     \end{proof}
   \end{box_remark}
 
-  \par \textbf{Remark \ref{the_sufficiency_of_superset}} states that if we have a set of summary statistics which are sufficient for a set of parameters, then adding more summary statistics will never increase (or decrease) the amount of relevant information being extracted from the sampled data.
+  \par \textbf{Remark \ref{the_sufficiency_of_superset}} states that if we have a set of summary statistics which are sufficient for a set of parameters, then adding more summary statistics will never increase (or decrease) the amount of relevant information being extracted from the sampled data. This means there is an optimally minimal number of summary statistics required to achieve sufficiency.
 
-  \par \textbf{Example \ref{example_sufficient_stats_normal}} shows that the sum of sampled values is a sufficient summary statistic for a normal distribution with unknown mean.
+  \par I demonstrate in \textbf{Example \ref{example_sufficient_stats_normal}} that the sample mean is a sufficient summary statistic for a normal distribution with unknown mean.
 
   \begin{box_example}[Sufficient Statistic for Normal Distribution with Unknown Mean]\label{example_sufficient_stats_normal}
     \everymath={\displaystyle}
@@ -281,11 +286,13 @@
     This shows that the conditional distribution of $\mathbf{X}$ given $s(\mathbf{X})$ is independent of $\mu$, the unknown parameter, and thus the sample mean is a sufficient statistic for a normal distribution with unknown mean
   \end{box_example}
 
-  \begin{box_theorem}[Fisher-Neyman Factorisation Criterion]\label{fisher_neyman_factorisation_criterion}
+  \par \textbf{Example \ref{example_sufficient_stats_normal}} shows that finding sufficient summary statistics can be a highly manually and did require us to ``guess'' at the possible formulation of a summary statistic, then verify that it was sufficient. The Fisher-Neyman factorisation criterion (\textbf{Theorem \ref{fisher_neyman_factorisation_criterion}}) \cite[]{fnf_fisher_part,fnf_neyman_part}, first recognised by Fisher in \cite[]{fnf_fisher_part}, specifies a property which all sufficient statistics have. This property is used as the basis of a more formulaic approach to finding sufficient statistics by separating the terms of the conditional probability of a model given the summary statistic value into those which depend on the summary statistic and those which do not.
+
+  \begin{box_theorem}[Fisher-Neyman Factorisation Criterion \cite{sufficient_statistics}]\label{fisher_neyman_factorisation_criterion}
     \par\par Let $X\sim f(\cdot;\theta)$ be a model with parameters $\theta$ and $s(\cdot)$ be a statistic.
-    \par $s(\cdot)$ is a sufficient statistic for the model parameters $\theta$ \underline{iff} there exist non-negative functions $g(\cdot;\theta)$ and $h(\theta)$ where $h(\cdot)$ is independent of the model parameters\footnote{i.e. $h(\cdot)$ only depends on the sampled data} and
+    \par $s(\cdot)$ is a sufficient statistic for the model parameters $\theta$ \underline{iff} there exist non-negative functions $g(\cdot;\theta)$ and $h(\theta)$ where $h(\cdot)$ is independent of the model parameters\footnotemark\footnotetext{i.e. $h(\cdot)$ only depends on the sampled data} and
     \[ f(X;\theta)=h(X)g(s(X);\theta) \]
-    This formulation shows that the distribution of the model $X$ only depends on the parameter $\theta$ through the information extracted by the statistic $s$.
+    This formulation shows that the distribution of the model $X$ only depends on the parameter $\theta$ through the information extracted by the statistic $s$. A consequence of the sufficiency of $s$.
     \begin{proof} \cite[]{fnf_theorem_proof}
       \everymath={\displaystyle}
       \begin{itemize}
@@ -315,8 +322,6 @@
     \end{proof}
   \end{box_theorem}
 
-  \par This example shows that finding sufficient summary statistics can be a highly manually and did require us to ``guess'' at the possible formulation of a summary statistic, then verify that it was sufficient. The Fisher-Neyman factorisation criterion (\textbf{Theorem \ref{fisher_neyman_factorisation_criterion}}) \cite[]{fnf_fisher_part,fnf_neyman_part}, first recognised by Fisher in \cite[]{fnf_fisher_part}, specifies a property which all sufficient statistics have. This property is used as basis for a more formulaic approach to finding sufficient statistics by seperating the terms of the conditional probability of a model given the summary statistic value in those which depend on the summary statistic and those which do not.
-
   \par \textbf{Example \ref{example_sufficient_stats_poisson}} below demonstrates how the Fisher-Neyman Factorisation Theorem can be used to find a sufficient summary statistic for a Poisson model where the mean $\lambda$ is unknown
 
   \begin{box_example}[Using Fisher-Neyman Factorisation Theorem to find sufficient statistics for a Poisson distribution with unknown mean]\label{example_sufficient_stats_poisson}
@@ -337,7 +342,7 @@
     With these definitions we fulfil the conditions of the Fisher-Neyman Factorisation theorem, meaning $s(\mathbf{X})=\sum_{i=1}^nX_i$ is a sufficient statistic for the mean for a Poisson distribution.
   \end{box_example}
 
-  \par In most cases sufficient statistics for a parameter are not unique. Moreover, each sufficient statistic does not necessarily produce the same level of compression. Consider a normal distribution with unknown mean, here both the sample mean and identity function are both sufficient statistics, however the sample mean is a much more desirable statistic to use as it provides compression. This lack of uniqueness motivates the concept of minimal sufficiency.
+  \par In most cases sufficient statistics for a parameter are not unique. Moreover, each sufficient statistic does not necessarily produce the same level of compression. Consider a normal distribution with unknown mean, here both the sample sum and identity function are both sufficient statistics, however the sample sum is a much more desirable statistic to use as it provides compression down to a single dimension. This lack of uniqueness motivates the concept of minimal sufficiency.
 
   \begin{box_definition}[Minimally Sufficient Statistic, \cite{dictionary_of_statistical_terms}]\label{def_minimally_sufficient_statistic}
     Let $s(\cdot)$ be a sufficient statistic for parameter $\theta$ of model $X$. $s(\cdot)$ is minimally sufficient if for any other sufficient statistic $t(\cdot)$ of parameter $\theta$ there exists a function $f$ which maps $t(x)\mapsto s(x)$.
@@ -346,7 +351,7 @@
 
   \par Minimally sufficient statistics have lower (effective) dimensionality than their non-minimal counterparts. This makes minimally sufficient statistics desirable as they produce the greatest level of compression and, in doing so, maximally reduce the computational resources required to analyse the sampled data.
 
-  \par As with identifying sufficient statistics, determining whether or not a sufficient statistic is minimally sufficient is not a trivial task. I demonstrate this in \textbf{Example \ref{example_minimally_sufficient_bernoulli}} below.
+  \par As with identifying sufficient statistics, determining whether, or not, a sufficient statistic is minimally sufficient is not a trivial task. I demonstrate this in \textbf{Example \ref{example_minimally_sufficient_bernoulli}}.
 
   \begin{box_example}[Minimally Sufficient Statistic for IID Bernoulli Random Variables]\label{example_minimally_sufficient_bernoulli}
     Let $X_1,\dots,X_n$ are independent and identically distribution Bernoulli random variables. Note that the identity function $s_1(\mathbf{X})=\mathbf{X}$ and the sum function $s_2(\mathbf{X})=\sum_{i=1}^nX_i$ are both sufficient statistics.
@@ -385,13 +390,13 @@
     \end{proof}
   \end{box_theorem}
 
-  \textbf{Theorem \ref{the_condition_for_minimal_sufficiency}} states that if the ratio of the marginal distributions of two samples from a model are independent of the model parameters if, and only if, the samples map to the same value under some statistic $s$, then $s$ is minimally sufficient. This propert can be used to identify minimally sufficient summary statistics, either by assisting in deduction or by checking a proposed statistic.
+  \textbf{Theorem \ref{the_condition_for_minimal_sufficiency}} states that if the ratio of the marginal distributions of two samples from a model are independent of the model parameters if, and only if, the samples map to the same value under some statistic $s$, then $s$ is minimally sufficient. This property can be used to identify minimally sufficient summary statistics, either by assisting in deduction or by verifying a proposed statistic.
 
   % Rao-Blackwell Theorem (http://www.stats.ox.ac.uk/~steffen/teaching/bs2siMT04/si3c.pdf)
   % Our intention is to use summary statistics to estimate parameter values, the Rao-Blackwell Theorem provides a method for producing unbiased estimators using sufficient statistics.
-  \par Statistics carry information about sampled data, but in bayesian modelling most problems center around estimating parameter values. In some cases a sufficient statistic may be a good estimator of a model paramater, in \textbf{Example \ref{example_sufficient_stats_normal}} it was shown that the sample mean is a sufficient statistic for the population mean of a normal distribution. This is not always the case, in \textbf{Example \ref{example_sufficient_stats_poisson}} it was shown that the sum of sampled values is a sufficient statistic for the mean of a Poisson distribution but this is not a good estimator.
+  \par Statistics carry information about sampled data, but in Bayesian modelling most problems centre around estimating parameter values. In some cases a sufficient statistic may be a good estimator of a model parameter too, in \textbf{Example \ref{example_sufficient_stats_normal}} it was shown that the sample mean is a sufficient statistic for the population mean of a normal distribution. This is not always the case, in \textbf{Example \ref{example_sufficient_stats_poisson}} it was shown that the sum of sampled values is a sufficient statistic for the mean of a Poisson distribution but this is not a good estimator.
 
-  \begin{box_theorem}[Rao-Blackwell Theorem]\label{the_rao_blackwell_theorem}
+  \begin{box_theorem}[Rao-Blackwell Theorem, \cite{rao_blackwell_rao_part,rao_blackwell_blackwell_part}]\label{the_rao_blackwell_theorem}
     Let $X$ be a model with parameters $\theta$, $U=u(X)$ be an unbiased estimator for function $g(\theta)$ and $s(X)$ is a sufficient statistic for $\theta$.
     \begin{quote}
       The statistic $v(X):=\expect[u|T=t(X)]$ is an unbiased estimator of $g(\theta)$ and $\text{Var}(v(X))\leq\text{Var}(u(X))$.
@@ -418,20 +423,20 @@
     \end{proof}
   \end{box_theorem}
 
-  \par The Rao-Blackwell theorem (\textbf{Theorem \ref{the_rao_blackwell_theorem}}) \cite[]{rao_blackwell_rao_part,rao_blackwell_blackwell_part} provides a general relationship between estimators and sufficient statistics by demonstrating a transformation of an unbiased estimator, using a sufficient statistic, which produces an unbiased estimator with decreased variance and thus reduced mean-squared error.
-  This is desirable as it is often ``easy'' to derive a crude estimator and then this theorem can be applied in order to improve its performance. % TODO reword this
+  \par The Rao-Blackwell theorem (\textbf{Theorem \ref{the_rao_blackwell_theorem}}) provides a general relationship between estimators and sufficient statistics by demonstrating a transformation of an unbiased estimator, using a sufficient statistic, which produces an unbiased estimator with decreased variance and thus reduced mean-squared error.
+  This is desirable as it is often straight-forward to derive a crude estimator and then apply this transformation in order to improve its performance. % TODO reword this
   A Rao-Blackwell transformation is idempotent as applying it to an already transformed estimator returns the same estimator, the proof of this follows immediately from the Tower Law.
 
   \par The Lehmann-Scheffe theorem \cite[]{lehmann_scheffe_theorem} states that if the statistic used in a Rao-Blackwell transformation is both sufficient and complete, then the resulting estimator is in fact the unique minimum-variance unbiased-estimator. This result is independent of how good the initial estimator was. % https://en.wikipedia.org/wiki/Lehmann%E2%80%93Scheff%C3%A9_theorem
 
   % TODO (MAYBE) likelihood and sufficiency (http://www.stat.cmu.edu/~siva/705/lec11.pdf)
 
-  % \subsubsection*{In Practice}
+  \subsubsection*{Sufficiency In Practice}
 
   % Sufficiency and ABC (If summary stats are not sufficient then the posterior will only ever be an approximation)
-  \par In Bayesian modelling problems we want to deduce the posterior for some model parameters to as high a degree of accuracy as possible. Let $f^*(\theta|X(\theta)=x_{obs})$ be the true posterior for model parameters $\theta$ and $\hat{f}(\theta|S(X(\theta))=S(x_{obs}))$ be the estimated posterior produced by our modelling method, given $x_{obs}$ was observed from the true model and summary statistics $S(\cdot)$ were used. If the summary statistics $S(\cdot)$ are sufficient then the estimated posterior $\hat{f}$ will converge towards the true posterior $f^*$, given enough simulations, however, if $S(\cdot)$ are not sufficient then $\hat{f}$ can never (consistently) converge on the true posterior $f^*$, and rather will always be an approximation. Thus, finding sufficient statistics for our models is highly desirable in Bayesian modelling. %TODO make this more succinct
+  \par In Bayesian modelling problems we want to deduce the posterior for some model parameters to as high a degree of accuracy as possible. Let $f^*(\theta|X(\theta)=x_{obs})$ be the true posterior for model parameters $\theta$ and $\hat{f}(\theta|s(X(\theta))=s(x_{obs}))$ be the estimated posterior produced by our modelling method, given $x_{obs}$ was observed from the true model and summary statistics $s(\cdot)$ were used. If the summary statistics $s(\cdot)$ are sufficient then the estimated posterior $\hat{f}$ will converge towards the true posterior $f^*$, given enough simulations, however, if $s(\cdot)$ are not sufficient then $\hat{f}$ can never (consistently) converge on the true posterior $f^*$, and rather will always be an approximation. Thus, finding sufficient statistics for our models is highly desirable in Bayesian modelling. %TODO make this more succinct
 
-  \begin{box_theorem}[Pitman–Koopman–Darmois Theorem, \cite{pkd_lecture_notes}]\label{the_pitman_koopman_darmois}
+  \begin{box_theorem}[Pitman–Koopman–Darmois Theorem, \cite{Sufficiency_and_Exponential_Families_for_Discrete_Sample_Spaces}]\label{the_pitman_koopman_darmois}
     Among families of probability distributions whose domain does not vary with the parameter being estimated, only in exponential families are there sufficient statistics whose dimension are bounded as the sample size increases.
     \begin{proof}
       See \cite[]{pkd_theorem_darmois_part,pkd_theorem_pitman_part,pkd_theorem_koopman_part} for the original proofs.
@@ -439,23 +444,24 @@
   \end{box_theorem}
 
   % good sufficient statistics are rare (Pitman–Koopman–Darmois theorem)
-  \par However, although sufficient statistics do exist for all models, as the identity function is a sufficient statistic for all models, they are not necessarily the best choice of summary statistic when implementing computational methods as they may provide very little dimensionality reduction relative to other statistics which still manage to maintain a large about of the relevant data from a sample. Moreover, the Pitman-Koopman-Darmois theorem \textbf{Theorem \ref{the_pitman_koopman_darmois}} shows that summary statistics which provide a high level of dimensionality reduction only exist for probability distributions from exponential families.
+  \par However, although sufficient statistics do exist for all models, as the identity function is a sufficient statistic for all models, they are not necessarily the best choice of summary statistic when implementing computational methods as they may provide very little dimensionality reduction relative to other statistics which still manage to retain a large about of the relevant data from a sample. Moreover, the Pitman-Koopman-Darmois theorem \textbf{Theorem \ref{the_pitman_koopman_darmois}} states that sufficient summary statistics which provide a high level of dimensionality reduction only exist for probability distributions from exponential families.
 
-  \par This lack of computationally efficient sufficient statistics, for most models, motivated the concept of ``approximate sufficiency'' in \cite[]{Approximately_sufficient_statistics_and_bayesian_computation} which aims to balance the number of summary statistics with the amount of information being retained from a sample. I discuss this concept more when I present the summary statistic selection algorithm from \cite[]{Approximately_sufficient_statistics_and_bayesian_computation} paper in \textbf{Section \ref{sec_approximate_sufficient_subset}}.
+  \par This lack of computationally efficient sufficient statistics, for most models, motivated the concept of ``approximate sufficiency'' in \cite[]{Approximately_sufficient_statistics_and_bayesian_computation} which aims to balance the number of summary statistics with the amount of information being retained from a sample. I discuss this concept more when I present the summary statistic selection algorithm from \cite[]{Approximately_sufficient_statistics_and_bayesian_computation} in \textbf{Section \ref{sec_approximate_sufficient_subset}}.
 
-  \par It is demonstrated in \cite[]{on_model_selection_with_summary_statistics} that the using summary statistics which are sufficient for parameters produces unreliable results when performing model selection. This is due to it being impossible to distinguish between models which have the same sufficient statistics for their parameters. For example, the sum sampled values is a sufficient statistics for the means of both geometric and Poisson models, and so cannot be used to compare these two models. Rather, cross-model sufficient statistics would be required to distinguish between these models in practice, which is impossible in practice. % TODO say why this is bad (e.g. This limits the ability to compare even simple models, and sufficient statistics rarely exist for more complex models)
+  \par It is demonstrated in \cite[]{on_model_selection_with_summary_statistics} that the using summary statistics which are sufficient for parameters produces unreliable results when performing model selection. This is due to it being impossible to distinguish between models which have the same sufficient statistics for their parameters. For example, the sum of sampled values is a sufficient statistics for the means of both geometric and Poisson distribution and so cannot be used to compare these two models. Rather, cross-model sufficient statistics would be required to distinguish between these models in practice, which is impossible in practice. % TODO say why this is bad (e.g. This limits the ability to compare even simple models, and sufficient statistics rarely exist for more complex models)
 
   % IRL example (The Ewens Sampling Formula)
-  \par To close this section, I shall mention the Ewens' Sampling formula \cite{ewens_sampling_formula} which illustrates a real-world scenario useable and useful sufficient statistics have been found. The Ewens' Sampling formula provides, under certain conditions, a parametric probability distribution for the frequencies of unique types of allele observed in a sample of gametes when using the Infinite Alleles model. The mutation rate is the only parameter of this distribution and it is notable that the total number of types is a sufficient statistic for the mutation rate \cite[]{partition_structures_and_sufficient_statistics}. This is appealing as ABC methods are used widely in population genetics research (See \cite[]{bayesian_inference_of_the_demographic_history_of_chimpanzees,ABC_in_population_genetics,modern_computational_approaches_for_analysing_molecular_genetic_variation_data} among many others).
+  \par To close this section, I shall mention the Ewens' Sampling formula \cite{ewens_sampling_formula} which illustrates a real-world scenario where useable and useful sufficient statistics have been found. The Ewens' Sampling formula provides, under certain conditions, a parametric probability distribution for the frequencies of unique types of allele observed in a sample of gametes when using the Infinite Alleles model. The mutation rate is the only parameter of this distribution and it is notable that the total number of types is a sufficient statistic for the mutation rate \cite[]{partition_structures_and_sufficient_statistics}. This is especially appealing as ABC methods are used widely in population genetics research (See \cite[]{bayesian_inference_of_the_demographic_history_of_chimpanzees,ABC_in_population_genetics,modern_computational_approaches_for_analysing_molecular_genetic_variation_data} among many others).
 
 \subsection{Methods for Summary Statistic Selection}\label{sec_summary_stats_methods}
 
-  \par When thinking about summary statistic selection it is useful to consider the summary statistics themselves as a feature of your theorised model. This makes the process of selecting summary statistics analogous to model selection, with each combination of summary statistics being considered as a different model. This is the motivation behind most summary statistic selection methods.
+  \par When thinking about summary statistic selection it is useful to consider the summary statistics themselves as a feature of your theorised model. This makes the process of selecting summary statistics analogous to model selection, with each combination of summary statistics being considered as a unique model. This is the motivation behind many summary statistic selection methods.
 
   % TODO some of these algorithms are worth running multiple times and then choosing the set of statistics which are returned most often, or creating a mixtures model
 
 \subsubsection{Approximate Sufficient Subset}\label{sec_approximate_sufficient_subset}
-  \par In \cite[]{Approximately_sufficient_statistics_and_bayesian_computation} present the first algorithm for automating the selection of summary statistic. The key idea of their approach is to find a subset of summary statistics, from a large set of hand-crafted statistics, such that ABC methods perform approximately as well when using the subset. This requires a method for empirically evaluating the information extracted by sets of summary statistics. The use of hand-crafted statistics, as discussed in length above, comes with its own advantages and limitations.
+
+  \par \cite[]{Approximately_sufficient_statistics_and_bayesian_computation} presents the first algorithm for automating the selection of summary statistic. The key idea of their approach is to find a subset of summary statistics, from a large set of hand-crafted statistics, such that ABC methods perform approximately as well when using the subset. This requires a method for empirically evaluating the information extracted by sets of summary statistics. The use of hand-crafted statistics, as discussed above, comes with its own advantages and limitations.
 
   \begin{box_remark}[Difference of Log-Likelihood]\label{rem_difference_of_log_likelihood}
     Let $s_1,\dots,s_k$ be summary statistics for a model $X$ with parameters $\theta$. Define sets $s_{1:k-1}:=\{s_1,\dots,s_{k-1}\},\ s_{1:k}:=\{s_1,\dots,s_k\}$ and consider the likelihood of the set $s_{1:k}$ with respect to the model parameters $\theta$
@@ -466,7 +472,7 @@
     \end{array}\]
   \end{box_remark}
 
-  \par For the theoretical basis of their algorithm, Joyce \& Marjoram first show that the difference in log-likelihood value between two sets of summary statistics can be directly quantified as $\ln\prob(s_k(X)|s_{1:k-1}(X),\theta)$ (\textbf{Remark \ref{rem_difference_of_log_likelihood}}). This gives a single value which needs to be estimated. It is worth noting that if the set $s_{1:k-1}$ is sufficient for model parameter $\theta$ then the quantity $\ln\prob(s_k(X)|s_{1:k-1}(X),\theta)$ would be independent of $\theta$ and thus mean $s_k$ does not contribute to inferences about $\theta$. This result motivates  Joyce \& Marjoram use of log-likelihood in their definition of score. The greater the score value of a statistic, the more extra information it extracts and thus we want to find the statistics with the greatest scores. Moreover, if the score of a statistic differs significantly from 0 then it should be accepted.
+  \par For the theoretical basis of their algorithm, Joyce \& Marjoram first show that the difference in log-likelihood value between two sets of summary statistics can be directly quantified as $\ln\prob(s_k(X)|s_{1:k-1}(X),\theta)$ (\textbf{Remark \ref{rem_difference_of_log_likelihood}}). It is worth noting that if the set $s_{1:k-1}$ is sufficient for model parameter $\theta$ then the quantity $\ln\prob(s_k(X)|s_{1:k-1}(X),\theta)$ would be independent of $\theta$ and thus mean $s_k$ does not contribute to inferences about $\theta$. This result reduces the problem of comparing sets of statistics to calculating or estimating a single value and motivates Joyce \& Marjoram use of log-likelihood in their definition of score. Score quantifies how much extra information is extracted when a single extra statistic is added to a set with greater score values meaning more extra information is extracted. Thus we want to find the statistics with the greatest scores. Moreover, if the score of a statistic differs significantly from 0 then it should be accepted.
 
   \begin{box_definition}[Score $\delta_k$, \cite{Approximately_sufficient_statistics_and_bayesian_computation}]\label{def_score}
     Let $s_1,\dots,s_k$ be $k$ summary statistics. The score of $s_k$ relative to the set $s_{1:k-1}:=\{s_1,\dots,s_{k-1}\}$ is defined as
@@ -498,9 +504,9 @@
     \end{algorithm}
   \end{box_algorithm}
 
-  \par Joyce \& Marjorams' algorithm (\textbf{Algorithm \ref{alg_approximately_sufficient_subsets}}) starts with an empty set and proceeds to, each iteration, add the summary statistics with the greatest score wrt the set of already selected statistics, until it believes that the none of the remaining unselected summary statistics extracts a significant amount of extra information about the model parameters. They define the concept of $\varepsilon$-approximate sufficient sets to formalise this stopping condition. The algorithm can be thought of as running until the set of accepted summary statistics is $\varepsilon$-approximate sufficient for each unchosen summary statistic, individually. $\varepsilon$ is a parameter of the algorithm, with smaller values likely leading to more summary statistics being accepted as the threshold for the amount of extra information extracted by each new statistic is lower. Alternatively, we could fix the number of summary statistics we want to be accepted from the superset.
+  \par Joyce \& Marjorams' algorithm (\textbf{Algorithm \ref{alg_approximately_sufficient_subsets}}) starts with an empty set and proceeds to, each iteration, add the summary statistic with the greatest score wrt the set of already selected statistics, until it believes that the none of the remaining unselected summary statistics extracts a significant amount of extra information about the model parameters. They define the concept of $\varepsilon$-approximate sufficient sets to formalise this stopping condition, with the algorithm running until the set of accepted summary statistics $S'$ is $\varepsilon$-approximate sufficient for each unchosen summary statistic, individually. This makes $\varepsilon$ is a parameter of the algorithm, with smaller values likely leading to more summary statistics being accepted as the threshold for the amount of extra information extracted by each new statistic is lower. Alternatively, we could fix or cap the number of summary statistics we want to be accepted from the superset.
 
-  \par As mentioned, in practice the score cannot be calculated. Joyce \& Marjoram instead determined that a proposed statistic introduces significant information if the posterior of parameters accepted under its usage was significantly different from the posterior when it was not used. This approach, set out in \textbf{Algorithm \ref{alg_evaluate_proposed_statistic}}, consists of estimating the expected value and standard deviation for the number of occurrences of each parameter value; and then accepting the proposed statistic if any of the observed number of occurrences was more than four standard deviations away from its expected value. For this approach to be computationally tractable the posterior space is discretised in $M$ bins whose counts can be compared. When this approach is applied the stopping condition of the main algorithm is changed to be \textit{``Stop if no proposed statistics were accepted in the last cycle''}. There are alternative stopping conditions which could be used, it is reasonable to place a cap on the number of statistics allowed to be accepted\footnote{A leave-one-out cross-validation could be used to determine the optimal number of statistics to use.}. Some simple caching techniques can be applied to improve computational efficiency.
+  \par As mentioned, in practice the score cannot be calculated. Joyce \& Marjoram instead determined that a proposed statistic introduces significant extra information if the posterior of parameters accepted under its usage was significantly different from the posterior when it was not used. This approach, set out in \textbf{Algorithm \ref{alg_evaluate_proposed_statistic}}, consists of estimating the expected value and standard deviation for the number of occurrences of each parameter value; and then accepting the proposed statistic if any of the observed number of occurrences is more than four standard deviations away from its expected value\footnote{In \cite[]{Approximately_sufficient_statistics_and_bayesian_computation} it is recommended to use a value of between one and four standard deviations}. For this approach to be computationally tractable the posterior space is discretised into $M$ bins whose counts can be compared. When this approach is applied the stopping condition of the main algorithm is changed to be \textit{``Stop if no proposed statistics were accepted in the last cycle''}. There are alternative stopping conditions which could be used, it is reasonable to place a cap on the number of statistics allowed to be accepted\footnote{A leave-one-out cross-validation could be used to determine the optimal number of statistics to use.}.
 
   \begin{box_algorithm}[Evaluate Proposed Statistic]\label{alg_evaluate_proposed_statistic}
     \begin{algorithm}[H]
@@ -519,11 +525,13 @@
     \end{algorithm}
   \end{box_algorithm}
 
-  \par \textbf{Algorithm \ref{alg_evaluate_proposed_statistic}} requires sets of parameters which were accepted under each set of summary statistics in order to compare the posteriors. These sets are acquired by running a large number of simulations of the theorised model, using parameters sampled from the model priors, and then using the ABC-Rejection Sampling to determine which parameters would be accepted under each set of summary statistics\footnote{Considerations need to be made for how the bandwidth of the kernel scale with the number of parameters. The simplest solution is for it to scale linearly.}. This approach has the desirable property that we only need to sample parameters once, and then can use the same set of samples each time we run \textbf{Algorithm \ref{alg_evaluate_proposed_statistic}}. This property allows us to justify sampling a very large number of parameters which will make the posterior estimates more accurate. Using this approach means the approximation factor $\varepsilon$ is no longer a parameter of the algorithm, but the distance measure, acceptance kernel and bandwidth used in the ABC-Rejection Sampling step are now parameters, as well as the number of bins $M$ and number of model simulations.
+  \par \textbf{Algorithm \ref{alg_evaluate_proposed_statistic}} requires sets of parameters which were accepted under each set of summary statistics in order to compare posteriors. These sets are acquired by generating a large number of simulations of the theorised model, using parameters sampled from the model priors, and then running ABC-Rejection Sampling to determine which parameters would be accepted under each set of summary statistics\footnote{Considerations need to be made for how the bandwidth of the kernel scale with the number of parameters. The simplest solution is for it to scale linearly.}. This approach has the desirable property that we only need to generate simulations once, and can then use the same set of samples each time we run \textbf{Algorithm \ref{alg_evaluate_proposed_statistic}}. This property allows us to justify generating a very large number of simulations which will make the posterior estimates more accurate. Using this approach means the approximation factor $\varepsilon$ is no longer a parameter of the algorithm, but the distance measure, acceptance kernel and bandwidth used in the ABC-Rejection Sampling step are now parameters, as well as the number of bins $M$ and number of model simulations. Implement caching to avoid having to run ABC-Rejection Sampling multiple times for the same set of statistics will dramatically improve the computational efficiency of this approach, especially when a large super-set of statistics is being used.
 
-  \par A big limitation of using \textbf{Algorithm \ref{alg_evaluate_proposed_statistic}} is that it does not produce a numerical value which can be used to rank each proposed statistic, as score does. This means we cannot choose to keep adding the highest scoring statistic, as in \textbf{Algorithm \ref{alg_approximately_sufficient_subsets}}, and instead have to consider statistics in a somewhat arbitrary order. This means that the order in which statistics are considered will affect the result of the algorithm\footnote{You could compare each possible subset but this would highly inefficient as it potentially requires ${K! \choose 2}$ runnings of Algorithms \ref{alg_evaluate_proposed_statistic}, where $K$ is the number of statistics being considered, and there is no guarantee this would produce a definitive best set, due to the complex relationships between statistics.}. A solution to this is to consider statistics in a random order and whenever a statistic is accepted, consider removing each statistic which has already been chosen. When implementing this approach considerations need to be made to avoid infinite loops where the same statistics keep getting added and removed.
+  \par A limitation of \textbf{Algorithm \ref{alg_evaluate_proposed_statistic}} is that it does not produce a numerical value which can be used to rank each proposed statistic\footnote{You could compare each possible subset but this would highly inefficient as it potentially requires ${K! \choose 2}$ executions of Algorithms \ref{alg_evaluate_proposed_statistic}, where $K$ is the number of statistics being considered, and there is no guarantee this would produce a definitive best set, due to the complex relationships between statistics.}, as the theoretical score would. This means we cannot choose to keep adding the highest scoring statistic, as in \textbf{Algorithm \ref{alg_approximately_sufficient_subsets}}, and instead have to consider statistics in a somewhat arbitrary order. This means that the order in which statistics are considered will affect the result of the algorithm. An imperfect solution to this is to consider statistics in a random order and whenever a statistic is accepted, consider removing each statistic which has already been chosen. Implementing this is not trivial as considerations need to be made to avoid infinite loops where the same statistics keep getting added and removed.
 
-  \par \textbf{Algorithm \ref{alg_evaluate_proposed_statistic}} performs poorly when applied with uninformative statistics. This can be seen by noticing that a summary statistic which is just random noise will almost always produce a posterior which is significantly different from an informative set of statistics.
+  \par \textbf{Algorithm \ref{alg_evaluate_proposed_statistic}} performs poorly when the supplied set of statistics include uninformative statistics. This can be seen by noticing that a summary statistic which maps to a constant will almost always produce a posterior which is significantly different from an informative set of statistics and therefore be accepted as a statistic despite.
+
+  % TODO \par Alternative methods for determining whether one distribution is significantly different from the other are estimating and comapring entropy, KL divergence
 
   % \begin{box_algorithm}[Practical Version of \textbf{Algorithm \ref{alg_approximately_sufficient_subsets}}]
   %     \begin{algorithm}[H]
@@ -547,38 +555,61 @@
   %     \end{algorithm}
   %   \end{box_algorithm}
 
-\subsection{Partial Least Squares}
+  % TODO conclusion?
+  % NOTE main failing is that score cannot be estimated directly due to likelihood being unavailable
+
+\subsubsection{Partial Least Squares}
 
   % TODO if need pages
+  % NOTE if I add this need to change parts where I take about what I do in this section
 
-  A partial least squares transformation is applied to proposed summary statistics \cite[]{efficient_ABC_coupled_with_MCMC_wo_likelihood}
+  % A partial least squares transformation is applied to proposed summary statistics \cite[]{efficient_ABC_coupled_with_MCMC_wo_likelihood}
 
 \subsubsection{Minimising Entropy}\label{sec_minimsing_entropy}
 
-  \par \cite[]{on_optimal_selection_of_summary_stats_for_ABC} exploring using the set of summary statistics which minimise the entropy of the approximate posterior distribution returned by an ABC-method. In the paper Nunes \& Balding propose two algorithms: the first I discus in this section; and the second, a two step approach, I discuss in section \ref{sec_two_step_minimum_entropy}.
+  % TODO why choose entropy over variance
+
+  \par \cite[]{on_optimal_selection_of_summary_stats_for_ABC} explores using the set of summary statistics which minimise the entropy of the approximate posterior distribution returned by an ABC-method. In the paper Nunes \& Balding propose two algorithms: the first I discus in this section; and the second, a two-step approach, I discuss in section \ref{sec_two_step_minimum_entropy}.
 
   \begin{box_definition}[Entropy $H$, \cite{mathematical_theory_of_communication}]
+    \everymath={\displaystyle}
     The entropy $H(X)$ of a probability distribution $X$ is a measure of the information and uncertainty in distribution.
     \[\begin{array}{rrcl}
       \text{Discrete}&H(X)&:=&-\sum_{x\in\mathcal{X}}\prob(X=x)\cdot\ln\prob(X=x)\\
-      \text{Discrete}&H(X)&:=&-\int_{\mathcal{X}}f_X(x)\cdot\ln f_X(x)dx
+      \text{Continuous}&H(X)&:=&-\int_{\mathcal{X}}f_X(x)\cdot\ln f_X(x)dx
     \end{array}\]
-    where $\mathcal{X}$ is the support of distribution $X$.
+    where $\mathcal{X}$ is the support of distribution $X$.\\
+    The joint-entropy of probability distributions $X_1,\dots,X_n$ is defined as
+    \[\begin{array}{rrcl}
+      \text{Discrete}&H(X_1,\dots,X_n)&:=&-\sum_{x_1\in\mathcal{X}_1}\dots\sum_{x_n\in\mathcal{X}_n}\prob(x_1,\dots,x_n)\cdot\ln\prob(x_1,\dots,x_n)\\
+      \text{Continuous}&H(X_1,\dots,X_n)&:=&-\int f_{X_1,\dots,X_n}(x_1,\dots,x_n)\cdot\ln f_{X_1,\dots,X_n}(x_1,\dots,x_n)dx\dots dx_n
+    \end{array}\]
+    where $\mathcal{X}_i$ is the support of distribution $X_i$
   \end{box_definition}
 
-  \par A greater entropy value indicates a lower amount of information in the distribution.
+  \par A greater entropy value indicates a lower amount of information in the distribution, and visa-versa. This motivates approaches which seek to minimise entropy as they will in turn maximise information. Nunes \& Balding's usage of entropy is equivalent to Joyce \& Marjoram's usage of score, the advantage of entropy is that there are well-studied methods for estimating its value. Entropy may appear to be an equivalent measure to variance, but this is only true for unimodal distributions. Entropy measures the spread of probability mass whereas variance measures the spread of the data values. The difference can be seen by considering how the values of entropy and variance change for a bimodal distribution if the distance between the two peaks is increased; entropy will not change, whilst variance will increase.
 
-  \begin{box_definition}[$k$-Nearest Neighbour Estimator of Entropy, \cite{nearest_neighbour_estimates_of_entropy}]
+  % NOTE add something about which distributions get high or low entropy
+  % TODO talk about multi-variate more?
+  % \par Degenerate distributions\footnote{Distributions where the outcome is always the same known event (e.g. flipping a two-headed coin).} have the lowest entropy value, 0, whilst uniform distributions have the highest 1.
+
+  \begin{box_definition}[$k^{th}$-Nearest Neighbour Estimator of Entropy, \cite{nearest_neighbour_estimates_of_entropy}]\label{def_knn_neighbour}
     Consider a distribution $X$ with $\rho$ different parameters and a set of parameter values $\Theta$ which were accepted during some ABC-method, with $n=|\Theta|$. \cite{nearest_neighbour_estimates_of_entropy} define the $k^{th}$-nearest neighbour estimator of entropy as
     \[ \hat{H}=\ln\left(\frac{\pi^{\rho/2}}{\Gamma\left(1+\frac\rho2\right)}\right)-\frac{\Gamma'(k)}{\Gamma(k)}+\ln(n)+\frac\rho{n}\sum_{i=1}^n\ln D_{i,k} \]
-    where $D_{i,k}$ is the Euclidean distance between the $i^{th}$ accepted parameter set and its $k^{th}$ nearest neighbour.
+    where $D_{i,k}$ is the Euclidean distance between the $i^{th}$ accepted parameter set and its $k^{th}$ nearest neighbour and $\Gamma(\cdot)$ is the gamma function.
   \end{box_definition}
 
-  \begin{box_algorithm}[Minimum Entropy Summary Statistic Selection, \cite{on_optimal_selection_of_summary_stats_for_ABC}]\label{alg_mimum_entropy_summary_statistic_selection}
+  \par In the context of summary statistic selection we want to calculate the entropy of the posterior distribution of model parameters given summary statistic values. We only ever have an approximation of this distribution and thus can only estimate its entropy. For computational efficiency it is common to discretise the approximated distribution. There are many techniques for estimating the entropy of a distribution from samples, see \cite[]{non_parameteric_entropy_estimation} for an overview. Due to most models of interest in Bayesian modelling having multiple parameters and thus the posterior being multivariate, Nunes \& Balding suggest using the asymptoticly $k^{th}$-Nearest Neighbour estimator of entropy \cite{nearest_neighbour_estimates_of_entropy} (\textbf{Definition \ref{def_knn_neighbour}}).
+
+  \par When implementing \textbf{Definition \ref{def_knn_neighbour}} determining the $k^{th}$ nearest neighbour in an efficient manner is not trivial. A truncated insertion sort is a straight-forward approach but has time complexity $O(kn)$ so does not scale efficiently for large values of $k$. \cite[]{nearest_neighbour_estimates_of_entropy} recommend using $k=4$ as their experiments found that greater values of $k$ did not decrease the root-mean square error RMSE significantly, and so were not worth the increased computational complexity.
+
+  \par Using the ``Best Samples'' version of the ABC-Rejection Sampling algorithm to acquire the approximate posterior used in \textbf{Definition \ref{def_knn_neighbour}} is advisable as it does not require the specification of an acceptance kernel and thus the same configuration can be used for all sets of summary statistics. Also, as the number we specify the number of simulations this step should have the same run-time each time it is called, regardless of the set of statistics being analysed, assuming that the summary statistics take trivial time to calculate.
+
+  \begin{box_algorithm}[Minimum Entropy Summary Statistic Selection, \cite{on_optimal_selection_of_summary_stats_for_ABC}]\label{alg_minimum_entropy_summary_statistic_selection}
     \begin{algorithm}[H]
       \SetKwInOut{Require}{require}
       \Require{Set of summary statistics $S$}
-      \For{each $S'\subseteq S$}{
+      \For{$S'\in 2^{S}$}{\label{alg_me_sss_for_loop}
         $\Theta\leftarrow$Perform ABC-Rejection Sampling using $S'$\\
         $\hat{H}_{S'}\leftarrow\hat{H}(\Theta)$
       }
@@ -587,8 +618,18 @@
     \end{algorithm}
   \end{box_algorithm}
 
+  \par The first algorithm proposed by Nunes \& Balding \textbf{Algorithm \ref{alg_minimum_entropy_summary_statistic_selection}} is very straight-forward. It calculates the entropy for each subset of the supplied set of summary statistics $S$ and returns whichever set has the lowest entropy. A limitation of \textbf{Algorithm \ref{alg_minimum_entropy_summary_statistic_selection}} is how its computational complexity scales wrt the size of the set of supplied summary statistic $S$. As the for loop (line \ref{alg_me_sss_for_loop}) considers every subset, the computational complexity of the algorithm scales exponential with the size of $S$. The simplest mitigation of this is to only consider subsets whose size is in some specified range, this could be implemented adaptively. A more complex procedure would be to introduce a pruning algorithm which does evaluate sets whose subsets produce high entropy values.
+
+  \par \textbf{Algorithm \ref{alg_minimum_entropy_summary_statistic_selection}} only uses entropy to evaluate the sets of summary statistics. However, as justified above, having a smaller set of statistics is preferable. This preference can be encoded into the algorithm by inflating the entropy value of larger sets. How much the value should be inflated is not a trivial matter. % TODO explore this more
+
+  \par \textbf{Algorithm \ref{alg_minimum_entropy_summary_statistic_selection}} only returns the best performing set, and no other information. It could be extended to instead return the best $m$ sets along with their entropy values so that a mixtures model could be generated.
+
+  % NOTE could say there are further avenues to explore in information theory (Mutual information, KL divergence & cross entropy)
+  % https://www.princeton.edu/~kulkarni/Papers/Journals/j068_2009_WangKulVer_TransIT.pdf
+
 \subsubsection{Two-Step Minimum Entropy}\label{sec_two_step_minimum_entropy}
-  \cite[]{on_optimal_selection_of_summary_stats_for_ABC}
+
+  The second algorithm from \cite[]{on_optimal_selection_of_summary_stats_for_ABC} is an extension of the first.
 
 \subsubsection{Semi-Automatic ABC}\label{sec_semi_automatic_abc}
   \cite[]{constructing_summary_statistics_for_approximate_bayesian_computation_semi_automatic_ABC}
