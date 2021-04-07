@@ -500,7 +500,7 @@
 
   \par Joyce \& Marjorams' algorithm (\textbf{Algorithm \ref{alg_approximately_sufficient_subsets}}) starts with an empty set and proceeds to, each iteration, add the summary statistics with the greatest score wrt the set of already selected statistics, until it believes that the none of the remaining unselected summary statistics extracts a significant amount of extra information about the model parameters. They define the concept of $\varepsilon$-approximate sufficient sets to formalise this stopping condition. The algorithm can be thought of as running until the set of accepted summary statistics is $\varepsilon$-approximate sufficient for each unchosen summary statistic, individually. $\varepsilon$ is a parameter of the algorithm, with smaller values likely leading to more summary statistics being accepted as the threshold for the amount of extra information extracted by each new statistic is lower. Alternatively, we could fix the number of summary statistics we want to be accepted from the superset.
 
-  \par As mentioned, in practice the score cannot be calculated. Joyce \& Marjoram instead determined that a proposed statistic introduces significant information if the posterior of parameters accepted under its usage was significantly different from the posterior when it was not used. This approach, set out in \textbf{Algorithm \ref{alg_evaluate_proposed_statistic}}, consists of estimating the expected value and standard deviation for the number of occurrences of each parameter value; and then accepting the proposed statistic if any of the observed number of occurrences was more than four standard deviations away from its expected value. For this approach to be computationally tractable the posterior space is discretised in $M$ bins whose counts can be compared. When this approach is applied the stopping condition of the main algorithm is changed to be \textit{``Stop if no proposed statistics were accepted in the last cycle''}. There are alternative stopping conditions which could be used, it is reasonable to place a cap on the number of statistics allowed to be accepted. Some simple caching techniques can be applied to improve computational efficiency.
+  \par As mentioned, in practice the score cannot be calculated. Joyce \& Marjoram instead determined that a proposed statistic introduces significant information if the posterior of parameters accepted under its usage was significantly different from the posterior when it was not used. This approach, set out in \textbf{Algorithm \ref{alg_evaluate_proposed_statistic}}, consists of estimating the expected value and standard deviation for the number of occurrences of each parameter value; and then accepting the proposed statistic if any of the observed number of occurrences was more than four standard deviations away from its expected value. For this approach to be computationally tractable the posterior space is discretised in $M$ bins whose counts can be compared. When this approach is applied the stopping condition of the main algorithm is changed to be \textit{``Stop if no proposed statistics were accepted in the last cycle''}. There are alternative stopping conditions which could be used, it is reasonable to place a cap on the number of statistics allowed to be accepted\footnote{A leave-one-out cross-validation could be used to determine the optimal number of statistics to use.}. Some simple caching techniques can be applied to improve computational efficiency.
 
   \begin{box_algorithm}[Evaluate Proposed Statistic]\label{alg_evaluate_proposed_statistic}
     \begin{algorithm}[H]
@@ -547,8 +547,45 @@
   %     \end{algorithm}
   %   \end{box_algorithm}
 
+\subsection{Partial Least Squares}
+
+  % TODO if need pages
+
+  A partial least squares transformation is applied to proposed summary statistics \cite[]{efficient_ABC_coupled_with_MCMC_wo_likelihood}
+
 \subsubsection{Minimising Entropy}\label{sec_minimsing_entropy}
-  \cite[]{on_optimal_selection_of_summary_stats_for_ABC}
+
+  \par \cite[]{on_optimal_selection_of_summary_stats_for_ABC} exploring using the set of summary statistics which minimise the entropy of the approximate posterior distribution returned by an ABC-method. In the paper Nunes \& Balding propose two algorithms: the first I discus in this section; and the second, a two step approach, I discuss in section \ref{sec_two_step_minimum_entropy}.
+
+  \begin{box_definition}[Entropy $H$, \cite{mathematical_theory_of_communication}]
+    The entropy $H(X)$ of a probability distribution $X$ is a measure of the information and uncertainty in distribution.
+    \[\begin{array}{rrcl}
+      \text{Discrete}&H(X)&:=&-\sum_{x\in\mathcal{X}}\prob(X=x)\cdot\ln\prob(X=x)\\
+      \text{Discrete}&H(X)&:=&-\int_{\mathcal{X}}f_X(x)\cdot\ln f_X(x)dx
+    \end{array}\]
+    where $\mathcal{X}$ is the support of distribution $X$.
+  \end{box_definition}
+
+  \par A greater entropy value indicates a lower amount of information in the distribution.
+
+  \begin{box_definition}[$k$-Nearest Neighbour Estimator of Entropy, \cite{nearest_neighbour_estimates_of_entropy}]
+    Consider a distribution $X$ with $\rho$ different parameters and a set of parameter values $\Theta$ which were accepted during some ABC-method, with $n=|\Theta|$. \cite{nearest_neighbour_estimates_of_entropy} define the $k^{th}$-nearest neighbour estimator of entropy as
+    \[ \hat{H}=\ln\left(\frac{\pi^{\rho/2}}{\Gamma\left(1+\frac\rho2\right)}\right)-\frac{\Gamma'(k)}{\Gamma(k)}+\ln(n)+\frac\rho{n}\sum_{i=1}^n\ln D_{i,k} \]
+    where $D_{i,k}$ is the Euclidean distance between the $i^{th}$ accepted parameter set and its $k^{th}$ nearest neighbour.
+  \end{box_definition}
+
+  \begin{box_algorithm}[Minimum Entropy Summary Statistic Selection, \cite{on_optimal_selection_of_summary_stats_for_ABC}]\label{alg_mimum_entropy_summary_statistic_selection}
+    \begin{algorithm}[H]
+      \SetKwInOut{Require}{require}
+      \Require{Set of summary statistics $S$}
+      \For{each $S'\subseteq S$}{
+        $\Theta\leftarrow$Perform ABC-Rejection Sampling using $S'$\\
+        $\hat{H}_{S'}\leftarrow\hat{H}(\Theta)$
+      }
+      $S_{ME}\leftarrow\text{argmin}_{S'\subseteq S}\hat{H}_{S'}$\\
+      \Return{$S_{ME}$}
+    \end{algorithm}
+  \end{box_algorithm}
 
 \subsubsection{Two-Step Minimum Entropy}\label{sec_two_step_minimum_entropy}
   \cite[]{on_optimal_selection_of_summary_stats_for_ABC}
