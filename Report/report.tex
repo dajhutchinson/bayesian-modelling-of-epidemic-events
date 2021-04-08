@@ -569,7 +569,7 @@
 
   % TODO why choose entropy over variance
 
-  \par \cite[]{on_optimal_selection_of_summary_stats_for_ABC} explores using the set of summary statistics which minimise the entropy of the approximate posterior distribution returned by an ABC-method. In the paper Nunes \& Balding propose two algorithms: the first I discus in this section; and the second, a two-step approach, I discuss in section \ref{sec_two_step_minimum_entropy}.
+  \par \cite[]{on_optimal_selection_of_summary_stats_for_ABC} explores using the set of summary statistics which minimise the entropy of the approximate posterior distribution returned by an ABC-method. In the paper Nunes \& Balding propose two algorithms: the first I discus in this section; and the second, a two-step approach, I discuss in section \ref{sec_two_step_minimum_entropy}. Both methods consider sets of handcrafted statistics.
 
   \begin{box_definition}[Entropy $H$, \cite{mathematical_theory_of_communication}]
     \everymath={\displaystyle}
@@ -601,7 +601,7 @@
 
   \par In the context of summary statistic selection we want to calculate the entropy of the posterior distribution of model parameters given summary statistic values. We only ever have an approximation of this distribution and thus can only estimate its entropy. For computational efficiency it is common to discretise the approximated distribution. There are many techniques for estimating the entropy of a distribution from samples, see \cite[]{non_parameteric_entropy_estimation} for an overview. Due to most models of interest in Bayesian modelling having multiple parameters and thus the posterior being multivariate, Nunes \& Balding suggest using the asymptoticly $k^{th}$-Nearest Neighbour estimator of entropy \cite{nearest_neighbour_estimates_of_entropy} (\textbf{Definition \ref{def_knn_neighbour}}).
 
-  \par When implementing \textbf{Definition \ref{def_knn_neighbour}} determining the $k^{th}$ nearest neighbour in an efficient manner is not trivial. A truncated insertion sort is a straight-forward approach but has time complexity $O(kn)$ so does not scale efficiently for large values of $k$. \cite[]{nearest_neighbour_estimates_of_entropy} recommend using $k=4$ as their experiments found that greater values of $k$ did not decrease the root-mean square error RMSE significantly, and so were not worth the increased computational complexity.
+  \par When implementing \textbf{Definition \ref{def_knn_neighbour}} determining the $k^{th}$ nearest neighbour in an efficient manner is not trivial. A truncated insertion sort is a straightforward approach but has time complexity $O(kn)$ so does not scale efficiently for large values of $k$. \cite[]{nearest_neighbour_estimates_of_entropy} recommend using $k=4$ as their experiments found that greater values of $k$ did not decrease the root-mean square error RMSE significantly, and so were not worth the increased computational complexity.
 
   \par Using the ``Best Samples'' version of the ABC-Rejection Sampling algorithm to acquire the approximate posterior used in \textbf{Definition \ref{def_knn_neighbour}} is advisable as it does not require the specification of an acceptance kernel and thus the same configuration can be used for all sets of summary statistics. Also, as the number we specify the number of simulations this step should have the same run-time each time it is called, regardless of the set of statistics being analysed, assuming that the summary statistics take trivial time to calculate.
 
@@ -610,7 +610,7 @@
       \SetKwInOut{Require}{require}
       \Require{Set of summary statistics $S$}
       \For{$S'\in 2^{S}$}{\label{alg_me_sss_for_loop}
-        $\Theta\leftarrow$Perform ABC-Rejection Sampling using $S'$\\
+        $\Theta\leftarrow$Parameter sets accepted from ABC-Rejection Sampling using $S'$\label{alg_me_rejection_sampling}\\
         $\hat{H}_{S'}\leftarrow\hat{H}(\Theta)$
       }
       $S_{ME}^*\leftarrow\text{argmin}_{S'\in 2^S}\hat{H}_{S'}$\\
@@ -618,41 +618,57 @@
     \end{algorithm}
   \end{box_algorithm}
 
-  \par The first algorithm proposed by Nunes \& Balding \textbf{Algorithm \ref{alg_minimum_entropy_summary_statistic_selection}} is very straight-forward. It calculates the entropy for each subset of the supplied set of summary statistics $S$ and returns whichever set has the lowest entropy. A limitation of \textbf{Algorithm \ref{alg_minimum_entropy_summary_statistic_selection}} is how its computational complexity scales wrt the size of the set of supplied summary statistic $S$. As the for loop (line \ref{alg_me_sss_for_loop}) considers every subset, the computational complexity of the algorithm scales exponential with the size of $S$. The simplest mitigation of this is to only consider subsets whose size is in some specified range, this could be implemented adaptively. A more complex procedure would be to introduce a pruning algorithm which does evaluate sets whose subsets produce high entropy values.
+  \par The first algorithm proposed by Nunes \& Balding \textbf{Algorithm \ref{alg_minimum_entropy_summary_statistic_selection}} is very straight-forward. It calculates the entropy for each subset of the supplied set of summary statistics $S$ and returns whichever set has the lowest entropy. A limitation of \textbf{Algorithm \ref{alg_minimum_entropy_summary_statistic_selection}} is how its computational complexity scales wrt the size of the set of supplied summary statistic $S$. As the for-loop (line \ref{alg_me_sss_for_loop}) considers every subset, the computational complexity of the algorithm scales exponential with the size of $S$. The simplest mitigation of this is to only consider subsets whose size is in some specified range, this could be implemented adaptively. A more complex procedure would be to introduce a pruning algorithm which does evaluate sets whose subsets produce high entropy values.
+
+  \par The estimated entropy value for a set of statistics will vary each time due to the random nature of the parameter set $\Theta$ returned by the ABC-Rejection Sampling step (Line \ref{alg_me_rejection_sampling}). This means the set of parameters returned by \textbf{Algorithm \ref{alg_minimum_entropy_summary_statistic_selection}} will vary each time it is executed. Allowing more simulations to be performed in this step will reduce the varability in the entropy results. Alternatively, you could instead run the algorithm multiple times, keeping the number of simulations performed in line \ref{alg_me_rejection_sampling} relatively low, and use the results to generate a mixtures model.
+
+  \par \textbf{Algorithm \ref{alg_minimum_entropy_summary_statistic_selection}} only returns the best performing set, and no other information. It could be extended to instead return the best $m$ sets along with their entropy values so that a mixtures model could be generated.
 
   \par \textbf{Algorithm \ref{alg_minimum_entropy_summary_statistic_selection}} only uses entropy to evaluate the sets of summary statistics. However, as justified above, having a smaller set of statistics is preferable. This preference can be encoded into the algorithm by inflating the entropy value of larger sets. How much the value should be inflated is not a trivial matter. % TODO explore this more
 
-  \par \textbf{Algorithm \ref{alg_minimum_entropy_summary_statistic_selection}} only returns the best performing set, and no other information. It could be extended to instead return the best $m$ sets along with their entropy values so that a mixtures model could be generated.
 
   % NOTE could say there are further avenues to explore in information theory (Mutual information, KL divergence & cross entropy)
   % https://www.princeton.edu/~kulkarni/Papers/Journals/j068_2009_WangKulVer_TransIT.pdf
 
 \subsubsection{Two-Step Minimum Entropy}\label{sec_two_step_minimum_entropy}
 
-  The second algorithm from \cite[]{on_optimal_selection_of_summary_stats_for_ABC} is an extension of the first. It uses the set of statistics $S_{ME}^*$ returned by \textbf{Algorithm \ref{alg_minimum_entropy_summary_statistic_selection}} to artificially increase the size of the observed dataset by treating the simulated samples which are accepted when $S_{ME}^*$ is used as if they were observed data. % TODO something about how this increased size of observations is useful
+  \par The second algorithm in \cite[]{on_optimal_selection_of_summary_stats_for_ABC} is an extension of the first. It uses the set of statistics $S_{ME}^*$ returned by \textbf{Algorithm \ref{alg_minimum_entropy_summary_statistic_selection}} to simulate parameter sets $\Theta_{acc}$ which are treated as if they were observed. Each subset of statistics is then reassessed using these parameter sets $\Theta_{acc}$, with the subset which optimises some error measure returned as the recommended set.
 
-  \begin{box_definition}[Residual Sum of Squares Error, \cite{on_optimal_selection_of_summary_stats_for_ABC}]
-    Let $X:=\{X_1,\dots,X_n\}$ be a set of observations and $X^*$ be a target value. Residual sum of squares error (RSSE) measures the difference between the observed values and the target value by calculating the mean of the square of the residuals. A smaller RSSE value indicates less error as the observed values do not deviate much from the target value.
-    \[ RSSE(X,X^*):=\sqrt{\frac1n\sum_{i=1}^n\|X_i-X^*\|} \]
+  \begin{box_definition}[Mean Residual Sum of Squares Error, \cite{on_optimal_selection_of_summary_stats_for_ABC}]\label{def_mrsse}
+    Let $\mathbf{X}:=\{X_1,\dots,X_n\}$ be a set of observations and $X^*$ be a target value. Residual sum of squares error (RSSE) measures the difference between the observed values and the target value by calculating the mean of the square of the residuals. A smaller RSSE value indicates less error as the observed values do not deviate much from the target value.
+    \[ \text{RSSE}(\mathbf{X},X^*):=\sqrt{\frac1n\sum_{i=1}^n\|X_i-X^*\|} \]
     where $\|\cdot\|$ is the Euclidean distance.
-    \par Now define $X^*:=\{X_1^*,\dots,X_m^*\}$ to be a set of target values. The mean residual sum of squares error (MRSSE) is the mean RSSE value for each target value wrt the observed data $X$.
-    \[ MRSSE(X,X^*):=\frac1m\sum_{i=1}^mRSSE(X,X_i^*) \]
+    \par Now define $\mathbf{X}^*:=\{X_1^*,\dots,X_m^*\}$ to be a set of target values. The mean residual sum of squares error (MRSSE) is the mean RSSE value for each target value wrt the observed data $X$.
+    \[ \text{MRSSE}(\mathbf{X},\mathbf{X}^*):=\frac1m\sum_{i=1}^m\text{RSSE}(\mathbf{X},X_i^*) \]
   \end{box_definition}
+
+  \par The accepted parameter sets $\Theta_{acc}$ are treated as if they are the true parameter space distribution, this means the reassessments now considers the error between a simulated distribution and $\Theta_{acc}$. There are several measures which could be used, including Kolmogorov–Smirnov statistic \cite[]{kolmogorov_smirnov_statistics} and cross-entropy. Nunes \& Balding choose to use the mean residual sum of squares error (MRSSE, \textbf{Definition \ref{def_mrsse}}) with the set of statistics which minimises MRSSE wrt $\Theta_{acc}$ is return as the recommended set of statistics.
+
+  \par MRSSE is a desirable statistic to use the context of Bayesian modelling as there are theoretical results which prove that minimising MRSSE is a good metric for estimating the mean of a distribution. % TODO include this result (https://math.stackexchange.com/questions/633440/proving-that-the-estimate-of-a-mean-is-a-least-squares-estimator)
+  MRSSE is straightforward to compute and can be applied to multivariate distributions is sensitive to outlier values. Note that the scale of parameter values will affect the MRSSE and thus parameter values should be standardised before computation. A limitation of MRSSE is its sensitivity of outlier values, which is not mitigated by the standardisation.
 
   \begin{box_algorithm}[Two-Step ME Summary Statistic Selection\cite{on_optimal_selection_of_summary_stats_for_ABC}]\label{alg_two_step_me}
     \begin{algorithm}[H]
       \SetKwInOut{Require}{require}
-      \Require{Set of summary statistics $S$, Number of simulations to accept $n_{obs}$}
+      \Require{Observations from true model $x_{obs}$, Set of summary statistics $S$, Number of simulations to run $n_{run}$, Number of simulations to accept $n_{obs}$} % TODO x_{obs} is required
       $S_{ME}\leftarrow$\textbf{Algorithm \ref{alg_minimum_entropy_summary_statistic_selection}}($S$)\\
-      $\hat{\Theta}_{ME}\leftarrow$ $n_{obs}$ simulated parameter sets which minimise $\|S_{ME}(x_{sim})-S_{ME}(x_{obs}^*)\|$\\
-      \For{$S'\in 2^{S}$}{
-        $\Theta_{acc}\leftarrow$Parameter values accepted from ``Best Samples'' ABC-RS($S',n_{obs}$)\\
-        $MRSSE_{S'}\leftarrow\displaystyle\frac1{n_{obs}}\sum_{i=1}^{n_{obs}} RSSE(\Theta_{acc},\hat\Theta_{ME,i})$
+      $\hat{\Theta}_{ME}\leftarrow$Parameter sets accepted from ``Best Samples'' ABC-RS($x_{obs},S',n_{run},n_{acc}$)\\
+      Standardise $\hat\Theta_{ME}$\\
+      \For{$S'\in 2^{S}$}{\label{alg_two_step_me_for_loop}
+        $\Theta_{acc}\leftarrow$Parameter sets accepted from ``Best Samples'' ABC-RS($x_{obs},S',n_{run},n_{acc}$)\\
+        Standardise $\Theta_{acc}$\\
+        $\text{MRSSE}_{S'}\leftarrow\text{MRSSE}(\Theta_{acc},\hat\Theta_{ME,i})$
       }
       $S^*\leftarrow\text{argmin}_{S'\in 2^S}MRSSE_{S'}$\\
       \Return{$S^*$}
     \end{algorithm}
   \end{box_algorithm}
+
+  \par \textbf{Algorithm \ref{alg_two_step_me}} inherits many of the limitations of the \textbf{Algorithm \ref{alg_minimum_entropy_summary_statistic_selection}}}, namely those concerning how its performance scales with the size of $S$ and the use of minimum entropy. The mitigations for these are the same as discussed in Section \ref{sec_minimsing_entropy}. Additionally, to reduce the number of subsets being evaluated in the for-loop (line \ref{alg_two_step_me_for_loop}). As \textbf{Algorithm \ref{alg_two_step_me}} requires the running of \textbf{Algorithm \ref{alg_minimum_entropy_summary_statistic_selection}} it will always have greater computational complexity.
+
+  %TODO The second step of \textbf{Algorithm \ref{alg_two_step_me}} relies on a good set of statistics being returned by \textbf{Algorithm \ref{alg_minimum_entropy_summary_statistic_selection}}
+
+  %TODO be more specific on model parameters
 
 \subsubsection{Semi-Automatic ABC}\label{sec_semi_automatic_abc}
   \cite[]{constructing_summary_statistics_for_approximate_bayesian_computation_semi_automatic_ABC}
