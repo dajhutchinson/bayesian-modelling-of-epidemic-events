@@ -168,6 +168,8 @@
 \newpage
 \section{Summary Statistic Selection}\label{sec_summary_stats}
 
+  % TODO posterior mean are optimal summary statistics
+
   In this chapter I motivate the research into summary statistic selection \textit{Section \ref{sec_summary_stats_motivation}} and discuss features to consider when selecting summary statistics \textit{Section \ref{sec_properties_of_summary_statistics}}. I then describe six methods for summary statistic selection methods: four which use hand-crafted summary statistics \textit{Sections \ref{sec_approximate_sufficient_subset}-\ref{sec_two_step_minimum_entropy}}; and two which automatically generate summary statistics \textit{Sections \ref{sec_semi_automatic_abc}-\ref{sec_non_linear_projection}}. These approaches are covered in the chronological order in which they were original proposed. To close the section I use a toy example of an SIR model to compare these methods \textit{Section \ref{sec_summary_statistics_toy}}.
 
 \subsection{Motivation}\label{sec_summary_stats_motivation}
@@ -626,6 +628,7 @@
 
   \par \textbf{Algorithm \ref{alg_minimum_entropy_summary_statistic_selection}} only uses entropy to evaluate the sets of summary statistics. However, as justified above, having a smaller set of statistics is preferable. This preference can be encoded into the algorithm by inflating the entropy value of larger sets. How much the value should be inflated is not a trivial matter. % TODO explore this more
 
+  \par As each subset is assessed independently, \textbf{Algorithm \ref{alg_minimum_entropy_summary_statistic_selection}} can be readily implemented using parallelisation. This will dramatically improve run time for this algorithm and is not something which can be done with Joyce \& Marjorams' approximately sufficient subset approach.
 
   % NOTE could say there are further avenues to explore in information theory (Mutual information, KL divergence & cross entropy)
   % https://www.princeton.edu/~kulkarni/Papers/Journals/j068_2009_WangKulVer_TransIT.pdf
@@ -642,9 +645,9 @@
     \[ \text{MRSSE}(\mathbf{X},\mathbf{X}^*):=\frac1m\sum_{i=1}^m\text{RSSE}(\mathbf{X},X_i^*) \]
   \end{box_definition}
 
-  \par The accepted parameter sets $\Theta_{acc}$ are treated as if they are the true parameter space distribution, this means the reassessments now considers the error between a simulated distribution and $\Theta_{acc}$. There are several measures which could be used, including Kolmogorov–Smirnov statistic \cite[]{kolmogorov_smirnov_statistics} and cross-entropy. Nunes \& Balding choose to use the mean residual sum of squares error (MRSSE, \textbf{Definition \ref{def_mrsse}}) with the set of statistics which minimises MRSSE wrt $\Theta_{acc}$ is return as the recommended set of statistics.
+  \par The accepted parameter sets $\Theta_{acc}$ are treated as if they are the true parameter space distribution, this means the reassessments now considers the error between a simulated distribution and $\Theta_{acc}$. There are various measures which could be used, including Kolmogorov–Smirnov statistic \cite[]{kolmogorov_smirnov_statistics} and cross-entropy. Nunes \& Balding choose to use the mean residual sum of squares error (MRSSE, \textbf{Definition \ref{def_mrsse}}) with the set of statistics which minimises MRSSE wrt $\Theta_{acc}$ is return as the recommended set of statistics.
 
-  \par MRSSE is a desirable statistic to use the context of Bayesian modelling as there are theoretical results which prove that minimising MRSSE is a good metric for estimating the mean of a distribution. % TODO include this result (https://math.stackexchange.com/questions/633440/proving-that-the-estimate-of-a-mean-is-a-least-squares-estimator)
+  \par MRSSE is a desirable statistic to use in the context of Bayesian modelling as there are theoretical results which prove that minimising MRSSE is a good metric for estimating the mean of a distribution and that posterior means are optimal summary statistics. % TODO include this result (https://math.stackexchange.com/questions/633440/proving-that-the-estimate-of-a-mean-is-a-least-squares-estimator)
   MRSSE is straightforward to compute and can be applied to multivariate distributions is sensitive to outlier values. Note that the scale of parameter values will affect the MRSSE and thus parameter values should be standardised before computation. A limitation of MRSSE is its sensitivity of outlier values, which is not mitigated by the standardisation.
 
   \begin{box_algorithm}[Two-Step ME Summary Statistic Selection\cite{on_optimal_selection_of_summary_stats_for_ABC}]\label{alg_two_step_me}
@@ -664,14 +667,101 @@
     \end{algorithm}
   \end{box_algorithm}
 
-  \par \textbf{Algorithm \ref{alg_two_step_me}} inherits many of the limitations of the \textbf{Algorithm \ref{alg_minimum_entropy_summary_statistic_selection}}}, namely those concerning how its performance scales with the size of $S$ and the use of minimum entropy. The mitigations for these are the same as discussed in Section \ref{sec_minimsing_entropy}. Additionally, to reduce the number of subsets being evaluated in the for-loop (line \ref{alg_two_step_me_for_loop}). As \textbf{Algorithm \ref{alg_two_step_me}} requires the running of \textbf{Algorithm \ref{alg_minimum_entropy_summary_statistic_selection}} it will always have greater computational complexity.
+  \par \textbf{Algorithm \ref{alg_two_step_me}} inherits many of the limitations of the \textbf{Algorithm \ref{alg_minimum_entropy_summary_statistic_selection}}, namely those concerning how its performance scales with the size of $S$ and the use of minimum entropy. The mitigations for these are the same as discussed in Section \ref{sec_minimsing_entropy}. Additionally, to reduce the number of subsets being evaluated in the for-loop (line \ref{alg_two_step_me_for_loop}). As \textbf{Algorithm \ref{alg_two_step_me}} requires the running of \textbf{Algorithm \ref{alg_minimum_entropy_summary_statistic_selection}} it will always have greater computational complexity.
 
   %TODO The second step of \textbf{Algorithm \ref{alg_two_step_me}} relies on a good set of statistics being returned by \textbf{Algorithm \ref{alg_minimum_entropy_summary_statistic_selection}}
 
   %TODO be more specific on model parameters
 
 \subsubsection{Semi-Automatic ABC}\label{sec_semi_automatic_abc}
-  \cite[]{constructing_summary_statistics_for_approximate_bayesian_computation_semi_automatic_ABC}
+  \cite[]{constructing_summary_statistics_for_approximate_bayesian_computation_semi_automatic_ABC} presents the first algorithm which constructs its own summary statistics for ABC, rather than choose from a set of hand-crafted ones. Their approach (\textbf{Algorithm \ref{alg_semi_auto_abc}}) uses a pilot run of an ABC-method to generate a na\"ive approximation of the parameter posterior which is used to generate summary statistics. The generated summary statistics target the posterior mean, an optimal summary statistic. This approach is referred to as \underline{semi}-automatic as it requires the user to specify the summary statistics used in the pilot run of ABC however the identity function would be appropriate, although inefficient.
+
+  \begin{box_algorithm}[Semi-Automatic ABC, \cite{constructing_summary_statistics_for_approximate_bayesian_computation_semi_automatic_ABC}]\label{alg_semi_auto_abc}
+    \begin{algorithm}[H]
+      \SetKwInOut{Require}{require}
+      \Require{Observations from true model $x_{obs}$, Set of summary statistics $S$, Number of simulated parameter sets $m$, Theorised model $X$}
+      $f_\theta\leftarrow$Posterior from pilot run of an ABC-method using $x_{obs}$ and $S$\label{alg_semi_auto_abc_pilot_run}\\
+      $\hat\Theta\leftarrow$ $m$ simulations from $f_\theta$\\
+      $X_{\hat\theta}\leftarrow$ $X\left(\hat\theta\right)$ for each $\hat\theta\in\hat\Theta$\\
+      Generate summary statistics using $\hat\Theta$ and $\{X_{\hat\theta}\}_{\hat\theta\in\hat\Theta}$\label{alg_semi_auto_abc_estimate_ss}
+    \end{algorithm}
+  \end{box_algorithm}
+
+  \par Regression methods are used in line \ref{alg_semi_auto_abc_estimate_ss} with the goal of creating mappings from the simulated response data $x_{\hat\theta}$ and the generated parameter values $\hat\Theta$. The best regression methods are those which target the expected value of the parameter as the posterior mean is an optimal summary statistic. There are several approaches which can be taken, I outline three here
+  \begin{enumerate} % NOTE PCA, multiple regressions too?
+    \everymath={\displaystyle}
+    \item Linear regression \cite[]{constructing_summary_statistics_for_approximate_bayesian_computation_semi_automatic_ABC} assumes that the model can be expressed as $\mathbf{y}=\alpha+\pmb\beta^T X+\varepsilon$ where $X$ is the explanatory variables, $\mathbf{y}$ is the response variables\footnote{In Bayesian modelling context typically $X$ is set to the observed values $x_{obs}$ and $y$ are set to the model parameters $\theta$.}, $\alpha\in\mathbb{R},\beta\in\mathbb{R}^{|\theta|}$ are coefficients to be fitted and $\varepsilon$ is some zero-mean additive noise which can be modelled by a random variable. Linear regression seeks to find the values $\hat\alpha,\hat{\pmb\beta}$ which optimises some loss function
+    \[\begin{array}{rcl}
+      \everymath={\displaystyle}
+      \hat\alpha,\hat{\pmb\beta}&=&\text{argmin}_{\alpha,\pmb\beta}\sum_i L\left(\expect[y|\mathbf{x}_i,\alpha,\pmb\beta]-y_i\right)\\
+      &=&\text{argmin}_{\alpha,\pmb\beta}\sum_i L\left(\alpha+\pmb\beta^T\mathbf{x}_i-y_i\right)
+    \end{array}\]
+    Linear regression works well when each response variable is independent and  can easily be extended to projections of $X$ by replacing all $X$ terms with $f(X)$ where $f(\cdot)$ is a (potentially non-linear) function. This is useful in the context of ABC-methods as we can define $f(\cdot)$ to be our summary statistics.
+    \par Linear regression is a well study problem and there any many tractable solutions with least-squares estimation being perhaps the most popular. In ordinary least-squares estimation the quadratic loss function $L_2$ is used meaning the problem is to find
+    \[\begin{array}{rcl}
+      \everymath={\displaystyle}
+      \hat\alpha_{LSE},\hat{\pmb\beta}_{LSE}&=&\text{argmin}_{\alpha,\pmb\beta}\sum_i \left(\alpha+\pmb\beta^T\mathbf{x}_i-y_i\right)^2\\
+      &=&\text{argmin}_{\alpha,\pmb\beta}\sum_i \left(\alpha+\pmb\beta\mathbf{x}_i-y_i\right)^T\left(\alpha+\pmb\beta^T\mathbf{x}_i-y_i\right)
+    \end{array}\]
+    A closed-form estimator for these quantities is known \cite[]{econometrics}.
+    \[ (\hat\alpha_{LSE},\hat{\pmb\beta}_{LSE})=\left(\tilde{X}^T\tilde{X}\right)^{-1}\tilde{X}^T \mathbf{y} \]
+    where $\tilde{X}$ is $X$ with a column of 1s at the start for the constant term. There are extensions of ordinary least-squares which allow for weighting of variables and for the model to be heteroscedasticity. These extensions are not relevant to the problems being covered in this project.
+
+    \item Lasso regression \cite[]{elements_of_statistical_learning} seeks the vector $\hat\beta$ which satisfies the following expression
+    \everymath={\displaystyle}
+    \[\begin{array}{rcl}
+      \hat\beta&=&\text{argmin}_\beta\sum_{i=1}^N\left(y_i-\beta_0-\sum_{j=1}^\rho x_{ij}\beta_j\right)^2\\
+      \text{subject to}&&\sum_{j=1}^\rho|\beta_j|\leq t
+    \end{array}\]
+    where $X$ are the explanatory variable values, $\mathbf{y}$ are the response variable values, $\rho:=|X_i|$ is the number of model parameters and $t$ is a restriction on the size of regression coefficients.
+    \par Lasso and Ridge regression have the same objective function, but ridge regression uses an $L_2$ penalty function rather than lasso's $L_1$ function. An $L_1$ penalty function is preferable for feature selection as it shrinks coefficient values to zero more aggressively than an $L_2$ function, this is useful if the coefficient for a feature is (near) zero then the feature can be dropped.
+
+    \item Canonical correlation analysis (CCA) \cite[]{multivariate_analysis} splits variables into two sets $\mathbf{X},\mathbf{Y}$\footnote{For Bayesian modelling you typically set $\mathbf{X}$ to be the model parameters and $ \textbf{Y}$ to be observed values.} and basis vectors $\pmb\alpha,\pmb\beta$ are sought such that the linear combinations ${\psi:=\pmb\alpha^T\mathbf{X}}$, ${\phi:=\pmb\beta^T\mathbf{Y}}$ are as correlated as possible. % TODO include solution and proof? (https://www.cs.cmu.edu/~tom/10701_sp11/slides/CCA_tutorial.pdf)
+    \[ \pmb\alpha,\pmb\beta=\text{argmax}_{\pmb\alpha,\pmb\beta}\text{Corr}(\pmb\alpha\mathbf{X},\pmb\beta\mathbf{Y}) \]
+    Solutions to this are known and readily calculatable.
+    \[\begin{array}{rcl}
+      \pmb\alpha&=&\Sigma_{XX}^{-1}\Sigma_{XY}\Sigma_{YY}^{-1}\Sigma_{YX}\\
+      \pmb\beta&=&\Sigma_{YY}^{-1}\Sigma_{YX}\Sigma_{XX}^{-1}\Sigma_{XY}
+    \end{array}\]
+    where $\Sigma_{UV}$ is the cross-covariance matrix of random vectors $U,V$. \textit{R} provides an inbuilt function \texttt{cancor}.
+  \end{enumerate}
+
+  \par As Lasso uses the $L_1$ penalty function, which is non-linear, there is no closed expression of Lasso regression. Meaning that computing a solution to Lasso has $O(N^2)$ time-complexity\footnote{}. Fearnhead \& Prangle recommend the use of linear regression as it is straight-forward to implement and does not perform notably worse than the other approaches in general.
+
+  \par For their specific implementation of linear least-squares regression they treat each model parameter $\theta_i$ completely separately and allow for mappings $f(\cdot)$ of the response data. This means they are fitting $\rho=|\theta|$ different models
+  \[ \theta_i=\alpha^{(i)}+(\pmb\beta^{(i)})^Tf(\mathbf{x})+\varepsilon_i \]
+  \par As ABC-methods only consider the distance between summary statistic values, the constant terms $\alpha^{(i)}$ can be neglect from our generate summary statistics. This means the summary statistic $s_i$ for the $i^{th}$ model parameter is defined as
+  \[ s_i(\mathbf{x})=\hat\beta^{(i)}f(\mathbf{x}) \]
+
+  \par The mapping $f(\cdot)$ is a parameter of this algorithm and should be used to encode likely relationships between observations and parameters, however it can just be set to the identity function for simplicity. As the mapping is part of the generated summary statistic $s_i$ it is important for it to be computationally efficient, it order for the summary statistic to be efficient.
+
+  \begin{box_algorithm}[Semi-Automatic ABC - Least Squares]\label{alg_semi_auto_abc_ls}
+    \begin{algorithm}[H]
+      \footnotetext{$\rho:=|\theta|$, the number of model parameters.}
+      \SetKwInOut{Require}{require}
+      \Require{Observations from true model $x_{obs}$, Set of summary statistics $S$, Number of simulated parameter sets $m$, Theorised model $X$, Mapping $f(\cdot)$}
+      $f_\theta\leftarrow$Posterior from pilot run of an ABC-method using $x_{obs}$ and $S$\label{alg_semi_auto_abc_ls_pilot_run}\\
+      $\hat\Theta\leftarrow$ $m$ simulations from $f_\theta$\label{alg_semi_auto_abc_ls_generate_1}\\
+      $X_{\hat\theta}\leftarrow$ $X\left(\hat\theta\right)$ for each $\hat\theta\in\hat\Theta$\label{alg_semi_auto_abc_ls_generate_2}\\
+      $\hat{X}\leftarrow\{X_{\hat\theta_1},\dots,X_{\hat\theta_m}\}$\\
+      $F\leftarrow f(\hat{X})$\\
+      $\tilde{F}\leftarrow F$ with a preceding column of 1s\\
+      \For{$i=1,\dots,\rho$}{
+        $A_i\leftarrow i^{th}$ element of each set in $\hat\Theta$\\
+        $(\alpha^{(i)},\pmb\beta^{(i)})\leftarrow(\tilde{F}^T\tilde{F}^{-1})\tilde{F}^TA_i$\\
+        $s_i(\mathbf{x}):=\pmb\beta^{(i)}\mathbf{x}$
+      }
+      \Return{$\{s_1,\dots,s_\rho\}$}
+    \end{algorithm}
+  \end{box_algorithm}
+
+  \par \textbf{Algorithm \ref{alg_semi_auto_abc_ls}} is a restatement of the general algorithm \textbf{Algorithm \ref{alg_semi_auto_abc}} using linear least-squares regression. Any ABC-method can be used for the pilot run (Line \ref{alg_semi_auto_abc_ls_pilot_run}), using the ``Best Samples'' version of ABC-Rejection Sampling is it has the simplest acceptance criteria to define and the most predictable run-time. Further, any set of summary statistics $S$ can be used to. The pilot run is an opportunity for expert knowledge to be encoded into the model by hand-crafted statistics, but, as this algorithm will mainly be run when such statistics are not known, the identity function can be used for simplicity and guaranteed sufficiency. The closer the posterior produced by the pilot run, the more representative the generated values (lines \ref{alg_semi_auto_abc_ls_generate_1}-\ref{alg_semi_auto_abc_ls_generate_1}) will be and thus the more informative the regression fit will be, creating better summary statistics. The other time expert knowledge can be encoded is in the specification of map $f(\cdot)$.
+
+  \par The least-squares approach used in \textbf{Algorithm \ref{alg_semi_auto_abc_ls}} treats each model parameter as fully independent. This may not be true and ignoring this may lead to missed insights. Different regression approaches can be used to maintain dependencies between parameters (e.g. CCA). The generated summary statistics offer little insight or interpretability, on their own, but can be viewed intuitively as posterior mean estimators due to how they generated.
+
+  \par Using the generated summary statistics in ABC-methods is not straightforward as we lack the intuition required to defined acceptance criteria. The use of adaptable versions of the ABC-methods avoids this issue as you only have to specify what acceptance rate you wish to achieve.
+
+  % TODO performance
 
 \subsubsection{Non-Linear Projection}\label{sec_non_linear_projection}
 
@@ -688,6 +778,8 @@
 \section{Conclusion}
 
 \subsection{Future Areas of Research}
+
+  % NOTE alternative to ABC (e.g. indirect inference, Gourieroux and Ronchetti, 1993)
 
 % bibliography
 \newpage
