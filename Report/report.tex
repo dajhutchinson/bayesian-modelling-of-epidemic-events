@@ -55,22 +55,26 @@
 \title{Bayesian Modelling of Epidemic Processes}
 \author{D. Hutchinson}
 \date{\today}
-\maketitle
+\clearpage\maketitle
+\thispagestyle{empty}
 \newpage
 
-% \section*{Dedication}\label{sec_dedication}
+\setcounter{page}{1}
+\section*{Dedication}\label{sec_dedication}
 % Me, I'm taking this one. And Chris Lovasz whose streams kept me passively entertained during this project.
 % \newpage
 
-% \section*{Accompanying Resources}\label{sec_accompanying_resources}
+\section*{Accompanying Resources}\label{sec_accompanying_resources}
 % % TODO link to github for code and notebooks
 % \newpage
 
-\section*{Abstract}\label{sec_abstract}
 \newpage
+\section*{Abstract}\label{sec_abstract}
 
-\tableofcontents\newpage
+\newpage
+\tableofcontents
 
+\newpage
 \section{Introduction}\label{sec_introduction}
 
   \par What is a model? A (simple) mathematical formulation of a process which incorporates parameters of interest and likely some stochastic processes. Models need to be computational tractable (i.e. fairly simple)
@@ -102,75 +106,45 @@
   \par vs. Frequentist modelling
   \par Stochastic vs deterministic models
   \par Consistency
+  \par In general, we never know if our calculated posterior is actually close to the true posterior.
 
 \newpage
 \section{Approximate Bayesian Computation}\label{sec_ABC}
 
-  \par What are ``Simulation Methods''?  (Possible now due to greater computational power and quality/quantity of data available) Two versions: allow for running models with stochastic components and testing variety of results; or, simulation for statistical inference and parameter estimation (vary parameters in simulation and compare results to sampled data).
-  \par Simulation methods are useful here as it is easier to simulate from a distribution than to calculate it.
-  \par ABC extends many Bayesian simulation methods to only require approximate matching of sampled and simulated data, rather than exact. (ABC allows for more simplified models?). Trade-offs?
-  \par In general, we never know if our calculated posterior is actually close to the true posterior.
-  \par ABC simulates from the likelihood, rather than explicitly determine the likelihood.
-  \par ABC has two uses: calibrating model, comparing models.
-  \par What is the computational effiency?
-  \par How to tune tolerance $\varepsilon$? Run tests showing performance with different tolerances (plots of posteriors when using different tolerances).
-  \par Curse of dimensionality (regression methods can counter this)
+\subsection{Motivation}\label{sec_ABC_motivation}
 
-\subsection*{ABC-Rejection Sampling}\label{sec_abc_rejection_sampling}
-  \par Perform poorly when prior and posterior and very different (especially when overlap is small).
-  \par Worth tracking ``acceptance rate'' to test algorithms performance. Don't want too high or too low, time v quality.
-  \par Variations - Sample until $N$ accepted (how to determine width of acceptance); Sample $M$ times and keep best $N$ (how to determine best); Sample $M$ times, keep all and weight parameters by distance of simulated data from sampled data (weighted linear-regression).
-  \par Accept-reject algorithms for MLE (rather than Bayesian). (Use mode of posterior distribution as MLE or use simulation to approximate likelihood).
-  \par Using a uniform kernel can be interpreted as sampling from a model which has uniformly distributed additive error.
-  \par Independent samples
-  \par Acceptance-rate analogous to evidence.
-  \par User choices: summary stats; threshold; distance measure.
-  \par Acceptance-rate vs tolerance plot?
-  \par re
+\subsection{Background}\label{sec_ABC_background}
+
+\subsection{ABC Methods}
+
+\subsubsection{ABC-Rejection Sampling}\label{sec_abc_rejection_sampling}
+
+\subsubsection{ABC-Importance Sampling}\label{sec_abc_importance_sampling}
 
 \subsection{Importance Sampling}\label{sec_ABC_IS}
+  % NOTE https://bookdown.org/rdpeng/advstatcomp/importance-sampling.html
 
-  \par Use when have a better knowledge about parameter value distribution. (May be good for RONA as we are given good R rate estimates?)
-  \par Sample parameters $\theta$ from an ``Importance distribution'' $\xi(\theta)$ rather than a ``prior'' $\pi(\theta)$. Weight each accepted parameter $\theta$ as $\frac{\pi(\theta)}{\xi(\theta)}$.
-  \par Less variance between sampled and simulated summary statistic values.
-  \par Could use rejection algorithm to determine a good importance distribution.
-  \par Independent samples
-  \par \url{https://bookdown.org/rdpeng/advstatcomp/importance-sampling.html}
+\subsubsection{ABC-MCMC}\label{sec_abc_mcmc}
 
-\subsection*{ABC-MCMC, -SMC \& -PMC}\label{sec_ABC_MCMC}
+\subsubsection{ABC-SMC}\label{sec_abc_smc}
 
-  \par MCMC, SMC are search processes
-  \par ABC-MCMC=\cite[]{mcmc_wo_likelihood} (Markov Chain Monte Carlo).
-  \par ABC-SMC=\cite[]{SMC_wo_likelihood} (Sequential Monte Carlo).
-  \par ABC-PMC=\cite[]{adaptive_ABC} (Population Monte-Carlo).
-  \par Good approach for large data sets, and when prior \& posterior are likely to be very different.
-  \par Sequences of dependent samples
-  \par Adaptive approach to ABC-SMC (\cite[]{adaptive_SMC_method_for_ABC})
-  \par When does MCMC converge?
-  \par MCMC w/o summary stats converges to the true posterior $\prob(\theta|D)$.
-  \par What is the burn-in period like? How good/important is mixing?
-  \par Advantage of ABC-MCMC over ABC-rejection? Fewer simulations required to get $n$ accepted samples (for a given tolerance $\varepsilon$).
-  \par Acceptance-rate vs tolerance plot?
-  \par Stationary distribution of the MCMC is an estimate of the posterior?
-  \par How to choose perturbation kernels (\cite[]{on_optimality_of_kernels_for_approximate_bayesian_computation_using_SMC}).
+\subsubsection{Comparison}\label{sec_abc_comparison}
 
-\subsection*{Model Choice}
+  Which algorithm to use in different scenarios - complexity of model, amount of data available.
 
-\subsection*{Regression Adjustment}
+\subsection{ABC for Model Choice}\label{sec_abc_model_choice}
+
+\subsection{Regression Adjustment in ABC}\label{abc_regression_adjustment}
 
   \par Beaumont et al - Local Linear Regressions (LOCL)
   \par Blum and Francois' - Nonlinear Conditional heteroscedastic regressions (NCH). (Uses neural networks)
-
-\subsection*{Review}\label{sec_ABC_review}
-
-  Which algorithm to use in different scenarios - complexity of model, amount of data available.
 
 \newpage
 \section{Summary Statistic Selection}\label{sec_summary_stats}
 
   % TODO posterior mean are optimal summary statistics
 
-  In this chapter I motivate the research into summary statistic selection \textit{Section \ref{sec_summary_stats_motivation}} and discuss features to consider when selecting summary statistics \textit{Section \ref{sec_properties_of_summary_statistics}}. I then describe six methods for summary statistic selection methods: four which use hand-crafted summary statistics \textit{Sections \ref{sec_approximate_sufficient_subset}-\ref{sec_two_step_minimum_entropy}}; and two which automatically generate summary statistics \textit{Sections \ref{sec_semi_automatic_abc}-\ref{sec_non_linear_projection}}. These approaches are covered in the chronological order in which they were original proposed. To close the section I use a toy example of an SIR model to compare these methods \textit{Section \ref{sec_summary_statistics_toy}}.
+  In this chapter I motivate the research into summary statistic selection \textit{Section \ref{sec_summary_stats_motivation}} and discuss features to consider when selecting summary statistics \textit{Section \ref{sec_properties_of_summary_statistics}}. I then describe five methods for summary statistic selection methods: three which use hand-crafted summary statistics \textit{Sections \ref{sec_approximate_sufficient_subset}-\ref{sec_two_step_minimum_entropy}}; and two which automatically generate summary statistics \textit{Sections \ref{sec_semi_automatic_abc}-\ref{sec_non_linear_projection}}. These approaches are covered in the chronological order in which they were original proposed. To close the section I use a toy example of an SIR model to compare these methods \textit{Section \ref{sec_summary_statistics_toy}}.
 
 \subsection{Motivation}\label{sec_summary_stats_motivation}
 
@@ -560,7 +534,7 @@
   % TODO conclusion?
   % NOTE main failing is that score cannot be estimated directly due to likelihood being unavailable
 
-\subsubsection{Partial Least Squares}
+% TODO \subsubsection{Partial Least Squares}
 
   % TODO if need pages
   % NOTE if I add this need to change parts where I take about what I do in this section
