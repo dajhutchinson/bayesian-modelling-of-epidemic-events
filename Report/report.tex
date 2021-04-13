@@ -1,4 +1,4 @@
-\documentclass[11pt,a4paper,margin=0]{article}
+\documentclass[bibliography=totoc,11pt,a4paper,margin=0]{article}
 
 \usepackage[margin=2.5cm, paperwidth=8.3in, paperheight=11.7in]{geometry}
 \usepackage[vlined,linesnumbered]{algorithm2e}
@@ -85,9 +85,11 @@
 
 \subsection*{Motivation}\label{sec_motivation}
 
+  \par What is bayesian inference
   \par Bayes Rule? Describe each component \& why is likelihood intractable?
   \par Why now? More, better data. Greater computational power.
   \par What can posterior be used for?
+  \par Generative models?
 
 \subsection*{Motivating Examples}\label{sec_motivating_examples}
 
@@ -100,33 +102,308 @@
 
 \subsection*{Successful Applications of these Methods}\label{sec_successful_applications}
 
+\newpage
 \section{Bayesian Modelling}
 
   \par Bayes' Rule
+  \par Bayes rule allows for explanation of relationships in data (rather than just inferences)
+  \par Define Bayesian inference
   \par vs. Frequentist modelling
   \par Stochastic vs deterministic models
   \par Consistency
   \par In general, we never know if our calculated posterior is actually close to the true posterior.
+  \par Typically only have access to one set of observations (e.g. time-series of covid cases)
+  \par Prior encodes assumptions/knowledge so reduces variance but can introduce bias
+
+  \begin{box_theorem}[Bayes' Rule]\label{the_bayes_rule}
+    Consider two random variables $X$ and $Y$. Bayes' Rule provides a formulation for the conditional distribution of $A$ given $B$.
+    \[ \prob(Y|X)=\frac{\prob(X|Y)\prob(Y)}{\prob(X)} \]
+    where each component is known as
+    \begin{itemize}
+      \item $\prob(Y|X)$, the Posterior of $Y$ given variable $X$.
+      \item $\prob(X|Y)$, the Likelihood of $Y$ given fixed event $X$.
+      \item $\prob(X)$, the prior distribution of $X$.
+      \item $\prob(Y)$, the evidence for fixed event $Y$.
+    \end{itemize}
+    \begin{proof}
+      Bayes' rule is follows from the definition of conditional distributions and joint distributions
+      \everymath={\displaystyle}
+      \[\begin{array}{rcl}
+        \prob(Y|X)&=&\frac{\prob(X,Y)}{\prob(Y)}\\
+        &=&\frac{\prob(Y|X)\prob(X)}{\prob(Y)}
+      \end{array}\]
+    \end{proof}
+  \end{box_theorem}
+
+\subsection{SIR Model}
 
 \newpage
 \section{Approximate Bayesian Computation}\label{sec_ABC}
 
-\subsection{Motivation}\label{sec_ABC_motivation}
+    In this section I motivate and provide the mathematical background for Approximate Bayesian Computation (ABC) methods \textit{Section \ref{sec_ABC_background}}; Present the general approach of ABC methods \textit{Section \ref{sec_ABC_ABC_methods}} and discuss four flavours of ABC algorithm \textit{Section \ref{sec_abc_rejection_sampling}-\ref{sec_abc_smc}}; Provide a comparison of these four methods \textit{Section \ref{sec_abc_comparison}}; and, I close this section by exploring how ABC methods can be used for model choice \textit{Section \ref{sec_abc_model_choice}} and how regression adjustment can be used to improve the results of ABC methods \textit{Section \label{sec_abc_regression_adjustment}}.
 
-\subsection{Background}\label{sec_ABC_background}
+\subsection{Motivation and Background}\label{sec_ABC_background}
 
-\subsection{ABC Methods}
+  \par Consider a model $X$ with parameters $\theta$. The centre-point of Bayesian inference is the posterior distribution for the parameters $\theta$ given observations $X$. Using Bayes rule we have the following formulation of this posterior
+
+  \[ \prob(\theta|X)=\frac{\prob(X|\theta)\prob(\theta)}{\prob(X)} \]
+
+  \par For Bayesian inference we are only concerned with the relative weight the posterior assigns to each parameter value $\theta$, so we can ignore the evidence $\prob(X)$ as it is just a normalising constant with respect to $\theta$. Meaning we can simplify the expression for the posterior as being proportional to the product of the likelihood $\prob(X|\theta)$ and the prior $\prob(\theta)$.
+
+  \[ \prob(\theta|X)\propto\prob(X|\theta)\prob(\theta) \]
+
+  \par As the prior is defined by the user, the only remaining task is to deduce an expression for the likelihood. However, for most real-world processes an explicit expression of the likelihood is computationally intractable due to the complex nature of the systems which govern them and the large number of parameters they have. Moreover, there are often so many parameters that it is intractable to specify all of them and thus we generally theorise a simpler model $\hat{X}$ and then calibrate this model to the true model by fitting its parameters. This motivates the need for likelihood-free inference methods such as Approximate Bayesian Computation.
+
+  \begin{center}
+    \noindent\rule{.8\textwidth}{0.4pt}
+  \end{center}
+
+  \noindent Suppose you have a sequence of $n$ of observations $x_{obs}:=(x_{obs,1},\dots,x_{obs,n})$ from our model $X$ where each observation may be multi-dimensional $x_{obs,i}\in\mathbb{R}^p$ for $p\in\mathbb{N}$. Let $K_\varepsilon(\cdot)$ denote a kernel density function with bandwidth $\varepsilon>0$ and $\|\cdot\|$ denote a distance measure between observations of model $X$. Note that as the bandwidth tends to zero the value of $K_\varepsilon(\|x-x_{obs}\|)$ tends to the Dirac delta function $\delta_{x_{obs}}(x)$.
+
+  \[ \lim_{\varepsilon\to0}K_{\varepsilon}(\|x-x_{obs}\|)=\delta_{x_{obs}}(x):=\begin{cases}1&\text{if }x_{obs}=x\\0&\text{otherwise}\end{cases} \]
+
+  \par This result can be used to restate the likelihood function using the kernel density function and distance measure.
+
+  \[
+  \everymath={\displaystyle}
+  \begin{array}{rcl}
+    \prob(x_{obs}|\theta)&=&\int\delta_{x_{obs}}(x)\prob(x|\theta)dx\\
+    &=&\lim_{\varepsilon\to0}\int K_\varepsilon(\|x-x_{obs}\|)\prob(x|\theta)dx
+  \end{array}\]
+
+  \par Now define the ABC approximation of the posterior as
+
+  \[ \pi_{ABC}(\theta|x_{obs}):=\int K_\varepsilon(\|x-x_{obs}\|)\prob(x|\theta)\pi_0(\theta)dx \]
+
+  \par Then
+
+  \[
+  \everymath={\displaystyle}
+  \begin{array}{rcl}
+    \lim_{\varepsilon\to0}\pi_{ABC}(\theta|x_{obs})&=&\lim_{\varepsilon\to0}\int K_\varepsilon(\|x-x_{obs}\|)\prob(x|\theta)\pi_0(\theta)dx\\
+    &=&\int \delta_{x_{obs}}(x)\prob(x|\theta)dx\cdot \pi_0(\theta)\\
+    &=&\prob(x_{obs}|\theta)\pi_0(\theta)\\
+    &\propto&\prob(\theta|x_{obs})
+  \end{array}\]
+
+  \par This shows that $\pi_{ABC}(\cdot|x_{obs})$ is an approximation of the true posterior, with it being a good approximation when $\varepsilon$ is small. Typically, due to the observations $x$ being of high dimension a summary statistic $s(\cdot)$ is applied to them first and then the quantities $s:=s(x),s_{obs}:=(x_{obs})$ are used in place of $x,x_{obs}$. The analysis of the above derivation is the unchanged when using summary statistics as long as the summary statistics are sufficient, if the statistics are not sufficient then the $\pi_{ABC}$ will only ever be an approximation of the true posterior regardless of the bandwidth used. Sufficiency is discussed in \textit{Section \ref{sec_sufficiency}}.
+
+  \[ \pi_{ABC}(\theta|s_{obs}):=\int K_\varepsilon(\|s-s_{obs}\|)\prob(s|\theta)\pi_0(\theta)ds \]
+
+  This formulation for the ABC approximation of the posterior is the one found in the standard ABC framework (e.g. \cite[]{overview_of_abc,annual_review_of_statistics_ABC}).
+
+\subsection{ABC Methods}\label{sec_ABC_ABC_methods}
+
+  \par The original concept, which later became known as the Approximate Bayesian Computation, was first presented by \cite[]{population_growth_of_human_Y_chromosomes} in a study of population genetics, a field in which ABC is still popular used. In this paper Pritchard \textit{et. al} present an algorithm which would later be generalised become the rejection sampling approach to ABC.
+
+  \par In the standard framework of ABC, the posterior is approximated by the quantity $\pi_{ABC}(\cdot|s_{obs})$ as derived in \textit{Section \ref{sec_ABC_background}}. Consider the joint distribution of $\theta,s$ given $s$ ... useful cause we can simulate pairs of $\theta,s$ and allows a measure of how good simulation is
+
+  \begin{box_algorithm}[Generic Approximate Bayesian Computation]\label{alg_generic_abc}
+    \textbf{Require:} Observed values $x_{obs}$; Summary statistics $s(\cdot)$; Theorised model $f(X|\cdot)$; Acceptance Kernel $K_\varepsilon(\cdot)$; Distance Measure $\|\cdot\|$.
+    \begin{enumerate}
+      \item Calculate summary statistic values $s_{obs}=s(x_{obs})$.
+      \item Until stopping condition reached:
+      \begin{enumerate}
+        \item Sample a set of parameters $\tilde\theta$.
+        \item Run the theorised model with sampled parameter $\tilde{x}=f\tilde\theta(X|\tilde\theta)$.
+        \item Calculate summary statistic values $\tilde{s}=s(\tilde{x})$.
+        \item Accepted parameters $\tilde\theta$ with probability $K_\varepsilon(\|\tilde{s}-s_{obs}\|)$.
+      \end{enumerate}
+      \item Return all accepted parameter sets $\hat\Theta$.
+    \end{enumerate}
+  \end{box_algorithm}
+
+  \par Different flavours of ABC vary different parts of this generic approach: ABC-MCMC (\textit{Section \ref{sec_abc_mcmc}}) changes how new parameter samples are drawn (\textit{Step 2. (a)}); ABC-SMC (\textit{Section \ref{sec_abc_smc}}) changes how new samples are accepted.
+
+  \par The set of accepted parameter sets $\hat\Theta$ can be used for Bayesian inference of the model parameters. Estimating properties of the distributions, such as mean, mode and quantiles, is straightforward. Producing a discretised estimate of the posterior for each parameter can be achieved by calculating a histogram of the accepted values for each parameter, again straightforward. Kernel density functions can be used to produce a continuous estimates of the posteriors (See \cite[]{review_of_kde}).
+
+  \begin{box_remark}[Posterior Mean is Minimum Mean-Square Error Estimator]\label{rem_posterior_mean_is_mmsee}
+    Let $\theta$ denote the quantity we wish to estimate, $A$ denote an arbitrary estimator of $\theta$ and suppose we have observed $x_{obs}$ from model $X$. Then
+    \[\begin{array}{rrcl}
+      &MSE_\theta(A)&=&\expect\left[(\theta-A)^2|X=x_{obs}\right]\\
+      &&=&\expect\left[\theta^2-2A\theta+A^2|X=x_{obs}\right]\\
+      &&=&\expect\left[\theta^2|X=x_{obs}\right]-2A\expect\left[\theta|X=x_{obs}\right]+A^2\\
+      \implies&\frac{\partial}{\partial A}MSE_\theta(A)&=&-2\expect[\theta|X=x_{obs}]+2a\\
+      \implies&a&=&\expect[\theta|X=x_{obs}]
+    \end{array}\]
+    This shows that mean-square error is minimised when the posterior mean of $\theta$ given $x_{obs}$ is used as an estimator.
+  \end{box_remark}
+
+  \par ABC methods can be used to calibrate models or to compare models. Typically calibration is done by setting parameter values to the estimated posterior mean as the posterior mean minimises mean-square error (see \textbf{Remark \ref{rem_posterior_mean_is_mmsee}}). I discuss how ABC methods can be used for model comparison in \textit{Section \ref{sec_abc_model_choice}}.
+
+\subsubsection*{Summary Statistics}
+
+  \par See \textit{Section \ref{sec_summary_stats}}.
+
+\subsubsection*{Kernel Density Functions}
+
+  \par Should match the expected noise in a model (additive gaussian, heteroscheastic etc.)
+  \par For standard kernel density functions it holds that $K_{\varepsilon}(x)=\frac1\varepsilon K(x/\varepsilon)$
+  \par These are standard kernel density functions as they equal 1 at their peak % TODO restate this
+  \begin{itemize}
+    \item Uniform Kernel $K_\varepsilon(x):=\mathbbm{1}\{x\leq\varepsilon\}$.
+    \item Gaussian Kernel $K_\varepsilon(x):=\frac34\left(1-\frac{x^2}{\varepsilon^2}\right)\mathbb{1}\left\{|x|\leq\varepsilon\right\}$.
+    \item Epanechnikov Kernel $K_\varepsilon(x):=\frac1{\sqrt{2\pi}}\exp\left\{-\frac12x^2\right\}$.
+  \end{itemize}
+
+\subsubsection*{Distance Functions}
+
+  \par $L_1(\mathbf{x}):=\sum_{i=1}^n|x_i|$. Manhattan Distance.
+  \par $\ell_1(\mathbf{x}):=\ln\left(\sum_{i=1}^n|x_i|\right)$. Log-Manhattan Distance.
+  \par $L_2(\mathbf{x}):=\sum_{i=1}^n(x_i)^2$. Euclidean Distance.
+  \par $\ell_2(\mathbf{x}):=\ln\left(\sum_{i=1}^n(x_i)^2\right)$. Log-Euclidean Distance.
+  \par $L_\infty(\mathbf{x}):=\max\{x\in \mathbf{x}\}$.
 
 \subsubsection{ABC-Rejection Sampling}\label{sec_abc_rejection_sampling}
 
+  \begin{box_algorithm}[ABC-Rejection Sampling ``Fixed Sample'']
+    \begin{algorithm}[H]
+      \SetKwIF{With}{}{}{with probability}{}{}{}{}
+      \SetKwInOut{Require}{require}
+      \Require{Observed values $x_{obs}$; Summary statistics $s(\cdot)$; Theorised model $f(X|\cdot)$; Prior Distributions $\pi_0(\theta)$; Acceptance Kernel $K_\varepsilon(\cdot)$; Distance Measure $\|\cdot\|$; Target Number $M$.}
+      $s_{obs}\leftarrow s(x_{obs})$.\\
+      $\tilde\Theta\leftarrow\{\}$.\\
+      $t\leftarrow0$.\\
+      \While{$t<M$}{
+        $\tilde\theta_t\leftarrow$ sample $\pi_0(\theta)$.\\
+        $\tilde{x}\leftarrow f(X|\tilde\theta_t)$.\\
+        $\tilde{s}\leftarrow s\left(\tilde{x}\right)$.\\
+        \With{$K_\varepsilon(\|s_{obs}-\tilde{s}\|)$} {
+          $\hat\theta^{(t)}\leftarrow\tilde\theta$.\\
+          Add $\hat\theta^{t}$ to $\hat\theta$.\\
+          $t\leftarrow t+1$
+        }
+      }
+      \Return{$\tilde\Theta=\left\{\theta^{(1)},\dots,\theta^{(M)}\right\}$}
+    \end{algorithm}
+  \end{box_algorithm}
+
+  \begin{box_algorithm}[ABC-Rejection Sampling ``Best Samples'']
+    \begin{algorithm}[H]
+      \SetKwInOut{Require}{require}
+      \Require{Observed values $x_{obs}$; Summary statistics $s(\cdot)$; Theorised model $f(X|\cdot)$; Prior Distributions $\pi_0(\theta)$ Distance Measure $\|\cdot\|$; Number of Simulations $M$; Simulations to Accepted $N$.}
+      $s_{obs}\leftarrow s(x_{obs})$.\\
+      $\tilde\Theta\leftarrow\{\}$.\\
+      $t\leftarrow0$.\\
+      \For{$i=0,\dots,M$}{
+        $\tilde\theta^{(i)}\leftarrow$ sample $\pi_0(\theta)$.\\
+        $\tilde{x}^{(i)}\leftarrow f(X|\tilde\theta^{(i)})$.\\
+        $\tilde{s}^{(i)}\leftarrow s\left(\tilde{x}^{(i)}\right)$.\\
+        Add $\tilde{s}^{(i)}$ to $\tilde\Theta$.
+      }
+      \Return{$N$ elements with smallest values of $\|s(\tilde{x}^{(i)})-s_{obs}\|$.}
+    \end{algorithm}
+  \end{box_algorithm}
+
 \subsubsection{ABC-Importance Sampling}\label{sec_abc_importance_sampling}
 
-\subsection{Importance Sampling}\label{sec_ABC_IS}
   % NOTE https://bookdown.org/rdpeng/advstatcomp/importance-sampling.html
+
+  \begin{box_algorithm}[ABC-Importance Sampling]
+    \begin{algorithm}[H]
+      \SetKwInOut{Require}{require}
+      \Require{Observed values $x_{obs}$; Summary statistics $s(\cdot)$; Theorised model $f(X|\cdot)$; Prior Distributions $\pi_0(\theta)$ Distance Measure $\|\cdot\|$; Number of Simulations $M$; Importance Kernel $g(\cdot)$.}
+      $s_{obs}\leftarrow s(x_{obs})$.\\
+      $\tilde\Theta\leftarrow\{\}$.\\
+      $t\leftarrow0$.\\
+      \For{$i=0,\dots,M$}{
+        $\tilde\theta^{(i)}\leftarrow$ sample $g(\theta)$.\\
+        $\tilde{x}^{(i)}\leftarrow f(X|\tilde\theta^{(i)})$.\\
+        $\tilde{s}^{(i)}\leftarrow s\left(\tilde{x}^{(i)}\right)$.\\
+        $\tilde{w}^{(i)}\leftarrow \frac{\pi_0\left(\theta^{(i)}\right)}{g\left(\theta^{(i)}\right)}K_\varepsilon\left(\left\|s^{(i)}-s_{obs}\right\|\right)$.\\
+        Add $\tilde\theta^{(i)}$ to $\tilde\Theta$ with weight $\tilde{w}^{(i)}$.
+      }
+      \Return{$\tilde\Theta:=\left\{\left(\tilde\theta^{(1)},\tilde{w}^{(1)}\right),\dots,\left(\tilde\theta^{(M)},\tilde{w}^{(M)}\right)\right\}$}
+    \end{algorithm}
+  \end{box_algorithm}
 
 \subsubsection{ABC-MCMC}\label{sec_abc_mcmc}
 
+  \begin{box_algorithm}[ABC-MCMC]
+    \begin{algorithm}[H]
+      \SetKwIF{With}{}{Else}{with probability}{}{}{otherwise}{}
+      \SetKwInOut{Require}{require}
+      \Require{Observed values $x_{obs}$; Summary statistics $s(\cdot)$; Theorised model $f(X|\cdot)$; Prior Distributions $\pi_0(\theta)$ Distance Measure $\|\cdot\|$; Chain length $M$; Acceptance Kernel $K_\varepsilon(\cdot)$; Perturbance Kernel $K^*(\cdot)$.}
+      $s_{obs}\leftarrow s(x_{obs})$.\\
+      $\tilde\Theta\leftarrow\{\}$.\\
+      \BlankLine
+      \# Burn-In Step\\
+      \While{$K_\varepsilon\left(\left\|\tilde{s}^{(0)}-s_{obs}\right\|\right)$ is not accepted\label{abc_mcmc_burn_in_start}}{
+        $\tilde\theta_0\leftarrow$ sample $\pi_0(\theta)$.\\
+        $\tilde{x}^{(0)}\leftarrow f(X|\tilde\theta^{(0)})$.\\
+        $\tilde{s}^{(0)}\leftarrow s\left(\tilde{x}^{(0)}\right)$\label{abc_mcmc_burn_in_end}
+      }
+      \BlankLine
+      \# MCMC Step\\
+      \While{$t=1,\dots,M$\label{abc_mcmc_mcmc_step_start}}{
+        $\theta^*\leftarrow K^*\left(\theta^{(t-1)}\right)$.\\
+        $x^*\leftarrow f\left(X|\theta^*\right)$.\\
+        $s^*\leftarrow s\left(x^*\right)$.\\
+        \With{$K_\varepsilon(\|s^*-s_{obs}\|)$}{
+          $\tilde\theta^{(t)}\leftarrow \theta^*$.
+        }\Else{
+          $\tilde\theta^{(t)}\leftarrow \theta^{(t-1)}$.
+        }
+        Add $\tilde\theta^{(t)}$ to $\tilde\Theta$.\label{abc_mcmc_mcmc_step_end}
+      }
+      \Return{$\tilde\Theta:=\left\{\tilde\theta^{(1)},\dots,\tilde\theta^{(M)}\right\}$}
+    \end{algorithm}
+  \end{box_algorithm}
+
+  \par Lines \ref{abc_mcmc_burn_in_start}-\ref{abc_mcmc_burn_in_end} form the initial burn-in step of the algorithm. Lines \ref{abc_mcmc_mcmc_step_start}-\ref{abc_mcmc_mcmc_step_end} form the MCMC step of the algorithm.
+
+  \par MCMC draw samples from posterior
+
 \subsubsection{ABC-SMC}\label{sec_abc_smc}
+
+  \begin{box_algorithm}[ABC-SMC]
+    \begin{algorithm}[H]
+      \everymath={\displaystyle}
+      \SetKwIF{With}{}{Else}{with probability}{}{}{otherwise}{}
+      \SetKwInOut{Require}{require}
+      \Require{Observed values $x_{obs}$; Summary statistics $s(\cdot)$; Theorised model $f(X|\cdot)$; Prior Distributions $\pi_0(\theta)$ Distance Measure $\|\cdot\|$; Chain length $M$; Acceptance Kernel $K_\varepsilon(\cdot)$; Set of Bandwidths $\{\varepsilon_0,\dots,\varepsilon_T\}$; Number of Iterations $T$; Perturbance Kernel $K^*(\cdot)$; Sample Size $N$.}
+      $s_{obs}\leftarrow s(x_{obs})$.\\
+      \BlankLine
+      \# Initial Sample Step\\
+      $\tilde\Theta_0\leftarrow\{\}$.\\
+      $i\leftarrow0$\\
+      \While{$i<N$}{
+        $\tilde\theta_0^{(i)}\leftarrow$ sample $\pi_0(\theta)$.\\
+        $\tilde{x}_0^{(i)}\leftarrow f(X|\tilde\theta_t^{(i)})$.\\
+        $\tilde{s}_0^{(i)}\leftarrow s\left(\tilde{x}_t^{(i)}\right)$.\\
+        \With{$K_{\varepsilon_0}\left(\left\|s_{0}^{(i)},\dots,s_{obs}\right\|\right)$} {
+          $w_0^{(i)}\leftarrow\frac1N$
+          Add $\tilde\theta_0^{(i)}$ to $\tilde\Theta_0$ with weight $\tilde{w}_0^{(i)} $.\\
+          $i+=1$
+        }
+      }
+      \BlankLine
+      \# Resampling Step\\
+      \For{$T=1,\dots,T$}{
+        $\tilde\Theta_t\leftarrow\{\}$.\\
+        $i\leftarrow0$\\
+        \While{$i<N$}{
+          $\tilde\theta_t^{(i)}\leftarrow$ sample $\tilde\Theta_{t-1}$.\\
+          $\theta^*\leftarrow K^*\left(\tilde\Theta_{t-1}\right)$.\\
+          $\tilde{x}_t^{(i)}\leftarrow f(X|\theta^*)$.\\
+          $\tilde{s}_t^{(i)}\leftarrow s\left(\tilde{x}_t^{(i)}\right)$.\\
+          \With{$K_{\varepsilon_0}\left(\left\|s_{0}^{(i)}-s_{obs}\right\|\right)$} {
+            $\tilde\theta_t^{(i)}\leftarrow\theta^*$.\\
+            $\tilde{w}_t^{(i)}\leftarrow\frac{\pi_0\left(\theta_t^{(i)}\right)}{\sum_{j=1}^Nw_{t-1}^{(j)}\prob\left(K^*\left(\theta_{t-1}^{(j)}=\theta_{t}^{(j)}\right)\right)}$.\\
+            Add $\tilde\theta_t^{(i)}$ to $\tilde\Theta_t$ with weight $\tilde{w}_t^{(i)}$.\\
+            $i\leftarrow i+1$.
+          }
+        }
+        \BlankLine
+        \# Normalise Weights\\
+        \For{$i=1,\dots,N$}{
+          $w_t^{(i)}\leftarrow\frac{\tilde{w}_t^{(i)}}{\sum_{i=1}^N\tilde{w}_t^{(i)}}$.\\
+          Update weight of $\tilde\theta_t^{(i)}$ in $\tilde\Theta_t$ to be $w_t^{(i)}$.
+        }
+      }
+      \Return{$\tilde\Theta_T:=\left\{\left(\tilde\theta_T^{(1)},w_T^{(1)}\right),\dots,\left(\tilde\theta_T^{(N)},w_T^{(N)}\right)\right\}$}
+    \end{algorithm}
+  \end{box_algorithm}
 
 \subsubsection{Comparison}\label{sec_abc_comparison}
 
@@ -144,7 +421,7 @@
 
   % TODO posterior mean are optimal summary statistics
 
-  In this chapter I motivate the research into summary statistic selection \textit{Section \ref{sec_summary_stats_motivation}} and discuss features to consider when selecting summary statistics \textit{Section \ref{sec_properties_of_summary_statistics}}. I then describe five methods for summary statistic selection methods: three which use hand-crafted summary statistics \textit{Sections \ref{sec_approximate_sufficient_subset}-\ref{sec_two_step_minimum_entropy}}; and two which automatically generate summary statistics \textit{Sections \ref{sec_semi_automatic_abc}-\ref{sec_non_linear_projection}}. These approaches are covered in the chronological order in which they were original proposed. To close the section I use a toy example of an SIR model to compare these methods \textit{Section \ref{sec_summary_statistics_toy}}.
+  In this section I motivate the research into summary statistic selection \textit{Section \ref{sec_summary_stats_motivation}} and discuss features to consider when selecting summary statistics \textit{Section \ref{sec_properties_of_summary_statistics}}. I then describe five methods for summary statistic selection methods: three which use hand-crafted summary statistics \textit{Sections \ref{sec_approximate_sufficient_subset}-\ref{sec_two_step_minimum_entropy}}; and two which automatically generate summary statistics \textit{Sections \ref{sec_semi_automatic_abc}-\ref{sec_non_linear_projection}}. These approaches are covered in the chronological order in which they were original proposed. To close the section I use a toy example of an SIR model to compare these methods \textit{Section \ref{sec_summary_statistics_toy}}.
 
 \subsection{Motivation}\label{sec_summary_stats_motivation}
 
@@ -763,6 +1040,7 @@
 \newpage
 \section{ABC and Epidemic Events}\label{sec_epidemic_events}
 
+\newpage
 \section{Conclusion}
 
 \subsection{Future Areas of Research}
