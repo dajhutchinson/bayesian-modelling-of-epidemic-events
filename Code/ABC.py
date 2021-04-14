@@ -350,7 +350,7 @@ def abc_mcmc(n_obs:int,y_obs:[[float]],
         s_0=[s(y_0) for s in summary_stats]
 
         # accept-reject
-        norm_vals=[l2_norm(s_0_i,s_obs_i) for (s_0_i,s_obs_i) in zip(s_0,s_obs)]
+        norm_vals=[distance_measure(s_0_i,s_obs_i) for (s_0_i,s_obs_i) in zip(s_0,s_obs)]
         if (l1_norm(norm_vals)<min_l1_norm): min_l1_norm=l1_norm(norm_vals)
         if (acceptance_kernel(l1_norm(norm_vals),scaling_factor)): break
 
@@ -526,7 +526,7 @@ def abc_smc(n_obs:int,y_obs:[[float]],
             s_temp=[s(y_temp) for s in summary_stats]
 
             # accept-reject
-            norm_vals=[l2_norm(s_temp_i,s_obs_i) for (s_temp_i,s_obs_i) in zip(s_temp,s_obs)]
+            norm_vals=[distance_measure(s_temp_i,s_obs_i) for (s_temp_i,s_obs_i) in zip(s_temp,s_obs)]
             if (acceptance_kernel(l1_norm(norm_vals),scaling_factors[t])):
                 weight_numerator=sum([p.pdf(theta) for (p,theta) in zip(priors,theta_temp)])
                 weight_denominator=0
@@ -678,7 +678,7 @@ def adaptive_abc_smc(n_obs:int,y_obs:[[float]],
             s_temp=[s(y_temp) for s in summary_stats]
 
             # accept-reject
-            norm_vals=[l2_norm(s_temp_i,s_obs_i) for (s_temp_i,s_obs_i) in zip(s_temp,s_obs)]
+            norm_vals=[distance_measure(s_temp_i,s_obs_i) for (s_temp_i,s_obs_i) in zip(s_temp,s_obs)]
             if (acceptance_kernel(l1_norm(norm_vals),scaling_factor)):
                 distances.append(l1_norm(norm_vals))
                 weight_numerator=sum([p.pdf(theta) for (p,theta) in zip(priors,theta_temp)])
@@ -990,11 +990,25 @@ def minimum_entropy(summary_stats:["function"],n_obs:int,y_obs:[[float]],fitting
 def rsse(obs,target) -> float:
     # Residual Sum of Squares Error
 
-    error=sum([l2_norm(o,target) for o in obs])
-    error/=len(obs)
+    error=sum([l2_norm(o,target)**2 for o in obs])
     error=np.sqrt(error)
+    error/=len(obs)
 
     return error
+
+def two_d_rsse(obs,target,ln=False) -> float:
+    # Residual Sum of Squares Error for 2d entries
+    total_error=0
+    for i in range(len(obs[0])):
+        obs_i=[x[i] for x in obs]
+        tar_i=[x[i] for x in target]
+        if (ln):
+            error=sum([np.log(abs(x-y))**2 for (x,y) in zip(obs_i,tar_i) if x!=y])
+        else:
+            error=sum([(x-y)**2 for (x,y) in zip(obs_i,tar_i)])
+        total_error+=error
+
+    return total_error
 
 def two_step_minimum_entropy(summary_stats:["function"],n_obs:int,y_obs:[[float]],fitting_model:Model,priors:["stats.Distribution"],n_samples=1000,n_accept=100,n_keep=10,k=4,printing=False) -> [int]:
     """

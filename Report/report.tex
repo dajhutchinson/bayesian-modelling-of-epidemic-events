@@ -140,63 +140,73 @@
 \newpage
 \section{Approximate Bayesian Computation}\label{sec_ABC}
 
-    In this section I motivate and provide the mathematical background for Approximate Bayesian Computation (ABC) methods \textit{Section \ref{sec_ABC_background}}; Present the general approach of ABC methods \textit{Section \ref{sec_ABC_ABC_methods}} and discuss four flavours of ABC algorithm \textit{Section \ref{sec_abc_rejection_sampling}-\ref{sec_abc_smc}}; Provide a comparison of these four methods \textit{Section \ref{sec_abc_comparison}}; and, I close this section by exploring how ABC methods can be used for model choice \textit{Section \ref{sec_abc_model_choice}} and how regression adjustment can be used to improve the results of ABC methods \textit{Section \label{sec_abc_regression_adjustment}}.
+    In this section I motivate and provide the mathematical background for Approximate Bayesian Computation (ABC) methods \textit{Section \ref{sec_ABC_background}}; Present the general approach of ABC methods \textit{Section \ref{sec_ABC_ABC_methods}} and discuss four flavours of ABC algorithm \textit{Section \ref{sec_abc_rejection_sampling}-\ref{sec_abc_smc}}; Provide a comparison of these four methods \textit{Section \ref{sec_abc_comparison}}; and, I close this section by exploring how ABC methods can be used for model choice \textit{Section \ref{sec_abc_model_choice}} and how regression adjustment can be used to improve the results of ABC methods \textit{Section \ref{sec_abc_regression_adjustment}}.
 
 \subsection{Motivation and Background}\label{sec_ABC_background}
 
-  \par Consider a model $X$ with parameters $\theta$. The centre-point of Bayesian inference is the posterior distribution for the parameters $\theta$ given observations $X$. Using Bayes rule we have the following formulation of this posterior
+  \par Consider a model $X$ with parameters $\theta$. The centre-point of Bayesian inference is the posterior distribution $\prob(\theta|X)$ for the parameters $\theta$ given observations $X$. Using Bayes rule we have the following formulation for this posterior .
 
   \[ \prob(\theta|X)=\frac{\prob(X|\theta)\prob(\theta)}{\prob(X)} \]
 
-  \par For Bayesian inference we are only concerned with the relative weight the posterior assigns to each parameter value $\theta$, so we can ignore the evidence $\prob(X)$ as it is just a normalising constant with respect to $\theta$. Meaning we can simplify the expression for the posterior as being proportional to the product of the likelihood $\prob(X|\theta)$ and the prior $\prob(\theta)$.
+  \par For Bayesian inference we are only concerned with the relative weight the posterior assigns to each parameter value $\theta$, so we can discard the evidence $\prob(X)$ as it is just a normalising constant with respect to $\theta$. Meaning we can simplify the expression for the posterior as being proportional to the product of the likelihood $\prob(X|\theta)$ and the prior $\prob(\theta)$.
 
   \[ \prob(\theta|X)\propto\prob(X|\theta)\prob(\theta) \]
 
-  \par As the prior is defined by the user, the only remaining task is to deduce an expression for the likelihood. However, for most real-world processes an explicit expression of the likelihood is computationally intractable due to the complex nature of the systems which govern them and the large number of parameters they have. Moreover, there are often so many parameters that it is intractable to specify all of them and thus we generally theorise a simpler model $\hat{X}$ and then calibrate this model to the true model by fitting its parameters. This motivates the need for likelihood-free inference methods such as Approximate Bayesian Computation.
+  \par As the prior is defined by the user, the only remaining task is to deduce an expression for the likelihood. However, for most real-world processes an explicit expression of the likelihood is computationally intractable due to the complex nature of the systems which govern them and their high degrees of freedom. Moreover, there are often so many parameters that it is intractable to specify all of them and thus we generally theorise a simpler model $\hat{X}$ and seek to calibrate this model to the true model by fitting its parameters. This motivates the need for likelihood-free inference methods such as Approximate Bayesian Computation.
 
   \begin{center}
     \noindent\rule{.8\textwidth}{0.4pt}
   \end{center}
 
-  \noindent Suppose you have a sequence of $n$ of observations $x_{obs}:=(x_{obs,1},\dots,x_{obs,n})$ from our model $X$ where each observation may be multi-dimensional $x_{obs,i}\in\mathbb{R}^p$ for $p\in\mathbb{N}$. Let $K_\varepsilon(\cdot)$ denote a kernel density function with bandwidth $\varepsilon>0$ and $\|\cdot\|$ denote a distance measure between observations of model $X$. Note that as the bandwidth tends to zero the value of $K_\varepsilon(\|x-x_{obs}\|)$ tends to the Dirac delta function $\delta_{x_{obs}}(x)$.
+  \noindent Suppose you have a sequence of $n$ of observations $x_{obs}:=(x_{obs,1},\dots,x_{obs,n})$ from our model $X$ where each observation may be multi-dimensional, $x_{obs,i}\in\mathbb{R}^p$ for $p\in\mathbb{N}$. Let $K_\varepsilon(\cdot)$ denote a kernel density function with bandwidth $\varepsilon>0$ and $\|\cdot\|$ denote a distance measure between observations of model $X$. I discuss kernel density functions and distance measures in \textit{Section \ref{sec_ABC_ABC_methods}}. Note that as the bandwidth tends to zero the value of the kernel density function for the distance between two points $K_\varepsilon(\|x-x_{obs}\|)$ tends to the Dirac delta function $\delta_{x_{obs}}(x)$. This result is trivially from the definition of a kernel density function.
 
-  \[ \lim_{\varepsilon\to0}K_{\varepsilon}(\|x-x_{obs}\|)=\delta_{x_{obs}}(x):=\begin{cases}1&\text{if }x_{obs}=x\\0&\text{otherwise}\end{cases} \]
+  \begin{equation}
+    \lim_{\varepsilon\to0}K_{\varepsilon}(\|x-x_{obs}\|)=\delta_{x_{obs}}(x):=\begin{cases}1&\text{if }x_{obs}=x\\0&\text{otherwise}\end{cases} \label{eqn_limit_of_kernel_and_distance}
+  \end{equation}
 
-  \par This result can be used to restate the likelihood function using the kernel density function and distance measure.
+  \par This result can be used to restate the likelihood function in terms of a kernel density function and distance measure.
+
+  \[
+    \everymath={\displaystyle}
+    \begin{array}{rcl}
+      \prob(x_{obs}|\theta)&=&\int\delta_{x_{obs}}(x)\prob(x|\theta)dx\\
+      &=&\lim_{\varepsilon\to0}\int K_\varepsilon(\|x-x_{obs}\|)\prob(x|\theta)dx
+    \end{array}
+  \]
+
+  \par Consider the following definition $\pi_{ABC}$ and note that it tends to, within a normalising constant, of the true posterior.
 
   \[
   \everymath={\displaystyle}
-  \begin{array}{rcl}
-    \prob(x_{obs}|\theta)&=&\int\delta_{x_{obs}}(x)\prob(x|\theta)dx\\
-    &=&\lim_{\varepsilon\to0}\int K_\varepsilon(\|x-x_{obs}\|)\prob(x|\theta)dx
+  \begin{array}{rrrl}
+    &\pi_{ABC}(\theta|x_{obs})&:=&\int K_\varepsilon(\|x-x_{obs}\|)\prob(x|\theta)\pi_0(\theta)dx\\
+    \implies&\lim_{\varepsilon\to0}\pi_{ABC}(\theta|x_{obs})&=&\lim_{\varepsilon\to0}\int K_\varepsilon(\|x-x_{obs}\|)\prob(x|\theta)\pi_0(\theta)dx\\
+    &&=&\int \delta_{x_{obs}}(x)\prob(x|\theta)dx\cdot \pi_0(\theta)\\
+    &&=&\prob(x_{obs}|\theta)\pi_0(\theta)\\
+    &&\propto&\prob(\theta|x_{obs})
   \end{array}\]
 
-  \par Now define the ABC approximation of the posterior as
-
-  \[ \pi_{ABC}(\theta|x_{obs}):=\int K_\varepsilon(\|x-x_{obs}\|)\prob(x|\theta)\pi_0(\theta)dx \]
-
-  \par Then
-
-  \[
-  \everymath={\displaystyle}
-  \begin{array}{rcl}
-    \lim_{\varepsilon\to0}\pi_{ABC}(\theta|x_{obs})&=&\lim_{\varepsilon\to0}\int K_\varepsilon(\|x-x_{obs}\|)\prob(x|\theta)\pi_0(\theta)dx\\
-    &=&\int \delta_{x_{obs}}(x)\prob(x|\theta)dx\cdot \pi_0(\theta)\\
-    &=&\prob(x_{obs}|\theta)\pi_0(\theta)\\
-    &\propto&\prob(\theta|x_{obs})
-  \end{array}\]
-
-  \par This shows that $\pi_{ABC}(\cdot|x_{obs})$ is an approximation of the true posterior, with it being a good approximation when $\varepsilon$ is small. Typically, due to the observations $x$ being of high dimension a summary statistic $s(\cdot)$ is applied to them first and then the quantities $s:=s(x),s_{obs}:=(x_{obs})$ are used in place of $x,x_{obs}$. The analysis of the above derivation is the unchanged when using summary statistics as long as the summary statistics are sufficient, if the statistics are not sufficient then the $\pi_{ABC}$ will only ever be an approximation of the true posterior regardless of the bandwidth used. Sufficiency is discussed in \textit{Section \ref{sec_sufficiency}}.
+  \noindent This shows that $\pi_{ABC}$ is an approximation of the true posterior, with it being a good approximation when $\varepsilon$ is small.
+  \par Typically, due to the observations $x$ being of high dimension, a summary statistic $s(\cdot)$ is applied to them first and then the quantities $s:=s(x),s_{obs}:=(x_{obs})$ are used in place of $x,x_{obs}$. The analysis of the above derivation is unchanged when using summary statistics as long as the summary statistics are sufficient, if the summary statistics are not sufficient then $\pi_{ABC}$ can only ever be an approximation of the true posterior regardless of the bandwidth used. \textit{Section \ref{sec_summary_stats}} is dedicated to the topic of how to approach choosing summary statistics, with sufficiency being discussed in \textit{Section \ref{sec_sufficiency}}.
 
   \[ \pi_{ABC}(\theta|s_{obs}):=\int K_\varepsilon(\|s-s_{obs}\|)\prob(s|\theta)\pi_0(\theta)ds \]
 
   This formulation for the ABC approximation of the posterior is the one found in the standard ABC framework (e.g. \cite[]{overview_of_abc,annual_review_of_statistics_ABC}).
 
+  \par The utility of being able to use $\pi_{ABC}(\theta|s_{obs})$ to approximate the true posterior is apparent when you consider the implied joint distribution of parameters and summary statistics $\pi_{ABC}(\theta,s|s_{obs})$
+
+  \[\everymath={\displaystyle}\begin{array}{rrrl}
+    &\pi_{ABC}(\theta|s_{obs})&=&\int \pi_{ABC}(\theta,s|s_{obs})ds\\
+    \text{where}&\pi_{ABC}(\theta,s|s_{obs})&:=&K_\varepsilon(\|s-s_{obs}\|)\prob(s|\theta)\pi_0(\theta)
+  \end{array}\]
+
+  We can define Monte Carlo algorithms which target sampling from this joint distribution without needing to specify the likelihood $\prob(s|\theta)$. These samples become samples from the posterior by simply ignoring the summary statistic values $s$ which are sampled.
+
 \subsection{ABC Methods}\label{sec_ABC_ABC_methods}
 
-  \par The original concept, which later became known as the Approximate Bayesian Computation, was first presented by \cite[]{population_growth_of_human_Y_chromosomes} in a study of population genetics, a field in which ABC is still popular used. In this paper Pritchard \textit{et. al} present an algorithm which would later be generalised become the rejection sampling approach to ABC.
+  \par Approximate Bayesian Computation (ABC) methods are a family computational methods which can be used to approximate posteriors for the parameters of models where the likelihood is intractable. The first algorithm to use the concept which would later be known as ABC was presented in \cite[]{inferring_coalescence_times_from_dna_sequence_data}, although this algorithm does not include the use of summary statistics nor use distance measures and kernel density functions to determine whether to accept a simulation or not. The algorithm presented in \cite[]{population_growth_of_human_Y_chromosomes} is much more recognisable as ABC and consider by many as the first true ABC algorithm. This algorithm would later be generalised to becomes the rejection sampling approach to ABC. Both of these papers were studies of population genetics, a field in which ABC is still popular used.
 
-  \par In the standard framework of ABC, the posterior is approximated by the quantity $\pi_{ABC}(\cdot|s_{obs})$ as derived in \textit{Section \ref{sec_ABC_background}}. Consider the joint distribution of $\theta,s$ given $s$ ... useful cause we can simulate pairs of $\theta,s$ and allows a measure of how good simulation is
+  \par ABC methods require a set of observations from the true model; a theorised model for which parameters can be set and observations generated; and a set of priors for the parameters of the theorised model. ABC methods then perform many simulations of the theorised model and, by comparing  the summary statistic values of the simulated observations to those of the true observations, inferences are made about which parameter values are most likely to be closest to the true values. \textbf{Algorithm \ref{alg_generic_abc}} outlines this basic flow which ABC methods follow. The general idea being that the parameter sets which make the theorised model generate observations which are closest to true observations are more likely to be the true parameter values.
 
   \begin{box_algorithm}[Generic Approximate Bayesian Computation]\label{alg_generic_abc}
     \textbf{Require:} Observed values $x_{obs}$; Summary statistics $s(\cdot)$; Theorised model $f(X|\cdot)$; Acceptance Kernel $K_\varepsilon(\cdot)$; Distance Measure $\|\cdot\|$.
@@ -213,9 +223,27 @@
     \end{enumerate}
   \end{box_algorithm}
 
-  \par Different flavours of ABC vary different parts of this generic approach: ABC-MCMC (\textit{Section \ref{sec_abc_mcmc}}) changes how new parameter samples are drawn (\textit{Step 2. (a)}); ABC-SMC (\textit{Section \ref{sec_abc_smc}}) changes how new samples are accepted.
+  \par \textbf{Algorithm \ref{alg_generic_abc}} demonstrates the simplicity of the underlying algorithm for ABC methods. Most ABC methods are straightforward to implement as they follow this basic structure and then change how certain parts of performed in practice (Typically how new samples are drawn and how the acceptance criteria are defined). This allows for a high level of modularity which has motivated innovations in ABC methods.
 
-  \par The set of accepted parameter sets $\hat\Theta$ can be used for Bayesian inference of the model parameters. Estimating properties of the distributions, such as mean, mode and quantiles, is straightforward. Producing a discretised estimate of the posterior for each parameter can be achieved by calculating a histogram of the accepted values for each parameter, again straightforward. Kernel density functions can be used to produce a continuous estimates of the posteriors (See \cite[]{review_of_kde}).
+  \par The ideal ABC methods are those which run efficiently and perform well with small bandwidths $\varepsilon$. Efficient methods are important as this means more simulations can be processed in a given time-period, making convergence of the estimated posterior more likely. A method being able to handle smaller bandwidths means the posterior it produces will be a better approximation of the true posterior (See Eq. \ref{eqn_limit_of_kernel_and_distance}). All ABC methods will run with any value of the bandwidth, however those that use an informed search method for generating samples will require fewer simulations to achieve good results (e.g. ABC-SMC).
+
+  \par Monte Carlo methods form the basis of how ABC methods approach exploring the parameter space. Monte Carlo methods are a class of methods which seek to generate samples from a space in a way which mimics sampling from the true model. They do this by running many, many simulations and use some degree of randomness to determine how each simulation is generated and which are accepted.
+
+  \par Here is an overview of classes of Monte Carlo methods which are commonly used in ABC methods:
+  \begin{itemize}
+    \item \textit{Rejection-Sampling methods} calculate a probability $p$ that a given set of simulated values came from the true model. A value $u\sim U[0,1]$ is sampled from standard uniform distribution and if the sampled value $u$ is less than the acceptance-probability $p$ then the simulation is accepted as a sample. This procedure is run on a large number of simulations with each simulation being generated and assessed independently.
+
+    \item \textit{Importance-Sampling methods} extend rejection-sampling by, instead of only accepting a subset of simulated values, all simulations are accepted but each is assigned a weight which indicates the perceived probability that that simulation could be generated by the true model. Typically this weight is the same as the acceptance probability $p$ calculated in rejection-sampling.
+
+    \item \textit{Markov Chain Monte Carlo (MCMC) methods} extend rejection-sampling by, instead of generating each simulation independently, the parameters of the last accepted simulation are slightly perturbed and then used to generate a new simulation. This creates a search process rather than random simulation due to the dependency between consecutive samples.
+
+    \item \textit{Sequential Monte Carlo (SMC) methods}\footnote{Also known as Particle-Filter methods.} extend importance-sampling by repeatedly resampling from the set of samples, with the weights of each parameter determining the probability it is sampled, and each iteration tightening the acceptance criteria. This means the estimated posterior will become more refined each time and hopefully converge on the true posterior.
+  \end{itemize}
+
+  \par The use of Monte Carlo methods means that ABC methods are inherently computationally inefficient due to the need to perform many, many simulations to % TODO
+  . Further, Monte Carlo methods introduce a high degree of randomness into ABC methods which further motivates the need to perform lots of simulations as the strong law of large number is required to obtain consistent results. This limitation is mitigated due to the simplicity of most ABC algorithms meaning they are capable of process millions of simulations an hour on modern computers.
+
+  \par The set of accepted parameter sets $\hat\Theta$ returned by ABC can be used for Bayesian inference. Estimating properties of the distributions, such as mean, mode and quantiles, is straightforward. Producing a discretised estimate of the posterior for each parameter can be achieved by calculating a histogram of the accepted values for each parameter, again straightforward. Kernel density functions can be used to produce a continuous estimates of the posteriors (See \cite[]{review_of_kde}).
 
   \begin{box_remark}[Posterior Mean is Minimum Mean-Square Error Estimator]\label{rem_posterior_mean_is_mmsee}
     Let $\theta$ denote the quantity we wish to estimate, $A$ denote an arbitrary estimator of $\theta$ and suppose we have observed $x_{obs}$ from model $X$. Then
@@ -229,7 +257,16 @@
     This shows that mean-square error is minimised when the posterior mean of $\theta$ given $x_{obs}$ is used as an estimator.
   \end{box_remark}
 
-  \par ABC methods can be used to calibrate models or to compare models. Typically calibration is done by setting parameter values to the estimated posterior mean as the posterior mean minimises mean-square error (see \textbf{Remark \ref{rem_posterior_mean_is_mmsee}}). I discuss how ABC methods can be used for model comparison in \textit{Section \ref{sec_abc_model_choice}}.
+  \par ABC methods are commonly used to calibrate models or to compare models. Typically calibration is done by setting parameter values to the estimated posterior mean as the posterior mean minimises mean-square error (see \textbf{Remark \ref{rem_posterior_mean_is_mmsee}}). ABC methods are used for model comparison as they can directly estimate Bayes factor, I discuss model comparison further in \textit{Section \ref{sec_abc_model_choice}}.
+
+  \par The key advantage of ABC methods, over other approaches to Bayesian inference, is that it produces a distribution, rather than a point-estimate, for parameter values. This allows for analysis into uncertainty around the parameter values. Additionally, as the strictness of the acceptance criteria is a parameter of ABC methods, ABC methods can fit or compare a large range of theorised models by loosening the acceptance criteria. Being able to use simpler models has the advantage of reducing issues which occur due to curse-of-dimensionality.
+
+  \par A limitation of using ABC methods is the large number of hyper-parameters they have (Distance measures, summary statistics, bandwidths, perturbance kernels, etc.) and that the choices the user makes for how these parameters are set can drastically affect the algorithms performance. It is trivial to realise that if an uninformative distance measure such as $\|x\|=0\ \forall\ x$ is used or an acceptance kernel which accepts all simulations is used then the returned set of parameters will resemble the set of priors, and no meaningful inferences can be drawn. Moreover, these hyper-parameters need to be tuned for each model these methods are applied, which is laborious. This has motivated the innovation of adaptable ABC algorithms which automate the process of setting some of these parameters.
+
+  \par As stochastic processes determine whether a simulation is accepted, or not, ABC methods incur information loss. This can mean that promising areas of the parameter space are not explored. This issue is mitigate by running many simulations.
+
+  % TODO trade-off of low v high bandwidth (time v accuracy basically) no obvious relationship between the two
+  % TODO curse of dimensionality
 
 \subsubsection*{Summary Statistics}
 
@@ -248,11 +285,14 @@
 
 \subsubsection*{Distance Functions}
 
+  \par Curse of dimensionality
   \par $L_1(\mathbf{x}):=\sum_{i=1}^n|x_i|$. Manhattan Distance.
   \par $\ell_1(\mathbf{x}):=\ln\left(\sum_{i=1}^n|x_i|\right)$. Log-Manhattan Distance.
   \par $L_2(\mathbf{x}):=\sum_{i=1}^n(x_i)^2$. Euclidean Distance.
   \par $\ell_2(\mathbf{x}):=\ln\left(\sum_{i=1}^n(x_i)^2\right)$. Log-Euclidean Distance.
   \par $L_\infty(\mathbf{x}):=\max\{x\in \mathbf{x}\}$.
+
+\subsubsection*{Priors}
 
 \subsubsection{ABC-Rejection Sampling}\label{sec_abc_rejection_sampling}
 
