@@ -1,9 +1,10 @@
-\documentclass[bibliography=totoc,11pt,a4paper,margin=0]{article}
+\documentclass[11pt,a4paper]{article}
 
 \usepackage[margin=2.5cm, paperwidth=8.3in, paperheight=11.7in]{geometry}
 \usepackage[vlined,linesnumbered]{algorithm2e}
 \usepackage{amsmath,amsthm,amsfonts,bbm,environ,fancyhdr,graphicx,hyperref,natbib,tikz,mdframed}
 \usepackage[hang,flushmargin]{footmisc}
+\usepackage[nottoc]{tocbibind}
 \usetikzlibrary{automata,positioning}
 \graphicspath{ {img/} }
 % \usepackage[section,nohyphen]{DomH}
@@ -57,9 +58,11 @@
 \date{\today}
 \clearpage\maketitle
 \thispagestyle{empty}
-\newpage
 
+\newpage
 \setcounter{page}{1}
+\pagenumbering{Roman}
+
 \section*{Dedication}\label{sec_dedication}
 % Me, I'm taking this one. And Chris Lovasz whose streams kept me passively entertained during this project.
 % \newpage
@@ -75,6 +78,8 @@
 \tableofcontents
 
 \newpage
+\pagenumbering{arabic}
+\setcounter{page}{1}
 \section{Introduction}\label{sec_introduction}
 
   \par What is a model? A (simple) mathematical formulation of a process which incorporates parameters of interest and likely some stochastic processes. Models need to be computational tractable (i.e. fairly simple)
@@ -134,6 +139,8 @@
       \end{array}\]
     \end{proof}
   \end{box_theorem}
+
+\subsubsection*{Priors}
 
 \subsection{SIR Model}
 
@@ -274,25 +281,76 @@
 
 \subsubsection*{Kernel Density Functions}
 
-  \par Should match the expected noise in a model (additive gaussian, heteroscheastic etc.)
-  \par For standard kernel density functions it holds that $K_{\varepsilon}(x)=\frac1\varepsilon K(x/\varepsilon)$
-  \par These are standard kernel density functions as they equal 1 at their peak % TODO restate this
-  \begin{itemize}
-    \item Uniform Kernel $K_\varepsilon(x):=\mathbbm{1}\{x\leq\varepsilon\}$.
-    \item Gaussian Kernel $K_\varepsilon(x):=\frac34\left(1-\frac{x^2}{\varepsilon^2}\right)\mathbb{1}\left\{|x|\leq\varepsilon\right\}$.
-    \item Epanechnikov Kernel $K_\varepsilon(x):=\frac1{\sqrt{2\pi}}\exp\left\{-\frac12x^2\right\}$.
-  \end{itemize}
+  \begin{box_definition}[Kernel Density Functions $K_\varepsilon(\cdot)$, \cite{non_parameteric_estimation_of_a_multivariate_probability_density}]
+    Kernel density functions are functions $K:\mathbb{R}\to\mathbb{R}$ with the following properties:
+    \begin{enumerate}
+      \item Non-negative
+      \[ K_\varepsilon(x)\geq0\ \forall\ x\in\mathcal{X} \]
+      where $\mathcal{X}$ is the range of values $x$ can take.
+      \item Symmetric
+      \[ K_\varepsilon(x)=K_\varepsilon(-x)\ \forall\ x\in\mathcal{X} \]
+      \item Normalised
+      \[ \int_{\mathcal{X}}K_\varepsilon(x)dx=1 \]
+      \item $K_\varepsilon(x)=\frac1\varepsilon K_1(x/\varepsilon)$.
+    \end{enumerate}
+    \noindent Kernel density functions are typically extended to allow for a smoothing parameter $\varepsilon\geq0$ such that $K_\varepsilon(x)=\frac1\varepsilon K(x/\varepsilon)$.
+  \end{box_definition}
 
-\subsubsection*{Distance Functions}
+  \par The choice of kernel density function does not play a notable role in the asymptotic behaviour of ABC methods, however the bandwidth chosen for them does. A high bandwidth means that the weight of the kernel is spread much more evenly across its support meaning there is less discrimination between values close to the mean and those further away.
 
-  \par Curse of dimensionality
-  \par $L_1(\mathbf{x}):=\sum_{i=1}^n|x_i|$. Manhattan Distance.
-  \par $\ell_1(\mathbf{x}):=\ln\left(\sum_{i=1}^n|x_i|\right)$. Log-Manhattan Distance.
-  \par $L_2(\mathbf{x}):=\sum_{i=1}^n(x_i)^2$. Euclidean Distance.
-  \par $\ell_2(\mathbf{x}):=\ln\left(\sum_{i=1}^n(x_i)^2\right)$. Log-Euclidean Distance.
-  \par $L_\infty(\mathbf{x}):=\max\{x\in \mathbf{x}\}$.
+  \par It is standard to define kernel density functions such that they have zero mean. Having this property means that that $\max_xK_\varepsilon(x)=K_\varepsilon(0)$, this follows immediately from the kernel being symmetric. This is a useful property in the context of ABC methods as we pass the distance between two points $\|x-x_{obs}\|$ to the kernel density function to determine the probability we accept a simulation and this property means that simulations $x$ closest to the observed values $x_{obs}$ are more likely to be accepted.
 
-\subsubsection*{Priors}
+  \par In practice, when implementing ABC methods we typically scale up the values returned by the kernel such that $K_\varepsilon(0)=1$. This is straightforward to do for well-known kernels as it only requires the removal of the normalising term. As the relative weights given to each value are maintained this does not affect the asymptotic behaviour of the algorithms, but will increase the acceptance rate. This also has the desirable effect that every time an exact match is found it will definitely be accepted.
+
+  \begin{table}
+    \everymath={\displaystyle}
+    \centering
+    \begin{tabular}{|l|l|}
+      \hline
+      \textbf{Name}&\textbf{Formula}\\\hline
+      Uniform Kernel&$K_\varepsilon(x)=\frac1{2\varepsilon}\mathbbm{1}\{x\leq\varepsilon\}$\\\hline
+      Gaussian Kernel&$K_\varepsilon(x)=\frac\varepsilon{\sqrt{2\pi}}\exp\left\{-\frac12x^2\varepsilon^2\right\}$\\\hline
+      Epanechnikov Kernel&$K_\varepsilon(x)=\frac34\left(1-x^2\varepsilon^2\right)\mathbbm{1}\left\{|x|\leq\varepsilon\right\}$\\
+      \hline
+    \end{tabular}
+    \caption{Common kernel density functions for ABC methods.\protect\footnotemark}
+    \label{tab_common_kernels}
+  \end{table}
+  \footnotetext{$\mathbbm{1}\{A\}:=\begin{cases}1&\text{if }A\\0&\text{otherwise}\end{cases}$}
+
+  \par \textbf{Table \ref{tab_common_kernels}} provides a table of the most commonly used kernel density functions for ABC, as recommended by \cite[]{annual_review_of_statistics_ABC}. The Epanechnikov kernel is asymptotically optimal for kernel density estimation when seeking to minimise mean-square error (See \cite[]{non_parameteric_estimation_of_a_multivariate_probability_density}), although this theoretical result is disputed in \cite[]{introduction_to_nonparametric_estimation}.
+
+  \par The uniform kernel is popular in ABC as it is equivalent to accepting all simulations whose distance from the true observation is no greater than $\varepsilon$. The Gaussian kernel is more commonly used as it has an infinite support which is useful in certain scenarios. When choosing which kernel to use for ABC methods it is intuitive that it should match the theorised distribution of the noise in the theorised model. This further motivates the use of a Gaussian kernel as many models assume gaussian noise.
+
+\subsubsection*{Distance Measures}
+
+  \begin{table}
+    \everymath={\displaystyle}
+    \centering
+    \begin{tabular}{|l|l|}
+      \hline
+      \textbf{Name}&\textbf{Formula}\\\hline
+      Manhattan Distance&$L_1(\mathbf{x}):=\sum_{i=1}^m|x_i|$\\\hline
+      Euclidean Distance&$L_2(\mathbf{x}):=\sqrt{\sum_{i=1}^mx_i^2}$\\\hline
+      $L_p$ Norm&$L_p(\cdot):=\left(\sum_{i=1}^mx_i^p\right)^{1/p}$\\\hline
+      $L_\infty$ Norm&$L_\infty(\mathbf{x}):=\max\{x\in \mathbf{x}\}$\\\hline
+    \end{tabular}
+    \caption{Common distance measures for ABC methods.}
+    \label{tab_common_distances}
+  \end{table}
+
+  \par Distance measures quantify how far apart two multi-dimensional vectors are from each other, with greater values indicating the vectors are further away. A value of zero means that the two vectors are identical under the given measure.
+
+  \par The choice of distance measure is integral to the performance of an ABC method as it determines whether a set of simulated values are deemed to be representative of the true model, or not, by quantifying how similar these values are to true observations. \textbf{Table \ref{tab_common_distances}} provides a list of popular distance measures for ABC methods. The Euclidean distance is most commonly as minimising Euclidean distance is clearly related to minimise SSE of a model.
+
+  \par It is important to note that the value passed to distances measures in ABC methods is the difference of two sets of summary statistics. Well chosen summary statistics will extract meaningful information and perform a certain level of pre-processing of this data such as standardisation and weighting different dimensions. This means we do not need to consider these problems during selection of distance measure.
+
+  \par An issue which arises when specifying distance measures is the ``Curse of Dimensionality''\footnote{Term first coined in \cite[]{adaptive_control_processes} in reference to how many algorithms may work well when applied to low-dimensions, but are intractabled when for higher-dimensions.}. This is the phenomena that as the dimensionality of vectors being compared increases, it becomes harder to distinguish between different pairs. This is an issue to ABC methods as the success of the approach relies on being able to accurately identify which simulations are closest to observed values. Using summary statistics which introduce a high level of dimensionality reduction will help.
+
+  \par Different demonstrations of this phemonema is required for different distance measures, but for Euclidean distance it is generally demonstrated by comparing of the volume of a hyper-sphere with radius $r$ and the volume of a hyper-cube with side length $2r$. The volume of the hyper-cube quickly dwarfs that of the hyper-sphere as the number of dimensions are increased. % TODO incude mathematical proof (https://en.wikipedia.org/wiki/Curse_of_dimensionality#Distance_functions)
+  The ``Curse of Dimensionality'' is a big short coming of the Euclidean distance as it was only every conceived for real-world spaces (i.e. two or three dimensions). Which distance measure is best ultimately depends on the data being used. Using the $L_p$ norm has shown promise but adds the additional problem of what value of $p$ is optimal. \cite[]{choosing_the_metric_in_high_dimensional_spaces_based_on_hub_analysis} present an approach to choosing an optimal $p$ which assesses the ``hub-ness'' of a dataset.
+
+  \par There is a wealth of literature on the ``Curse of Dimensionality'' in the machine learning space, particularly for nearest-neighbour problems which are very relevant to the problem being addressed by distance measures in ABC (See \cite[]{when_is_nearest_neighbour_meaningful,what_is_the_nearest_neigbour_in_high_dimensional_space,hubs_in_space})
 
 \subsubsection{ABC-Rejection Sampling}\label{sec_abc_rejection_sampling}
 
@@ -451,7 +509,7 @@
 
 \subsection{ABC for Model Choice}\label{sec_abc_model_choice}
 
-\subsection{Regression Adjustment in ABC}\label{abc_regression_adjustment}
+\subsection{Regression Adjustment in ABC}\label{sec_abc_regression_adjustment}
 
   \par Beaumont et al - Local Linear Regressions (LOCL)
   \par Blum and Francois' - Nonlinear Conditional heteroscedastic regressions (NCH). (Uses neural networks)
@@ -820,7 +878,7 @@
 
   \par \textbf{Algorithm \ref{alg_evaluate_proposed_statistic}} requires sets of parameters which were accepted under each set of summary statistics in order to compare posteriors. These sets are acquired by generating a large number of simulations of the theorised model, using parameters sampled from the model priors, and then running ABC-Rejection Sampling to determine which parameters would be accepted under each set of summary statistics\footnote{Considerations need to be made for how the bandwidth of the kernel scale with the number of parameters. The simplest solution is for it to scale linearly.}. This approach has the desirable property that we only need to generate simulations once, and can then use the same set of samples each time we run \textbf{Algorithm \ref{alg_evaluate_proposed_statistic}}. This property allows us to justify generating a very large number of simulations which will make the posterior estimates more accurate. Using this approach means the approximation factor $\varepsilon$ is no longer a parameter of the algorithm, but the distance measure, acceptance kernel and bandwidth used in the ABC-Rejection Sampling step are now parameters, as well as the number of bins $M$ and number of model simulations. Implement caching to avoid having to run ABC-Rejection Sampling multiple times for the same set of statistics will dramatically improve the computational efficiency of this approach, especially when a large super-set of statistics is being used.
 
-  \par A limitation of \textbf{Algorithm \ref{alg_evaluate_proposed_statistic}} is that it does not produce a numerical value which can be used to rank each proposed statistic\footnote{You could compare each possible subset but this would highly inefficient as it potentially requires ${K! \choose 2}$ executions of Algorithms \ref{alg_evaluate_proposed_statistic}, where $K$ is the number of statistics being considered, and there is no guarantee this would produce a definitive best set, due to the complex relationships between statistics.}, as the theoretical score would. This means we cannot choose to keep adding the highest scoring statistic, as in \textbf{Algorithm \ref{alg_approximately_sufficient_subsets}}, and instead have to consider statistics in a somewhat arbitrary order. This means that the order in which statistics are considered will affect the result of the algorithm. An imperfect solution to this is to consider statistics in a random order and whenever a statistic is accepted, consider removing each statistic which has already been chosen. Implementing this is not trivial as considerations need to be made to avoid infinite loops where the same statistics keep getting added and removed.
+  \par A limitation of \textbf{Algorithm \ref{alg_evaluate_proposed_statistic}} is that it does not produce a numerical value which can be used to rank each proposed statistic\footnote{You could compare each possible subset but this would highly inefficient as it potentially requires $\binom{K!}2$ executions of Algorithms \ref{alg_evaluate_proposed_statistic}, where $K$ is the number of statistics being considered, and there is no guarantee this would produce a definitive best set, due to the complex relationships between statistics.}, as the theoretical score would. This means we cannot choose to keep adding the highest scoring statistic, as in \textbf{Algorithm \ref{alg_approximately_sufficient_subsets}}, and instead have to consider statistics in a somewhat arbitrary order. This means that the order in which statistics are considered will affect the result of the algorithm. An imperfect solution to this is to consider statistics in a random order and whenever a statistic is accepted, consider removing each statistic which has already been chosen. Implementing this is not trivial as considerations need to be made to avoid infinite loops where the same statistics keep getting added and removed.
 
   \par \textbf{Algorithm \ref{alg_evaluate_proposed_statistic}} performs poorly when the supplied set of statistics include uninformative statistics. This can be seen by noticing that a summary statistic which maps to a constant will almost always produce a posterior which is significantly different from an informative set of statistics and therefore be accepted as a statistic despite.
 
@@ -1058,7 +1116,7 @@
 
   The semi-automatic approach of \cite[]{constructing_summary_statistics_for_approximate_bayesian_computation_semi_automatic_ABC} does allow for non-linear projections from the response data $x$ to the parameter values $\theta$ but the user needs to specify the non-linear functions. More specifically, \textbf{Algorithm \ref{alg_semi_auto_abc_ls}} produces non-linear projections if, and only if, the mapping $f(\cdot)$ is non-linear.
 
-  \par Being able to generate non-linear projections is desirable as it is not guaranteed that an (accurate) linear projection from response variables to model parameters exists. \cite[]{learning_summary_statistics_for_abc_via_dnn} presents the first attempt at using a deep neural-network\footnote{They also use a feedforward neural-network but these cannot model non-linear relationships unless they use a non-linear activation function.} to construct summary statistics. The general approach to ABC is the same as \cite[]{constructing_summary_statistics_for_approximate_bayesian_computation_semi_automatic_ABC}: Perform a pilot run to generate training data; Train a neural network to fit response values to parameter values; And, then use the trained network to calculate summary statistic values for a proper run of ABC. Due to the flexibility of DNNs the number of outputs (i.e. the dimensions of the summary statistic) can be specified to any value, although more outputs require more training time and potentially a larger network.
+  \par Being able to generate non-linear projections is desirable as it is not guaranteed that an (accurate) linear projection from response variables to model parameters exists. \cite[]{learning_summary_statistics_for_abc_via_dnn} presents the first attempt at using a deep neural-network\footnote{A feedforward neural-network is presented too, but these cannot model non-linear relationships unless they use a non-linear activation function.} to construct summary statistics. The general approach to ABC is the same as \cite[]{constructing_summary_statistics_for_approximate_bayesian_computation_semi_automatic_ABC}: Perform a pilot run to generate training data; Train a neural network to fit response values to parameter values; And, then use the trained network to calculate summary statistic values for a proper run of ABC. Due to the flexibility of DNNs the number of outputs (i.e. the dimensions of the summary statistic) can be specified to any value, although more outputs require more training time and potentially a larger network.
 
   \par The network used to demonstrate this approach in \cite[]{learning_summary_statistics_for_abc_via_dnn} is fairly small with three hidden layers, with 5-5-3 nodes each, and takes all the observed data as an input. The model was trained to fit to parameter values, resulting in summary statistics which approximate the posterior mean. They demonstrate their method on an Ising model and moving-average model and show it to outperform the usage of hand-crafted summary statistics and semi-automatic ABC. The trade-off is that their DNN approach requires significantly more time than the other approaches, requiring twenty minutes when Fearnhead \& Prangle's semi-automatic approach required less than one.
 
@@ -1071,6 +1129,8 @@
   % TODO \par Neural networks are notorious for being slow to train. In their experiments, Wong \textit{et al.} find the running of their DNN approach to take ~20 minutes compared to Fearnhead \& Prangles' semi-automatic approach taking less than a minute. This motivates that neural networks are best used in more complex scenarios, however they will perform well with simple models as the relationships are
 
 \subsubsection{Toy Example}\label{sec_summary_statistics_toy}
+
+  Using identity function may not be ideal as it seeks to minimise total loss and doesn'y prioritise any features of the response. For some problems we want to prioritise features of the outcome (e.g. peak infection date in SIR model).
 
 \subsection{Model Selection}
 
@@ -1089,6 +1149,8 @@
 
 % bibliography
 \newpage
+\setcounter{page}{1}
+\pagenumbering{roman}
 \bibliographystyle{royal}
 \bibliography{References}
 

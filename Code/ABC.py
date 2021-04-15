@@ -77,7 +77,7 @@ def epanechnikov_kernel(x:float,epsilon:float) -> bool:
     return (x<=ep_val)
 
 def gaussian_kernel(x:float,epsilon:float) -> bool:
-    gaus_val=np.exp(-(1/2)*((x/epsilon)**2)) #*(1/np.sqrt(2*np.pi*(epsilon**2))) # prob to accept
+    gaus_val=np.exp(-(1/2)*((x*epsilon)**2)) #*(1/np.sqrt(2*np.pi*(epsilon**2))) # prob to accept
     x=stats.uniform(0,1).rvs(1)[0] # sample from U[0,1]
     return (x<=gaus_val)
 
