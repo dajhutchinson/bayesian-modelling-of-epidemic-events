@@ -213,7 +213,9 @@
 
 \subsection{ABC Methods}\label{sec_ABC_ABC_methods}
 
-  \par Approximate Bayesian Computation (ABC) methods are a family computational methods which can be used to approximate posteriors for the parameters of models where the likelihood is intractable. The first algorithm to use the concept which would later be known as ABC was presented in \cite[]{inferring_coalescence_times_from_dna_sequence_data}, although this algorithm does not include the use of summary statistics nor use distance measures and kernel density functions to determine whether to accept a simulation or not. The algorithm presented in \cite[]{population_growth_of_human_Y_chromosomes} is much more recognisable as ABC and consider by many as the first true ABC algorithm. This algorithm would later be generalised to becomes the rejection sampling approach to ABC. Both of these papers were studies of population genetics, a field in which ABC is still popular used.
+  \par Approximate Bayesian Computation (ABC) methods are a family computational methods which can be used to approximate posteriors for the parameters of models where the likelihood is intractable. This is achieved by simulating from the likelihood, rather than having to evaluate it explicitly.
+
+  \par The first algorithm to use the concept which would later be known as ABC was presented in \cite[]{inferring_coalescence_times_from_dna_sequence_data}, although this algorithm does not include the use of summary statistics nor use distance measures and kernel density functions to determine whether to accept a simulation or not. The algorithm presented in \cite[]{population_growth_of_human_Y_chromosomes} is much more recognisable as ABC and consider by many as the first true ABC algorithm. This algorithm would later be generalised to becomes the rejection sampling approach to ABC. Both of these papers were studies of population genetics, a field in which ABC is still popular used.
 
   \par The key feature that simulation based methods exploit is that we only know the response values $x_{obs}$ from the true model, but for each simulation we know the variables values and the response values $(\tilde\theta,\tilde{x})$. Thus we can inspect the parameter values for accepted simulations and draw inferences about the parameter values of the true model.
 
@@ -240,7 +242,7 @@
 
   \par The ideal ABC methods are those which run efficiently and perform well with small bandwidths $\varepsilon$. Efficient methods are important as this means more simulations can be processed in a given time-period, making convergence of the estimated posterior more likely. A method being able to handle smaller bandwidths means the posterior it produces will be a better approximation of the true posterior (See Eq. \ref{eqn_limit_of_kernel_and_distance}). All ABC methods will run with any value of the bandwidth, however those that use an informed search method for generating samples will require fewer simulations to achieve good results (e.g. ABC-SMC).
 
-  \par Monte Carlo methods form the basis of how ABC methods approach exploring the parameter space. Monte Carlo methods are a class of methods which seek to generate samples from a space in a way which mimics sampling from the true model. They do this by running many, many simulations and use some degree of randomness to determine how each simulation is generated and which are accepted.
+  \par Monte Carlo methods are a family of algorithms which use repeated random simulations to evaluate a model. These form the basis of how ABC methods approach exploring the parameter space. Monte Carlo methods are a class of methods which seek to generate samples from a space in a way which mimics sampling from the true model. They do this by running many, many simulations and use some degree of randomness to determine how each simulation is generated and which are accepted.
 
   \par Here is an overview of classes of Monte Carlo methods which are commonly used in ABC methods:
   \begin{itemize}
@@ -326,7 +328,7 @@
 
   \par \textbf{Table \ref{tab_common_kernels}} provides a table of the most commonly used kernel density functions for ABC, as recommended by \cite[]{annual_review_of_statistics_ABC}. The Epanechnikov kernel is asymptotically optimal for kernel density estimation when seeking to minimise mean-square error (See \cite[]{non_parameteric_estimation_of_a_multivariate_probability_density}), although this theoretical result is disputed in \cite[]{introduction_to_nonparametric_estimation}.
 
-  \par The uniform kernel is popular in ABC as it is equivalent to accepting all simulations whose distance from the true observation is no greater than $\varepsilon$. This creates spherical acceptance regions when using the Eucliden distance or rectangular ones when using Manhattan distance. The Gaussian kernel is more commonly used as it has an infinite support which is useful in certain scenarios. When choosing which kernel to use for ABC methods it is intuitive that it should match the theorised distribution of the noise in the theorised model. This further motivates the use of a Gaussian kernel as many models assume gaussian noise.
+  \par The uniform kernel is popular in ABC as it is equivalent to accepting all simulations whose distance from the true observation is no greater than $\varepsilon$. This creates spherical acceptance regions when using the Euclidean distance or rectangular ones when using Manhattan distance. The Gaussian kernel is more commonly used as it has an infinite support which is useful in certain scenarios. When choosing which kernel to use for ABC methods it is intuitive that it should match the theorised distribution of the noise in the theorised model. This further motivates the popularity of a gaussian kernel as many models assume gaussian noise.
 
 \subsubsection*{Distance Measures}
 
@@ -436,13 +438,13 @@
       &=&\int h(X;\theta)g(\theta)w(\theta)d\theta\text{ where }w(\theta):=\frac{f(\theta)}{g(\theta)}\\
       &=&\expect_g[h(X;\theta)w(\theta)]
     \end{array}\]
-    This means we can estimate the expected value of the model under $f$ by weighting samples from $g$ using $w(\theta)$.
+    This means we can estimate the expected value of the model under $f$ by weighting samples from $g$ using $w(\theta)$. This is the likelihood ratio of an observation coming from the two models.
   \end{box_remark}
 
   \par In ABC context the target distribution is the approximate joint distribution posterior $f=\pi_{ABC}(\theta,s|s_{obs})$ and the distribution we can sample from is the joint distribution of summary statistics and parameters under the importance distribution $g(s,\theta)=p(s|\theta)g(\theta)$. The importance weighting $\tilde{w}$ for each simulation in ABC is derived below.
 
   \[\everymath={\displaystyle}\begin{array}{rcl}
-    \frac{\pi_{ABC}(\theta,s|s_{obs})}{g(\theta,s)}&\approx&\frac{K_\varepsilon\left(\|s-s_{obs}\|\right)p(s|\theta)\pi_0(\theta)}{p(s|\theta)g(\theta)}\\
+    \frac{\pi_{ABC}(\theta,s|s_{obs})}{g(\theta,s)}&\propto&\frac{K_\varepsilon\left(\|s-s_{obs}\|\right)p(s|\theta)\pi_0(\theta)}{p(s|\theta)g(\theta)}\\
     &=&\frac{K_\varepsilon\left(\|s-s_{obs}\|\right)\pi_0(\theta)}{g(\theta)}\\
     &=:&\tilde{w}
   \end{array}\]
@@ -488,14 +490,12 @@
     \[ \prob(X_{t+n}=x|X_t=y)>0\ \forall\ x,y \]
     \par The Stationary Distribution of a Markov Chain is a probability distribution $\pi$ which is invariant under a time-invariant transition matrix $P$.
     \[ \pi=\pi P \]
-    The stationary distribution represents the limiting proportion of time the chain spends in each state. The stationary distribution is unique if the Markov chain is irreducible.
+    The stationary distribution represents the asymptotic proportion of time the chain spends in each state. The stationary distribution is unique if the Markov chain is irreducible.
   \end{box_definition}
 
-  \par Markov chains are sequences of events where the probability of the next event only depends on the current event. When targeting a probability distribution the transition matrix for a Markov chain will be stationary, this means it will have a stationary distribution which can be approximated. Markov chains are used in sampling algorithms to create a more informed search procedure as the next location to be sampled depends on the previous location to have been sampled and how ``useful'' the previous sample was. This algorithms typically allow the chain to run for a fixed number of samples (known as ``length'') or until some convergence metric has been reached. The distribution of the chain of samples will approximate and converge on the stationary distribution of the chain, allowing for Bayesian inferences to be drawn using the set of accepted parameters. These sampling methods which use Markov chains are known as Markov Chain Monte Carlo (MCMC) methods.
+  \par Markov chains are sequences of events where the probability of which event occurs next only depends on the current event. When targeting a probability distribution the transition matrix for a Markov chain will be stationary, this means it will have a stationary distribution which can be approximated.
 
-  \par A limitation of MCMC methods is that they are only able to search one part of the sample space at any given time and they struggle to move between disconnected areas of high density. In the context of Bayesian inference, this causes an issue when wishing to model multi-modal distributions as MCMC will typically only be able to find one of the modes. The solution to this is to run multiple chains at once and then to merge their results. This does, however, require greater computational resources and typically means that each chain is made shorter to compensate.
-
-  \par MCMC methods have limited scope for being parallelised as each iteration depends on the previous iteration. If multiple chains are being run, then these can be parallelised.
+  \par Markov Chain Monte Carlo (MCMC) methods are sampling methods which exploit Markov chains in order to have a more informed search procedure through the parameter space. The Markov chain is used to determine which set of parameters to simulate with next, with the next choice being dependent upon the most recently accepted set of parameters. An acceptance step, similar to ABC-Rejection sampling, is then used to evaluate the simulated response values against the true model values and thus whether to accept the new set of parameters. The distribution of accepted parameter sets is an approximation of the stationary distribution of the Markov chain, and thus of the target distribution. These algorithms are ideally run until the distribution of accepted samples satisfies some convergence criteria, although in practice it is more practical to stop the algorithm once the chain has reached a given length.
 
   \par A popular class of MCMC algorithms are Metropolis-Hastings algorithms \cite[]{equation_of_state_calculations_by_fast_computing_machines,monte_carlo_methods_using_markov_chains_and_their_applications} which seeks to produce a Markov chain whose stationary distribution is unique and thus converges on the target distribution (The parameter posterior in the case of ABC methods). This approaches requires the specification of a perturbation kernel $K^*(\theta)$ which generates a new set of parameters by slightly perturbing a given set of parameters. The perturbance kernel needs to implemented in such a way that the probability of it generating a given set of parameters $\theta'$, given the input $\theta$, is calculatable.
 
@@ -507,9 +507,13 @@
 
   \par As each sample is drawn using the previously accepted sample, there is dependence between samples leaving MCMC methods open to auto-correlation issues. Auto-correlation is a measure of correlation between the current value of a sample and its previous values. Auto-correlation can be reduced by increasing the size of steps the perturbation kernel is expected to produce but this will have adverse affects on the acceptance rate. Auto-correlation can be particularly high if the chain becomes stuck in a region where there is very concentrated probability mass as it will struggle to escape. The problem with auto-correlation is that most analysis assumes that parameters are independent, but auto-correlation can contradict this assumption.
 
-  \par \textbf{Algorithm \ref{alg_abc_mcmc}} presents an ABC-MCMC algorithm using the popular Metropolis-Hastings approach to MCMC. This approaches has two main stages: An initial burn-in (Lines \ref{abc_mcmc_burn_in_start}-\ref{abc_mcmc_burn_in_end}) where random sets of parameters are evaluated until one is found which is accepted by the standard acceptance criteria used in ABC-Rejection Sampling; and, the MCMC step (Lines \ref{abc_mcmc_mcmc_step_start}-\ref{abc_mcmc_mcmc_step_end}) which starts at the first accepted parameter set $\tilde\theta_0$ and proceeds to generate new parameter sets $\theta^*$ by perturbing the last accepted parameter set. These new parameters sets are then used to generate simulations, and are accepted with probability $\min\left\{1,\frac{K_\varepsilon(\|s^*-s_{obs}\|)\pi(\theta^*)\prob\left(K^*(\tilde\theta^{(t-1)})=\theta^*\right)}{K_\varepsilon(\|s^{(t-1)}-s_{obs}\|)\pi(\theta^{(t-1)})\prob\left(K^*(\theta^*)=\tilde\theta^{(t-1)}\right)}\right\}$\footnote{This probability is known as the ``Metropolis Acceptance Ratio'' and was derived so that the stationary distribution of the Markov chain will converge on the target distribution.}.
+  \par A limitation of MCMC methods is that they are only able to search one region of the sample space at any given time and they struggle to move between disconnected areas of high density. In the context of Bayesian inference, this causes an issue when wishing to model multi-modal distributions as MCMC will typically only be able to find one of the modes. The solution to this is to run multiple chains at once and then to merge their results. This does, however, require greater computational resources and typically means that each chain is made shorter to compensate.
 
-  \begin{box_algorithm}[ABC-MCMC]\label{alg_abc_mcmc}
+  \par MCMC methods have limited scope for being parallelised as each iteration depends on the previous iteration. If multiple chains are being run, then these can be parallelised.
+
+  \par \cite[]{mcmc_wo_likelihood} presents the first ABC method to have an MCMC approach, using the popular Metropolis-Hastings. \textbf{Algorithm \ref{alg_abc_mcmc}} presents their algorithm. This approaches has two main stages: An initial burn-in (Lines \ref{abc_mcmc_burn_in_start}-\ref{abc_mcmc_burn_in_end}) where random sets of parameters are evaluated until one is found which is accepted by the standard acceptance criteria used in ABC-Rejection Sampling; and, the MCMC step (Lines \ref{abc_mcmc_mcmc_step_start}-\ref{abc_mcmc_mcmc_step_end}) which starts at the first accepted parameter set $\tilde\theta_0$ and proceeds to generate new parameter sets $\theta^*$ by perturbing the last accepted parameter set. These new parameters sets are then used to generate simulations, and are accepted with probability $\min\left\{1,\frac{K_\varepsilon(\|s^*-s_{obs}\|)\pi(\theta^*)\prob\left(K^*(\tilde\theta^{(t-1)})=\theta^*\right)}{K_\varepsilon(\|s^{(t-1)}-s_{obs}\|)\pi(\theta^{(t-1)})\prob\left(K^*(\theta^*)=\tilde\theta^{(t-1)}\right)}\right\}$\footnote{This probability is known as the ``Metropolis Acceptance Ratio'' and was derived so that the stationary distribution of the Markov chain will converge on the target distribution.}.
+
+  \begin{box_algorithm}[ABC-MCMC, \cite{mcmc_wo_likelihood}]\label{alg_abc_mcmc}
     \begin{algorithm}[H]
       \SetKwIF{With}{}{Else}{with probability}{}{}{otherwise}{}
       \SetKwInOut{Require}{require}
@@ -548,44 +552,56 @@
 
   \par The algorithm can be made more adaptable by having it actively update the perturbation kernel to maintain a target acceptance rate. In the case of an additive gaussian noise kernel, increasing the variance should lead to a decrease in acceptance rate as it is more likely that large steps will be taken. The acceptance rate can also be managed by adaptively setting the bandwidth on the acceptance kernel used in calculating the Metropolis acceptance ratio.
 
+  \par The acceptance rate of an MCMC methods controls the rate of convergence, with both too high and too low values leading to slow convergence. An ideal acceptance rate will how a good level of mixing, so that the parameter space is explored efficiently. It was shown in \cite[]{weak_convergence_and_optimal_scaling_of_RWM_algorithms} that the asympotitcally optimal acceptance rate for a Metropolis-Hasting sampler is 0.234, as the number of dimensions tends to infinity, when the target distribution is Gaussian. This result does rely on each dimension being independent identically distribution gaussian distributions, which is not always reasonable. Study into some more general in-homogeneous target distributions have also shown 0.234 to be the asymptotically optimal acceptance rate (See \cite[]{optimal_scaling_for_various_metropolis_hastings_algorithms}) but a general result has yet to be found. This research does motivate the use of adaptive MCMC methods which target an acceptance rate of 23.4\%.
+
   \par Due to their more informed search procedure, ABC-MCMC significantly outperforms ABC-Rejection and Importance Sampling in cases where the prior and posterior are very different. This makes ABC-MCMC a better choice in cases were informative priors are not known. However, the ABC-MCMC approach perform very poorly with mixtures models, which are becoming increasingly popular, due to the ``Label Switching Problem'' \cite[]{mcmc_methods_and_the_label_switching_problem_in_bayesian_mixture_modeling} which occurs when two, or more, parameters are nonidentifiable when assigned the same priors\footnote{In a gaussian mixtures model with two mixtures. The parameters associated with each mean can be swapped without affecting the fit of the model. This means that under identical priors it is impossible to separate these two parameters.} and thus the posteriors produced for them will be a combination of all of their true posteriors. \cite[]{mcmc_methods_and_the_label_switching_problem_in_bayesian_mixture_modeling} explore the ``Label Switching Problem''.
 
 \subsubsection{ABC-SMC}\label{sec_abc_smc}
 
-  \begin{box_algorithm}[ABC-SMC]
+  \par Sequential Monte Carlo (SMC) methods\footnote{Originally coined Particle Filters in \cite[]{non_linear_filtering_interacting_particle_resolution}.} approximate a probability distribution by collecting an initial sample which creates a rough approximation of the distribution; and then iteratively refining this approximation by resampling under ever tighter acceptance criteria (Referred to as improving the ``Resolution'' of the approximation). The acceptance criteria are tightened by defining a set of bandwidths $\{\varepsilon_0,\dots,\varepsilon_T\}$ such that $\varepsilon_0\geq\dots\geq\varepsilon_T$ and iterating through this set to determine the bandwidth used in each resampling step. A extension of this approach is to incorporate importance sampling such that the resampling step also involves reweighting accepted samples. This extension is known as Population Monte Carlo (PMC).
+
+  \par The main advantage of SMC methods is that they iteratively make their acceptance criteria stricter. This is ideal for problems where it is hard to predict a good set of acceptance criteria beforehand. There is still an issue of having to define a set of bandwidths $\{\varepsilon_0,\dots,\varepsilon_T\}$ to be used, however I discuss how this can be mitigated for ABC-SMC towards the end of this subsection.
+
+  \par SMC methods are susceptible to ``Loss of Opportunity''. This phenomenon occurs when part of the parameter space is not included in one of the sample sets, as this means that part of the parameter space can never be sampled from in the future. This mainly occurs to regions of the parameter space where little probability mass is placed, but can occur to denser areas if the sample size is too small. This issue can never be eliminated, except for very simple distributions, do the practical limits on the sample size but can be mitigated by increasing the sample size.
+
+  \par \cite[]{SMC_wo_likelihood} presents the first SMC approach to ABC, but this approaches produces a biased approximation of the posterior, mainly due to it underestimating the tails of the distributions caused by how they originally proposed to evaluate the likelihood ratio. \cite[]{adaptive_ABC} presents an SMC approach to ABC which incorporates importance sampling and an optimised adaptive strategy. This is the version of ABC-SMC I discuss in this section.
+
+  \begin{box_algorithm}[ABC-SMC, \cite{adaptive_ABC}]\label{alg_abc_smc}
     \begin{algorithm}[H]
       \everymath={\displaystyle}
       \SetKwIF{With}{}{Else}{with probability}{}{}{otherwise}{}
       \SetKwInOut{Require}{require}
-      \Require{Observed values $x_{obs}$; Summary statistics $s(\cdot)$; Theorised model $f(X|\cdot)$; Prior Distributions $\pi_0(\theta)$ Distance Measure $\|\cdot\|$; Chain length $M$; Acceptance Kernel $K_\varepsilon(\cdot)$; Set of Bandwidths $\{\varepsilon_0,\dots,\varepsilon_T\}$; Number of Iterations $T$; Perturbance Kernel $K^*(\cdot)$; Sample Size $N$.}
+      \Require{Observed values $x_{obs}$; Summary statistics $s(\cdot)$; Theorised model $f(X|\cdot)$; Prior Distributions $\pi_0(\theta)$ Distance Measure $\|\cdot\|$; Acceptance Kernel $K_\varepsilon(\cdot)$; Set of Bandwidths $\{\varepsilon_0,\dots,\varepsilon_T\}$; Number of Iterations $T$; Sample Size $N$.}
       $s_{obs}\leftarrow s(x_{obs})$.\\
       \BlankLine
       \# Initial Sample Step\\
-      $\tilde\Theta_0\leftarrow\{\}$.\\
+      $\tilde\Theta_0\leftarrow\{\}$.\label{alg_abc_smc_initial_sample_start}\\
       $i\leftarrow0$\\
       \While{$i<N$}{
         $\tilde\theta_0^{(i)}\leftarrow$ sample $\pi_0(\theta)$.\\
         $\tilde{x}_0^{(i)}\leftarrow f(X|\tilde\theta_t^{(i)})$.\\
         $\tilde{s}_0^{(i)}\leftarrow s\left(\tilde{x}_t^{(i)}\right)$.\\
-        \With{$K_{\varepsilon_0}\left(\left\|s_{0}^{(i)},\dots,s_{obs}\right\|\right)$} {
-          $w_0^{(i)}\leftarrow\frac1N$
+        \With{$K_{\varepsilon_0}\left(\left\|\tilde{s}_{0}^{(i)}-s_{obs}\right\|\right)$} {
+          $w_0^{(i)}\leftarrow\frac1N$.\\
           Add $\tilde\theta_0^{(i)}$ to $\tilde\Theta_0$ with weight $\tilde{w}_0^{(i)} $.\\
-          $i+=1$
-        } \lElse {Pass}
+          $i\leftarrow i+1$
+        } \lElse {Pass}\label{alg_abc_smc_initial_sample_end}
       }
       \BlankLine
       \# Resampling Step\\
-      \For{$T=1,\dots,T$}{
+      \For{$T=1,\dots,T$}{\label{alg_abc_smc_resampling_start}
+        $\sigma_{t-1}^2\leftarrow$Sample variance of each parameter dimension in $\tilde\Theta_{t-1}$.\\
+        $K^*\leftarrow\text{Normal}(\theta,2\cdot\sigma_{t-1}^2)$.\\
         $\tilde\Theta_t\leftarrow\{\}$.\\
         $i\leftarrow0$\\
         \While{$i<N$}{
           $\tilde\theta_t^{(i)}\leftarrow$ sample $\tilde\Theta_{t-1}$.\\
-          $\theta^*\leftarrow K^*\left(\tilde\Theta_{t-1}\right)$.\\
+          $\theta^*\leftarrow K_t^*\left(\tilde\theta_t^{(i)}\right)$.\\
           $\tilde{x}_t^{(i)}\leftarrow f(X|\theta^*)$.\\
           $\tilde{s}_t^{(i)}\leftarrow s\left(\tilde{x}_t^{(i)}\right)$.\\
-          \With{$K_{\varepsilon_0}\left(\left\|s_{0}^{(i)}-s_{obs}\right\|\right)$} {
+          \With{$K_{\varepsilon_t}\left(\left\|\tilde{s}_{t}^{(i)}-s_{obs}\right\|\right)$} {
             $\tilde\theta_t^{(i)}\leftarrow\theta^*$.\\
-            $\tilde{w}_t^{(i)}\leftarrow\frac{\pi_0\left(\theta_t^{(i)}\right)}{\sum_{j=1}^Nw_{t-1}^{(j)}\prob\left(K^*\left(\theta_{t-1}^{(j)}=\theta_{t}^{(j)}\right)\right)}$.\\
+            $\tilde{w}_t^{(i)}\leftarrow\frac{\pi_0\left(\tilde\theta_t^{(i)}\right)}{\sum_{j=1}^Nw_{t-1}^{(j)}\prob\left(K_t^*\left(\tilde\theta_{t-1}^{(j)}\right)=\tilde\theta_{t}^{(i)}\right)}$.\label{alg_abc_smc_importance_weight}\\
             Add $\tilde\theta_t^{(i)}$ to $\tilde\Theta_t$ with weight $\tilde{w}_t^{(i)}$.\\
             $i\leftarrow i+1$.
           } \lElse {Pass}
@@ -596,10 +612,36 @@
           $w_t^{(i)}\leftarrow\frac{\tilde{w}_t^{(i)}}{\sum_{i=1}^N\tilde{w}_t^{(i)}}$.\\
           Update weight of $\tilde\theta_t^{(i)}$ in $\tilde\Theta_t$ to be $w_t^{(i)}$.
         }
-      }
+      }\label{alg_abc_smc_resampling_end}
       \Return{$\tilde\Theta_T:=\left\{\left(\tilde\theta_T^{(1)},w_T^{(1)}\right),\dots,\left(\tilde\theta_T^{(N)},w_T^{(N)}\right)\right\}$}
     \end{algorithm}
   \end{box_algorithm}
+
+  \par \textbf{Algorithm \ref{alg_abc_smc}} is the algorithm presented in \cite[]{adaptive_ABC}. This algorithm has two phases: First, (Lines \ref{alg_abc_smc_initial_sample_start}-\ref{alg_abc_smc_initial_sample_end}) generating an initial sample of parameters $\tilde\Theta_0$ of size $N$ using standard ABC-Rejection Sampling methods. Each sample is assigned the same importance weight $1/N$; Second, the \textit{Resampling Step} (Lines \ref{alg_abc_smc_resampling_start}-\ref{alg_abc_smc_resampling_end}). This involves resampling from the previously set of accepted parameter samples $\tilde\Theta_{t-1}$ with the probability of sampling each parameter equal to its importance weight. Each sample $\tilde\theta$ is perturbed using a perturbation kernel $K^*(\cdot)$ to generate a new set of parameters $\theta^*$. The new parameter set $\theta^*$ is used to simulate a set of summary statistic values $\tilde{s}$ and a rejection sampling step is used to accepted the new parameter set with probability $K_{\varepsilon_t}\left(\left\|\tilde{s}-s_{obs}\right\|\right)$. Note that the acceptance criteria are tightened each iteration. Each accepted parameter set is assigned an importance weight $\tilde{w}$. The importance weights are normalised after each resampling phase so that they sum to one and thus represent a probability distribution, which is important for sampling from this set.
+
+  \par The importance weight $\tilde{w}$ assigned in Line \ref{alg_abc_smc_importance_weight} is the prior probability for the accepted parameter set divided by the probability of that parameter set under the posterior $\hat\pi_t$ generated by the previous step. This is just the standard importance weighting of the likelihood ratio. Note that each resampling step is aiming to produce a more refined version of the posterior distribution generated by the previous step, and thus the previous distribution is the target distribution and the prior is the originally proposed distribution.
+
+  \[ \tilde{w}_t^{(i)}:=\frac{\pi_0\left(\tilde\theta_t^{(i)}\right)}{\hat\pi_t\left(\theta_t^{(i)}\right)}\text{ where }\hat\pi_t\left(\theta_t^{(i)}\right)=\sum_{j=1}^Nw_{t-1}^{(j)}\prob\left(K_t^*\left(\tilde\theta_{t-1}^{(j)}\right)=\tilde\theta_{t}^{(i)}\right) \]
+
+  \par The adaptive feature of \textbf{Algorithm \ref{alg_abc_smc}} is the setting of the perturbance kernel $K^*$. The perturbance kernel used in \textbf{Algorithm \ref{alg_abc_smc}} is a component-wise random walk kernel which perturbs each component of the parameter set independently by adding additive gaussian noise to them. The variance of this gaussian noise is equal to twice the sample variance of the accepted samples from the previous phase.
+
+  \[ \left[\sigma_{t-1}^2\right]_i=\frac1{N-1}\sum_{j=1}^N\left(\left[\tilde\theta_{t-1}^{(j)}\right]_i-\left[\bar\theta_{t-1}\right]_i\right)^2 \]
+  where $\bar\theta_{t-1}$ is the sample mean of the previous set of accepted samples.
+
+  \par Using a component-wise random walk kernel is ideal for an adaptive algorithm as it is straightforward to implement and is computationally efficient as simple closed-form expressions for the probabilities required to calculate the importance weight for each accepted parameter set.
+
+  \par The variance is set to twice the sample variance of the previously accepted set as this minimises the Kullback-Leibler divergence between the target distribution (two independent parameter samples) and proposed distribution ( generating a set of parameters by perturbing another) for the component-wise random walk kernel being used. % TODO proof https://arxiv.org/pdf/0805.2256.pdf pg 5
+  Minimising Kullback-Leibler divergence means the two distributions are increasingly similar. See \cite[]{on_optimality_of_kernels_for_approximate_bayesian_computation_using_SMC} for discussion of other optimal perturbation kernels for ABC-SMC.
+
+  \par The calculation of the importance weight for each accepted parameter, during resampling, requires summing over all the parameter sets from the previously accepted sample set. This means the resample stage takes $O(N^2)$ time and thus the overall run time of the algorithm is $O(TN^2)$ where $T$ is the number of resampling iterations and $N$ is the sample size. In practice the runtime of the algorithm will be dominated by assessing and generating samples, as the majority will be rejected, rather than by calculating the weight for each accepted set.
+
+  \par Each resampling step is dependent on the previous step as it requires the previous set of accepted samples $\tilde\Theta_{t-1}$ in order to generate samples. This means that this part of the algorithm cannot be parallelised. However, the simulations within each resampling step can be parallelised. As well as the initial sample generation step, as discussed in \textit{Section \ref{sec_abc_rejection_sampling}}.
+
+  \par This approach requires the specification of a set of bandwidths $\{\varepsilon_0,\dots,\varepsilon_T\}$. This can be difficult to do in an informed way, and would rather be avoided. Firstly, it is important to note that it is not strictly necessary for the algorithm to use the whole set and rather the algorithm can be stopped after it has reached a certain level of convergence (or number of simulations). Further, there is no need to define a full set of bandwidths at the start of the algorithm, instead an initial bandwidth $\varepsilon_0$ can be defined and then future bandwidths are set adaptively such that a target percentage $\Delta\%$ of previously sample would be accepted. Implementing this is straightforward for most common acceptance kernels, if a uniform acceptance kernel is being used it simply requires setting the next bandwidth to be the $\Delta$ percentile distance among the previously accepted parameter sets.
+
+  \par The need to set the initial bandwidth can be removed too by simply accepting all simulations into the initial sample set $\tilde\Theta_0$, however this would make the algorithm significantly more inefficient as the initial sample with simple resemble the prior. Further, unless the sample size is very large there will be a high level of ``Loss of Opportunity''. A better approach would be to use the ``Best Samples'' variation of ABC-Rejection Sampling (\textbf{Algorithm \ref{alg_abc_rejection_best}}).
+
+  \par Incorporating this adaptive approach to bandwidth selection removes the need to define a set of bandwidths $\{\varepsilon_0,\dots,\varepsilon_T\}$ or the number of iterations $T$; and replaces them with defining an acceptance rate and number of simulations for the ``Initial Sample Step'', a target acceptance rate between resampling iterations and a maximum number of simulations. These are significantly easier hyperparameters to define as their affects are much more apparent and predictable.
 
   % TODO perturbation kernels https://arxiv.org/pdf/1106.6280.pdf
 
@@ -610,6 +652,55 @@
   \par I compare each algorithm's performance using a toy SIR model example. See \textit{Section \ref{abc_sir_model}} for a formal definition and discussion of the SIR model.
 
 \subsection{ABC for Model Choice}\label{sec_abc_model_choice}
+
+  \begin{box_definition}[Bayes Factor, \cite{bayes_factors}]
+    Consider two models $M_1,M_2$ and some observed data $x_{obs}$. The Bayes Factor $B_{1,2}$ for data $x_{obs}$ coming from model $M_1$ rather than model $M_2$ is the ratio of the likelihood ratio of $x_{obs}$ coming from $M_1$ rather than $M_2$.
+    \[ B_{1,2}:=\frac{\prob(x_{obs}|M_1)}{\prob(x_{obs}|M_2)} \]
+    \cite[]{theory_of_probability} gives a qualitative assessment of Bayes Factor: ``1 to 3 is barely worth a mention, 3 to 10 is substantial, 10 to 30 is strong, 30 to 100 is very strong and over a 100 is decisive evidence in favour of model $M_1$. Values below 1 take the inverted interpretation in favour of model $M_2$.''
+    \par
+  \end{box_definition}
+
+  Bayes Factor is a metric used to determine which of two models is more likely to have generated some observed data. Bayes Factor can be restated in terms of posteriors, using Bayes rule, as follows.
+  \begin{equation}
+    \label{eqn_bayes_factor_as_posterior}
+    B_{1,2}(x_{obs}):=\frac{\prob(x_{obs}|M_1)}{\prob(x_{obs}|M_2)}=\frac{\frac{\prob(x_{obs})\prob(M_1|x_{obs})}{\prob(M_1)}}{\frac{\prob(x_{obs})\prob(M_2|x_{obs})}{\prob(M_2)}}=\frac{\prob(M_2)\prob(M_1|x_{obs})}{\prob(M_1)\prob(M_2|x_{obs})}
+  \end{equation}
+  where $\prob(M_i)$ is the prior weight given to model $M_i$. It is generally reasonable to assume equal prior likelihood for each model. Under this assumption Bayes factor is the same as the posterior ratio which is readily estimatable from ABC methods as the ratio of probabilities that the models generate $x_{obs}$.
+
+  \[ B_{1,2}(x_{obs})=\frac{\prob(M_1|x_{obs})}{\prob(M_2|x_{obs})} \]
+
+  \begin{box_algorithm}[ABC Model Selection ``Rejection Sampling'', \cite{abc_likelihood_free_methods_for_model_choice_in_gibbs_random_fields}]\label{alg_abc_mc}
+    \begin{algorithm}[H]
+      \SetKwIF{With}{}{Else}{with probability}{}{}{otherwise}{}
+      \SetKwInOut{Require}{require}
+      \Require{Observed values $x_{obs}$; Summary statistics $s(\cdot)$; Priors for Models $\pi_M(M)$; Theorised models $M_1(X|\theta_{M_1}),M_2(X|\theta_{M_2})$; Parameter Priors for each model $\pi_{M_1}(\theta_{M_1}),\pi_{M_2}(\theta_{M_2})$; Acceptance Bandwidth $\varepsilon$; Distance Measure $\|\cdot\|$; Target Number $M$.}
+      $s_{obs}\leftarrow s(x_{obs})$.\\
+      $\mathcal{M}\leftarrow\{\}$.\\
+      $t\leftarrow1$.\\
+      \While{$t\leq M$}{
+        $m_t\leftarrow$ sample $\pi_M(M)$.\\
+        $\tilde\theta_t\leftarrow$ sample $\pi_{m_t}(\theta)$.\\
+        $\tilde{x}\leftarrow f(X|\tilde\theta_t)$.\\
+        $\tilde{s}\leftarrow s\left(\tilde{x}\right)$.\\
+        \If{$\|s_{obs}-\tilde{s}\|\leq\varepsilon$} {
+          $\hat\theta^{(t)}\leftarrow\tilde\theta$.\\
+          Add $m_t$ to $\mathcal{M}$.\\
+          $t\leftarrow t+1$
+        } \lElse {Pass}
+      }
+      \Return{$\mathcal{M}=\{m_1,\dots,m_M\}$}
+    \end{algorithm}
+  \end{box_algorithm}
+
+  \par \cite[]{abc_likelihood_free_methods_for_model_choice_in_gibbs_random_fields} present an algorithm which uses an alteration of the ABC-Rejection Sampling algorithm, using a uniform kernel, to estimate Bayes Factor. Their approach is outlined in \textbf{Algorithm \ref{alg_abc_mc}}. This approach defines a meta-model $M=(M_1,M_2)$ which is a mixtures model which uses model $M_1$ or $M_2$ according to some distribution $\pi_M$. The distribution $\pi_M$ indicates our prior belief of the likelihood of each model. The algorithm then proceeds as a standard ABC-Rejection sampling algorithm except during the parameter sampling step it also samples which model to use (this defines which set of parameter priors to use too). Each time a simulation is accepted, the model which generated it is recorded in the set $\mathcal{M}$. The returned set $\mathcal{M}$ provides the ratio of the number of times simulations from each model were accepted which estimates Bayes Factor.
+
+  \[ \hat{B}_{1,2}=\frac{\sum_{i=1}^N\mathbbm{1}\{m_i=M_1\}}{\sum_{i=1}^N\mathbbm{1}\{m_i=M_2\}} \]
+  % TODO better justification
+
+  \par The results of \textbf{Algorithm \ref{alg_abc_mc}} are sensitive to how informative the priors are for each model and thus can be used to compare different prior sets.
+
+
+  \par This approach is based on the ABC-Rejection Sampling algorithm and thus does not gain any of the advantages of the ABC-MCMC or ABC-SMC algorithms, namely being effective when the prior and posterior are significantly different. \cite[]{abc_scgene_for_parameter_inference_and_model_selection_in_dynamical_systems} present a model selection algorithm which uses ABC-SMC but requires the use of a meta-model which incorporates the models being tested, as in \cite[]{abc_likelihood_free_methods_for_model_choice_in_gibbs_random_fields}. \cite[]{likelihood_free_estimation_of_model_evidence} present an approach which estimates the evidence for each model independently, using ABC-SMC.
 
 \subsection{Regression Adjustment in ABC}\label{sec_abc_regression_adjustment}
 
