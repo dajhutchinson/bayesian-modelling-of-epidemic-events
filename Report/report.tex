@@ -144,6 +144,8 @@
 
 \subsubsection*{Priors}
 
+  It is good when priors are well informed and well motivated as it reduces the search area. However, for computational methods it is common to have to define a small prior for tractablility or the priors used as just best guesses. This is bad, and the issues can be hidden
+
 \subsection{Bayes Factor}
 
 \newpage
@@ -213,6 +215,8 @@
 
 \subsection{ABC Methods}\label{sec_ABC_ABC_methods}
 
+  % TODO state how to estimate posterior density for a given set of summary statistic values $s$ and parameter set $\theta_0$. $\hat\prob(\theta_0|s)=\frac{\sum K'_\zeta(\theta_{i=1}^N-\theta_0)K_\varepsilon(\|s_i-s\|)}{\sum_{i=1}^N K_\varepsilon(\|s_i-s\|)}$ where $K'$ is the function used for kernel density estimation (possibly Epanechnikov) and $\zeta$ is the bandwidth for this kernel.
+
   \par Approximate Bayesian Computation (ABC) methods are a family computational methods which can be used to approximate posteriors for the parameters of models where the likelihood is intractable. This is achieved by simulating from the likelihood, rather than having to evaluate it explicitly.
 
   \par The first algorithm to use the concept which would later be known as ABC was presented in \cite[]{inferring_coalescence_times_from_dna_sequence_data}, although this algorithm does not include the use of summary statistics nor use distance measures and kernel density functions to determine whether to accept a simulation or not. The algorithm presented in \cite[]{population_growth_of_human_Y_chromosomes} is much more recognisable as ABC and consider by many as the first true ABC algorithm. This algorithm would later be generalised to becomes the rejection sampling approach to ABC. Both of these papers were studies of population genetics, a field in which ABC is still popular used.
@@ -240,7 +244,7 @@
 
   \par There are two sources of approximation in the standard ABC algorithm: Use of summary statistics; and, using a bandwidth on the acceptance criteria. The first can be removed by using sufficient summary statistics (See \textit{Section \ref{sec_sufficiency}}). The second is eliminated if the bandwidth is set to zero $\varepsilon=0$ but in general this leads to the algorithms becoming intractable.
 
-  \par The ideal ABC methods are those which run efficiently and perform well with small bandwidths $\varepsilon$. Efficient methods are important as this means more simulations can be processed in a given time-period, making convergence of the estimated posterior more likely. A method being able to handle smaller bandwidths means the posterior it produces will be a better approximation of the true posterior (See Eq. \ref{eqn_limit_of_kernel_and_distance}). All ABC methods will run with any value of the bandwidth, however those that use an informed search method for generating samples will require fewer simulations to achieve good results (e.g. ABC-SMC).
+  \par The ideal ABC methods are those which run efficiently and perform well with small bandwidths $\varepsilon$. Efficient methods are important as this means more simulations can be processed in a given time-period, making convergence of the estimated posterior more likely. A method being able to handle smaller bandwidths means the posterior it produces will be a better approximation of the true posterior (See Eq. (\ref{eqn_limit_of_kernel_and_distance})). All ABC methods will run with any value of the bandwidth, however those that use an informed search method for generating samples will require fewer simulations to achieve good results (e.g. ABC-SMC).
 
   \par Monte Carlo methods are a family of algorithms which use repeated random simulations to evaluate a model. These form the basis of how ABC methods approach exploring the parameter space. Monte Carlo methods are a class of methods which seek to generate samples from a space in a way which mimics sampling from the true model. They do this by running many, many simulations and use some degree of randomness to determine how each simulation is generated and which are accepted.
 
@@ -255,8 +259,9 @@
     \item \textit{Sequential Monte Carlo (SMC) methods}\footnote{Also known as Particle-Filter methods.} extend importance-sampling by repeatedly resampling from the set of samples, with the weights of each parameter determining the probability it is sampled, and each iteration tightening the acceptance criteria. This means the estimated posterior will become more refined each time and hopefully converge on the true posterior.
   \end{itemize}
 
-  \par The use of Monte Carlo methods means that ABC methods are inherently computationally inefficient due to the need to perform many, many simulations to % TODO
-  . Further, Monte Carlo methods introduce a high degree of randomness into ABC methods which further motivates the need to perform lots of simulations as the strong law of large number is required to obtain consistent results. This limitation is mitigated due to the simplicity of most ABC algorithms meaning they are capable of process millions of simulations an hour on modern computers.
+  \par The use of Monte Carlo methods means that ABC methods are inherently computationally inefficient due to the need to perform many random simulations. This inefficiency means ABC methods perform badly for models which generate a lot of data as it takes longer to assess each simulation. In the most extreme cases part of this data needs to be omitted for computational efficiency which naturally adds another layer of approximation. Being able to increase the acceptance rate of simulations means less simulations are required and thus more complex models can be assessed. ABC-MCMC generally achieves the greatest acceptance rates for a given bandwidth.
+
+  \par Monte Carlo methods introduce a high degree of randomness into ABC methods which further motivates the need to perform lots of simulations as the strong law of large number is required to obtain consistent results. This limitation is mitigated due to the simplicity of most ABC algorithms meaning they are capable of process millions of simulations an hour on modern computers.
 
   \par The set of accepted parameter sets $\hat\Theta$ returned by ABC can be used for Bayesian inference. Estimating properties of the distributions, such as mean, mode and quantiles, is straightforward. Producing a discretised estimate of the posterior for each parameter can be achieved by calculating a histogram of the accepted values for each parameter, again straightforward. Kernel density functions can be used to produce a continuous estimates of the posteriors (See \cite[]{review_of_kde}).
 
@@ -281,7 +286,6 @@
   \par As stochastic processes determine whether a simulation is accepted, or not, ABC methods incur information loss. This can mean that promising areas of the parameter space are not explored. This issue is mitigate by running many simulations.
 
   % TODO trade-off of low v high bandwidth (time v accuracy basically) no obvious relationship between the two
-  % TODO curse of dimensionality
 
 \subsubsection*{Summary Statistics}
 
@@ -330,7 +334,7 @@
 
   \par The uniform kernel is popular in ABC as it is equivalent to accepting all simulations whose distance from the true observation is no greater than $\varepsilon$. This creates spherical acceptance regions when using the Euclidean distance or rectangular ones when using Manhattan distance. The Gaussian kernel is more commonly used as it has an infinite support which is useful in certain scenarios. When choosing which kernel to use for ABC methods it is intuitive that it should match the theorised distribution of the noise in the theorised model. This further motivates the popularity of a gaussian kernel as many models assume gaussian noise.
 
-\subsubsection*{Distance Measures}
+\subsubsection*{Distance Measures}\label{sec_distance_measures}
 
   \begin{table}
     \everymath={\displaystyle}
@@ -497,6 +501,8 @@
 
   \par Markov Chain Monte Carlo (MCMC) methods are sampling methods which exploit Markov chains in order to have a more informed search procedure through the parameter space. The Markov chain is used to determine which set of parameters to simulate with next, with the next choice being dependent upon the most recently accepted set of parameters. An acceptance step, similar to ABC-Rejection sampling, is then used to evaluate the simulated response values against the true model values and thus whether to accept the new set of parameters. The distribution of accepted parameter sets is an approximation of the stationary distribution of the Markov chain, and thus of the target distribution. These algorithms are ideally run until the distribution of accepted samples satisfies some convergence criteria, although in practice it is more practical to stop the algorithm once the chain has reached a given length.
 
+  \par This more informed search procedure has the advantage of increasing the acceptance rate of simulations. This is due to the reduced variation between simulated values compared to random simulations. In ABC methods we harness this advantage by creating stricter acceptance criteria, improving the level of approximation.
+
   \par A popular class of MCMC algorithms are Metropolis-Hastings algorithms \cite[]{equation_of_state_calculations_by_fast_computing_machines,monte_carlo_methods_using_markov_chains_and_their_applications} which seeks to produce a Markov chain whose stationary distribution is unique and thus converges on the target distribution (The parameter posterior in the case of ABC methods). This approaches requires the specification of a perturbation kernel $K^*(\theta)$ which generates a new set of parameters by slightly perturbing a given set of parameters. The perturbance kernel needs to implemented in such a way that the probability of it generating a given set of parameters $\theta'$, given the input $\theta$, is calculatable.
 
   \[ \prob\left(K^*(\theta)=\theta'\right) \]
@@ -510,8 +516,6 @@
   \par A limitation of MCMC methods is that they are only able to search one region of the sample space at any given time and they struggle to move between disconnected areas of high density. In the context of Bayesian inference, this causes an issue when wishing to model multi-modal distributions as MCMC will typically only be able to find one of the modes. The solution to this is to run multiple chains at once and then to merge their results. This does, however, require greater computational resources and typically means that each chain is made shorter to compensate.
 
   \par MCMC methods have limited scope for being parallelised as each iteration depends on the previous iteration. If multiple chains are being run, then these can be parallelised.
-
-  \par \cite[]{mcmc_wo_likelihood} presents the first ABC method to have an MCMC approach, using the popular Metropolis-Hastings. \textbf{Algorithm \ref{alg_abc_mcmc}} presents their algorithm. This approaches has two main stages: An initial burn-in (Lines \ref{abc_mcmc_burn_in_start}-\ref{abc_mcmc_burn_in_end}) where random sets of parameters are evaluated until one is found which is accepted by the standard acceptance criteria used in ABC-Rejection Sampling; and, the MCMC step (Lines \ref{abc_mcmc_mcmc_step_start}-\ref{abc_mcmc_mcmc_step_end}) which starts at the first accepted parameter set $\tilde\theta_0$ and proceeds to generate new parameter sets $\theta^*$ by perturbing the last accepted parameter set. These new parameters sets are then used to generate simulations, and are accepted with probability $\min\left\{1,\frac{K_\varepsilon(\|s^*-s_{obs}\|)\pi(\theta^*)\prob\left(K^*(\tilde\theta^{(t-1)})=\theta^*\right)}{K_\varepsilon(\|s^{(t-1)}-s_{obs}\|)\pi(\theta^{(t-1)})\prob\left(K^*(\theta^*)=\tilde\theta^{(t-1)}\right)}\right\}$\footnote{This probability is known as the ``Metropolis Acceptance Ratio'' and was derived so that the stationary distribution of the Markov chain will converge on the target distribution.}.
 
   \begin{box_algorithm}[ABC-MCMC, \cite{mcmc_wo_likelihood}]\label{alg_abc_mcmc}
     \begin{algorithm}[H]
@@ -545,6 +549,8 @@
       \Return{$\tilde\Theta:=\left\{\tilde\theta^{(1)},\dots,\tilde\theta^{(M)}\right\}$}
     \end{algorithm}
   \end{box_algorithm}
+
+  \par \cite[]{mcmc_wo_likelihood} presents the first ABC method to have an MCMC approach, using the popular Metropolis-Hastings. \textbf{Algorithm \ref{alg_abc_mcmc}} presents their algorithm. This approaches has two main stages: An initial burn-in (Lines \ref{abc_mcmc_burn_in_start}-\ref{abc_mcmc_burn_in_end}) where random sets of parameters are evaluated until one is found which is accepted by the standard acceptance criteria used in ABC-Rejection Sampling; and, the MCMC step (Lines \ref{abc_mcmc_mcmc_step_start}-\ref{abc_mcmc_mcmc_step_end}) which starts at the first accepted parameter set $\tilde\theta_0$ and proceeds to generate new parameter sets $\theta^*$ by perturbing the last accepted parameter set. These new parameters sets are then used to generate simulations, and are accepted with probability $\min\left\{1,\frac{K_\varepsilon(\|s^*-s_{obs}\|)\pi(\theta^*)\prob\left(K^*(\tilde\theta^{(t-1)})=\theta^*\right)}{K_\varepsilon(\|s^{(t-1)}-s_{obs}\|)\pi(\theta^{(t-1)})\prob\left(K^*(\theta^*)=\tilde\theta^{(t-1)}\right)}\right\}$\footnote{This probability is known as the ``Metropolis Acceptance Ratio'' and was derived so that the stationary distribution of the Markov chain will converge on the target distribution.}.
 
   \par The approach \textbf{Algorithm \ref{alg_abc_mcmc}} choose to stop the MCMC step after a set number of iterations. This is not a good choice as it does not consider whether the stationary distribution of the Markov chain has converged. There are a few empirical methods which can be implemented to assess convergence. \cite[]{inference_from_iterative_simulation_using_multiple_sequences} propose running multiple chains, with different starting locations, and assessing the ratio of intra-chain to inter-chain variance for each parameter. When this ratio is close to one then convergence has been achieved. This method is not always practical to use due to its requirement for multiple chains and in practice we often choose to run the algorithm until some time-limit is reached.
 
@@ -661,10 +667,7 @@
   \end{box_definition}
 
   Bayes Factor is a metric used to determine which of two models is more likely to have generated some observed data. Bayes Factor can be restated in terms of posteriors, using Bayes rule, as follows.
-  \begin{equation}
-    \label{eqn_bayes_factor_as_posterior}
-    B_{1,2}(x_{obs}):=\frac{\prob(x_{obs}|M_1)}{\prob(x_{obs}|M_2)}=\frac{\frac{\prob(x_{obs})\prob(M_1|x_{obs})}{\prob(M_1)}}{\frac{\prob(x_{obs})\prob(M_2|x_{obs})}{\prob(M_2)}}=\frac{\prob(M_2)\prob(M_1|x_{obs})}{\prob(M_1)\prob(M_2|x_{obs})}
-  \end{equation}
+  \[ B_{1,2}(x_{obs}):=\frac{\prob(x_{obs}|M_1)}{\prob(x_{obs}|M_2)}=\frac{\frac{\prob(x_{obs})\prob(M_1|x_{obs})}{\prob(M_1)}}{\frac{\prob(x_{obs})\prob(M_2|x_{obs})}{\prob(M_2)}}=\frac{\prob(M_2)\prob(M_1|x_{obs})}{\prob(M_1)\prob(M_2|x_{obs})} \]
   where $\prob(M_i)$ is the prior weight given to model $M_i$. It is generally reasonable to assume equal prior likelihood for each model. Under this assumption Bayes factor is the same as the posterior ratio which is readily estimatable from ABC methods as the ratio of probabilities that the models generate $x_{obs}$.
 
   \[ B_{1,2}(x_{obs})=\frac{\prob(M_1|x_{obs})}{\prob(M_2|x_{obs})} \]
@@ -704,8 +707,76 @@
 
 \subsection{Regression Adjustment in ABC}\label{sec_abc_regression_adjustment}
 
-  \par Beaumont et al - Local Linear Regressions (LOCL)
-  \par Blum and Francois' - Nonlinear Conditional heteroscedastic regressions (NCH). (Uses neural networks)
+  \par Regression adjustment in ABC is an innovation first suggest by \cite[]{ABC_in_population_genetics} where the regression methods are applied to the accepted parameter sets in order to reduce the distance between the observed summary statistic value $s_{obs}$ and the simulated summary statistic values $\tilde{s}$. Reducing this distance results in an improved approximation. This step is applied after a set of accepted simulations $\tilde\Theta$ has been produced.
+
+  \par The approach suggested in \cite[]{ABC_in_population_genetics} performs weighted local-linear regression of the accepted parameter values $\theta$ on the difference between their summary statistic values and those of the observed model $(s-s_{obs})$. Standard linear regression assumes the following relationship exists
+
+  \[ \theta=\alpha+s^T\beta+\varepsilon\quad\alpha\in\mathbb{R}^{\rho},\beta\in\mathbb{R}^{\rho\times\rho},\varepsilon\in\mathbb{R}^\rho \]
+
+  where $\rho:=|\theta|$ is the number of parameters and $\varepsilon$ is independent additive gaussian noise with zero mean and constant variance. However, it is generally unrealistic that such a relationship or properties of $\varepsilon$ hold for the whole sufficient-statistic space, but these may hold in the locality of $s_{obs}$. This is why Beaumont \textit{et al.} suggest local-linear regression, which assumes the following relationship.
+
+  \[ \theta=\alpha+(s-s_{obs})^T\beta+\varepsilon \]
+
+  \par When taking a least-squares approach to this regression problem, the objective function is to find the following:
+
+  \begin{equation}\label{eqn_regression_objective}
+    \hat\alpha,\hat\beta=\text{argmin}_{\alpha,\beta}\sum_{i=1}^N\left(\tilde\theta_i-\left\{\alpha-(\tilde{s}_i-s_{obs})^T\beta\right\}\right)^2K_\varepsilon\left(\|\tilde{s}_i-s_{obs}\|\right)
+  \end{equation}
+
+  where $N$ is the number of accepted parameter sets, $\tilde\theta_i$ is the $i^{th}$ accepted parameter set, $\tilde{s}_i$ is the summary statistic values associated with $\tilde\theta_i$, $\|\cdot\|$ is a distance function and $K_\varepsilon(\cdot)$ is a kernel density function with bandwidth $\varepsilon$. Beaumont \textit{et al.} recommend using the Epanechnikov kernel as doing so means that few simulations will be assigned small, but non-zero, weights. Having lots of such weightings is computationally inefficient as they still need to be assessed but offer little insight.
+
+  \par The solution to (\ref{eqn_regression_objective}) is the following
+
+  \[\everymath={\displaystyle}\begin{array}{rrl}
+    \left(\hat\alpha_{LSE},\hat\beta_{LSE}\right)&:=&(X^TWX)^{-1}X^TW\pmb\theta\\
+    \text{where}\\
+    X&:=&\begin{pmatrix}
+      1&(\tilde{s}_{1,1}-s_{obs,1})&\dots&(\tilde{s}_{1,M}-s_{obs,M})\\
+      1&(\tilde{s}_{2,1}-s_{obs,1})&\dots&(\tilde{s}_{2,M}-s_{obs,M})\\
+      \vdots&\vdots&\ddots&\vdots\\
+      1&(\tilde{s}_{N,1}-s_{obs,1})&\dots&(\tilde{s}_{N,M}-s_{obs,M})
+    \end{pmatrix}\\
+    W&:=&\begin{pmatrix}
+      K_{\varepsilon}(\|\tilde{s}_1-s_{obs}\|)&0&\dots&0\\
+      0&K_{\varepsilon}(\|\tilde{s}_2-s_{obs}\|)&\dots&0\\
+      \vdots&\vdots&\ddots&\vdots\\
+      0&0&\dots&K_{\varepsilon}(\|\tilde{s}_N-s_{obs}\|)
+    \end{pmatrix}\\
+    \pmb\theta&:=&(\tilde\theta_1,\dots,\tilde\theta_N)^T
+  \end{array}\]
+  $\hat\alpha_{LSE}$ is the first column of the resulting matrix and $\hat\beta_{LSE}$ is the remaining columns.
+
+  \par These solutions imply the following general relationship between summary statistic values $s$ and the expected parameter set to have generated them, for values of $s$ in the region of $s_{obs}$.
+
+  \[ \hat\expect[\theta|s]=\hat\alpha_{LSE}+\hat\beta_{LSE} \]
+
+  \par This relationship is used to define a mean-corrected parameter set $\theta_i^*$ each accepted parameter set $\theta_i$ by removing the expected difference between the parameters which produce $s_i$ and $s_{obs}$.
+
+  \[\begin{array}{rcl}
+    \theta_i^*&:=&\theta_i-\left(\hat\expect[\theta|s_i]-\hat\expect[\theta|s_{obs}]\right)\\
+    &=&\theta_i-(\hat\alpha_{LSE}+s_i^T\hat\alpha_{LSE})+(\hat\alpha_{LSE}+s_{obs}^T\hat\alpha_{LSE})\\
+    &=&\theta_i+(s_{obs}-s_i)^T\hat\beta_{LSE}
+  \end{array}\]
+
+  Note that it is possible for the corrected parameter sets $\theta^*$ to fall outside of the priors. There are ways to address this, but this should be taken as a sign that different priors should be used as it means the regression is extrapolating rather than interpolating.
+
+  \par In \cite[]{ABC_in_population_genetics} simulation experiments on the Growing Population Model of \cite[]{population_growth_of_human_Y_chromosomes} are run to compare methods which implement their regression adjustment, to those that don't. They found that using regression adjustment meant that ABC-Rejection Sampling had less of a tendency to stay close to the prior. And, that acceptance kernel bandwidth had less of an effect when regression adjustment was applied. This suggests that using regression adjustment increases the rate of convergence.
+
+  \par Implementing this regression method is fairly straightforward as it is applied after all other steps in standard ABC-methods and there are many programming packages available which can perform local-linear weighted regression efficiently. There is an increased  space requirement for algorithms which use this approach as they now need to store the summary statistic values for each accepted parameter set. This should approximately double the space used as it is generally efficient to use one summary statistic per parameter (See \textit{Section \ref{sec_summary_stats}}). This is not a major concern as space requirements are rarely a limiting factor for ABC methods, but it is worth being aware of.
+
+  \par \cite[]{statistical_evaluation_of_alternative_models_of_human_evolution} required 10 CPU months to estimate the parameters of their complex model using the regression method of \cite[]{ABC_in_population_genetics}. This is unsurprising as this approach requires the inversion of a matrix whose size is dependent on the number of summary statistics being used and the number of parameter sets which has been accepted.
+
+  % TODO second regression step (see notebook)
+
+  \begin{center}
+    \noindent\rule{.8\textwidth}{0.4pt}
+  \end{center}
+
+  \par \cite[]{non_linear_regression_models_for_abc} present using a shallow neural network for nonlinear heteroscedastic regression of parameter values on the summary statistic values, they compare an adaptive and a non-adaptive approach. Their aim was to reduce the computational load required to perform this regression, compared to the approach in \cite[]{ABC_in_population_genetics}. In their worked examples their approaches require significantly less computational time.
+
+  \par In their the bandwidth had little affect on their neural network approaches, compared to the approach of \cite[]{ABC_in_population_genetics}. And, that the posterior quantiles were typically tighter for their neural network methods too and were more centred around the true parameter value. This suggests the neural network methods produce a more accurate fit.
+
+  \par The limitations to the approach of \cite[]{non_linear_regression_models_for_abc} are the same as with most uses of neural networks: overfitting and lack of interpretability. I discuss these issues in more detail in \textit{Section \ref{sec_non_linear_projection}}.
 
 \newpage
 \section{Summary Statistic Selection}\label{sec_summary_stats}
@@ -717,6 +788,8 @@
 \subsection{Motivation}\label{sec_summary_stats_motivation}
 
   % TODO - there would be little reason to use summary statistics if it wasn't for computational limitations (otherwise use whole dataset)
+
+  % TODO curse of dimensionality applies to having too many summary statistics
 
   \par The study of summary statistics has relevance beyond ABC methods, largely due to the recent ``Big-Data Revolution'' which has seen the rate at which data can be collected and stored significantly outpace improvements in computational power. This has motivated research into effective methods to reduce the size of datasets so that more computationally intensive algorithms can be used to analyse the data. % TODO give examples of papers from other fields
 
