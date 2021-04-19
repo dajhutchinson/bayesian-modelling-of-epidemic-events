@@ -108,17 +108,8 @@
 \subsection*{Successful Applications of these Methods}\label{sec_successful_applications}
 
 \newpage
-\section{Bayesian Modelling}
+\section{Bayesian Modelling and Epidemic Processes}
 
-  \par Bayes' Rule
-  \par Bayes rule allows for explanation of relationships in data (rather than just inferences)
-  \par Define Bayesian inference
-  \par vs. Frequentist modelling
-  \par Stochastic vs deterministic models
-  \par Consistency
-  \par In general, we never know if our calculated posterior is actually close to the true posterior.
-  \par Typically only have access to one set of observations (e.g. time-series of covid cases)
-  \par Prior encodes assumptions/knowledge so reduces variance but can introduce bias
 
   \begin{box_theorem}[Bayes' Rule]\label{the_bayes_rule}
     Consider two random variables $X$ and $Y$. Bayes' Rule provides a formulation for the conditional distribution of $A$ given $B$.
@@ -140,13 +131,21 @@
     \end{proof}
   \end{box_theorem}
 
-  \par Even if the theorised model is not very close to the theorised model (e.g. may only be accurate for a subset of the response space etc.) these inferences are still useful as long as the limitations of the theorised model are well understood.
+  \par Even if the theorised model is not very close to the true model (e.g. may only be accurate for a subset of the response space etc.) these inferences are still useful as long as the limitations of the theorised model are well understood.
 
-\subsubsection*{Priors}
+\subsection{Bayesian Modelling}
+
+\subsection*{Priors}
 
   It is good when priors are well informed and well motivated as it reduces the search area. However, for computational methods it is common to have to define a small prior for tractablility or the priors used as just best guesses. This is bad, and the issues can be hidden
 
-\subsection{Bayes Factor}
+\subsection*{Bayes Factor}
+
+\subsection{Epidemic Processes}
+
+\subsubsection{SIR Model}
+
+\subsection{Bayesian Modelling of Epidemic Processes}
 
 \newpage
 \section{Approximate Bayesian Computation}\label{sec_ABC}
@@ -154,6 +153,8 @@
   \par In this section I motivate and provide the mathematical background for Approximate Bayesian Computation (ABC) methods \textit{Section \ref{sec_ABC_background}}; Present the general approach of ABC methods \textit{Section \ref{sec_ABC_ABC_methods}} and discuss four flavours of ABC algorithm \textit{Section \ref{sec_abc_rejection_sampling}-\ref{sec_abc_smc}}; Provide a comparison of these four methods \textit{Section \ref{sec_abc_comparison}}; and, I close this section by exploring how ABC methods can be used for model choice \textit{Section \ref{sec_abc_model_choice}} and how regression adjustment can be used to improve the results of ABC methods \textit{Section \ref{sec_abc_regression_adjustment}}.
 
 \subsection{Motivation and Background}\label{sec_ABC_background}
+
+  % TODO integral can be approximated empirically (https://projecteuclid.org/journals/statistical-science/volume-33/issue-1/Approximate-Bayesian-Computation-and-Simulation-Based-Inference-for-Complex-Stochastic/10.1214/17-STS618.full)
 
   \par Consider a model $X$ with parameters $\theta$. The centre-point of Bayesian inference is the posterior distribution $\prob(\theta|X)$ for the parameters $\theta$ given observations $X$. Using Bayes rule we have the following formulation for this posterior .
 
@@ -221,7 +222,7 @@
 
   \par The first algorithm to use the concept which would later be known as ABC was presented in \cite[]{inferring_coalescence_times_from_dna_sequence_data}, although this algorithm does not include the use of summary statistics nor use distance measures and kernel density functions to determine whether to accept a simulation or not. The algorithm presented in \cite[]{population_growth_of_human_Y_chromosomes} is much more recognisable as ABC and consider by many as the first true ABC algorithm. This algorithm would later be generalised to becomes the rejection sampling approach to ABC. Both of these papers were studies of population genetics, a field in which ABC is still popular used.
 
-  \par The key feature that simulation based methods exploit is that we only know the response values $x_{obs}$ from the true model, but for each simulation we know the variables values and the response values $(\tilde\theta,\tilde{x})$. Thus we can inspect the parameter values for accepted simulations and draw inferences about the parameter values of the true model.
+  \par The key feature that simulation based methods exploit is that we only know the response values $x_{obs}$ from the true model, but for each simulation we know the variables values and the response values $(\tilde\theta,\tilde{x})$. Thus we can inspect the parameter values for accepted simulations and draw inferences about the parameter values of the true model. Moreover, it is generally easier to simulate from a model than to reconstruct it
 
   \par The central concept for all ABC methods is that the likelihood function can be approximated by comparing simulated values to values from a true model. ABC methods require a set of observations from the true model; a theorised model for which parameters can be set and observations generated; and a set of priors for the parameters of the theorised model. ABC methods then perform many simulations of the theorised model and, by comparing  the summary statistic values of the simulated observations to those of the true observations, inferences are made about which parameter values are most likely to be closest to the true values. \textbf{Algorithm \ref{alg_generic_abc}} outlines this basic flow which ABC methods follow. The general idea being that the parameter sets which make the theorised model generate observations which are closest to true observations are more likely to be the true parameter values.
 
@@ -372,7 +373,8 @@
 
   \par ABC-rejection sampling is most suitable in problems where it is believed that the posterior is not very different from the defined priors, as this algorithm has very limited search capabilities. These are typically problems which have already been studied heavily an a general understanding of the priors is known.
 
-  \begin{box_algorithm}[ABC-Rejection Sampling ``Fixed Sample Size'', \cite{ABC_in_population_genetics}]\label{alg_abc_rejection_fixed}
+  \begin{box_algorithm}[ABC-Rejection Sampling ``Fixed Sample Size'']\label{alg_abc_rejection_fixed}
+    Adapted from \cite[]{ABC_in_population_genetics}.
     \begin{algorithm}[H]
       \SetKwIF{With}{}{Else}{with probability}{}{}{otherwise}{}
       \SetKwInOut{Require}{require}
@@ -458,6 +460,7 @@
   \par An importance sampling approach to ABC is an extension of the rejection sampling approach which replaces calculating acceptance probabilities with calculating importance weightings to each simulation. All simulations are accepted and their importance weight is used to weight them during Bayesian inference. An acceptance kernel $K_\varepsilon$ and distance measure $\|\cdot\|$ still need to be specified as they are required to calculate the importance weights. This approach is given in \textbf{Algorithm \ref{alg_abc_importance_sampling}}.
 
   \begin{box_algorithm}[ABC-Importance Sampling]\label{alg_abc_importance_sampling}
+    Adapted from \cite[]{abc_samplers}
     \begin{algorithm}[H]
       \SetKwInOut{Require}{require}
       \Require{Observed values $x_{obs}$; Summary statistics $s(\cdot)$; Theorised model $f(X|\cdot)$; Prior Distributions $\pi_0(\theta)$ Distance Measure $\|\cdot\|$; Number of Simulations $M$; Importance Kernel $g(\cdot)$.}
@@ -517,7 +520,8 @@
 
   \par MCMC methods have limited scope for being parallelised as each iteration depends on the previous iteration. If multiple chains are being run, then these can be parallelised.
 
-  \begin{box_algorithm}[ABC-MCMC, \cite{mcmc_wo_likelihood}]\label{alg_abc_mcmc}
+  \begin{box_algorithm}[ABC-MCMC]\label{alg_abc_mcmc}
+    Adapted from \cite[]{mcmc_wo_likelihood}.
     \begin{algorithm}[H]
       \SetKwIF{With}{}{Else}{with probability}{}{}{otherwise}{}
       \SetKwInOut{Require}{require}
@@ -572,7 +576,8 @@
 
   \par \cite[]{SMC_wo_likelihood} presents the first SMC approach to ABC, but this approaches produces a biased approximation of the posterior, mainly due to it underestimating the tails of the distributions caused by how they originally proposed to evaluate the likelihood ratio. \cite[]{adaptive_ABC} presents an SMC approach to ABC which incorporates importance sampling and an optimised adaptive strategy. This is the version of ABC-SMC I discuss in this section.
 
-  \begin{box_algorithm}[ABC-SMC, \cite{adaptive_ABC}]\label{alg_abc_smc}
+  \begin{box_algorithm}[ABC-SMC]\label{alg_abc_smc}
+    Adapted from \cite[]{adaptive_ABC}.
     \begin{algorithm}[H]
       \everymath={\displaystyle}
       \SetKwIF{With}{}{Else}{with probability}{}{}{otherwise}{}
@@ -672,7 +677,8 @@
 
   \[ B_{1,2}(x_{obs})=\frac{\prob(M_1|x_{obs})}{\prob(M_2|x_{obs})} \]
 
-  \begin{box_algorithm}[ABC Model Selection ``Rejection Sampling'', \cite{abc_likelihood_free_methods_for_model_choice_in_gibbs_random_fields}]\label{alg_abc_mc}
+  \begin{box_algorithm}[ABC Model Selection ``Rejection Sampling'']\label{alg_abc_mc}
+    Adapted from \cite[]{abc_likelihood_free_methods_for_model_choice_in_gibbs_random_fields}.
     \begin{algorithm}[H]
       \SetKwIF{With}{}{Else}{with probability}{}{}{otherwise}{}
       \SetKwInOut{Require}{require}
@@ -822,6 +828,8 @@
   % Degree reduction (ie greater compression)
   \par When evaluating a summary statistic for use in ABC there are main properties, both practical and mathematical, to consider.
 
+  \par A useful mathematical property, observed in \cite[]{statistical_inference_for_noisy_nonlinear_ecological_dynamic_systems}, that asymptotically summary statistics typically have a normal distribution $s\sim\text{Normal}(\mu_s,\Sigma_s)$ with mean $\mu_s$ and covariance matrix $\Sigma_s$. This property can be used to motivate a regression adjustment approach, as explored in \textit{Section \ref{sec_abc_regression_adjustment}}, using the sample estimates of mean and co-variance.
+
 \subsection*{Practical Properties}
 
   \par The key reason for using summary statistics is for the computational efficiencies which result from their dimensionality reduction. Reducing the size of a dataset means less operations need to be performed to analyse it, meaning more simulations can be processed in the same time-period. This naturally means summary statistics which result in greater dimensionality reduction are preferable, but similarly means that a summary statistic which is computationally inefficient to calculate is less desirable.
@@ -837,7 +845,7 @@
   % Interpretability
   \par For real-world modelling problems, the interpretability of summary statistics used in the final model is a key factor in how useful the solution is. Senior stakeholders in a problem will want to use the final model to justify their future decisions, this is much easier to do when the factors the model is considering, and the weights it assigns to them, are readily understandable. Hand-crafted statistics are almost always the most readily understandable statistics, as such generated statistics are rarely used in commercial problems\footnote{The current popularity of using ``Neural Networks'' in commercial settings does buck this trend. I hope this fad will subside soon in favour of more interpretable alternatives. I believe it is worth noting that the new European Union payment services directive (PSD2) requires that certain models used by financial institutions be ``explainable'' in order to improve the customer experience and to ensure no one is discriminated against due to their protected characteristics.}. In cases where it is chosen to use automatically generated statistics; one can develop an intuition for their model by varying the inputs, or removing certain features, and observing how the output varies. This is naturally harder to
 
-\subsubsection*{Sufficiency}\label{sec_sufficiency}
+\subsection*{Sufficiency}\label{sec_sufficiency}
   % \subsubsection*{Theory}
 
   \begin{box_definition}[Sufficient Statistic \cite{sufficient_statistics}]\label{def_sufficient_statistic}
@@ -1103,7 +1111,8 @@
 
   \par ABC methods are applied in scenarios where likelihoods are intractable. This means that the score of a statistic is intractable too. Thus, Joyce \& Marjoram only use the score to motivate their algorithm and in practice use different approaches to compare statistics. I discuss this in more detail later when I explore the practicalities of their algorithm. % TODO is this true? or do their methods estimate score
 
-  \begin{box_algorithm}[Approximately Sufficient Subset of Summary Statistics, \cite{Approximately_sufficient_statistics_and_bayesian_computation}]\label{alg_approximately_sufficient_subsets}
+  \begin{box_algorithm}[Approximately Sufficient Subset of Summary Statistics]\label{alg_approximately_sufficient_subsets}
+    Adapted from \cite[]{Approximately_sufficient_statistics_and_bayesian_computation}.
     \begin{algorithm}[H]
       \SetKwInOut{Require}{require}
       \Require{Set of summary statistics $S$; Score threshold $\varepsilon$}
@@ -1126,6 +1135,7 @@
   \par As mentioned, in practice the score cannot be calculated. Joyce \& Marjoram instead determined that a proposed statistic introduces significant extra information if the posterior of parameters accepted under its usage was significantly different from the posterior when it was not used. This approach, set out in \textbf{Algorithm \ref{alg_evaluate_proposed_statistic}}, consists of estimating the expected value and standard deviation for the number of occurrences of each parameter value; and then accepting the proposed statistic if any of the observed number of occurrences is more than four standard deviations away from its expected value\footnote{In \cite[]{Approximately_sufficient_statistics_and_bayesian_computation} it is recommended to use a value of between one and four standard deviations}. For this approach to be computationally tractable the posterior space is discretised into $M$ bins whose counts can be compared. When this approach is applied the stopping condition of the main algorithm is changed to be \textit{``Stop if no proposed statistics were accepted in the last cycle''}. There are alternative stopping conditions which could be used, it is reasonable to place a cap on the number of statistics allowed to be accepted\footnote{A leave-one-out cross-validation could be used to determine the optimal number of statistics to use.}.
 
   \begin{box_algorithm}[Evaluate Proposed Statistic]\label{alg_evaluate_proposed_statistic}
+    Adapted from \cite[]{Approximately_sufficient_statistics_and_bayesian_computation}.
     \begin{algorithm}[H]
       \footnotetext{The expected values $E$ (Line \ref{alg_expected_value}), the standard deviations $sd$ (Line \ref{alg_standard_deviation}) and the condition of the if statement (Line \ref{alg_line_condition}) are each evaluated piece-wise.}
       \SetKwInOut{Require}{require}
@@ -1222,7 +1232,8 @@
 
   \par Using the ``Best Samples'' version of the ABC-Rejection Sampling algorithm to acquire the approximate posterior used in \textbf{Definition \ref{def_knn_neighbour}} is advisable as it does not require the specification of an acceptance kernel and thus the same configuration can be used for all sets of summary statistics. Also, as the number we specify the number of simulations this step should have the same run-time each time it is called, regardless of the set of statistics being analysed, assuming that the summary statistics take trivial time to calculate.
 
-  \begin{box_algorithm}[Minimum Entropy Summary Statistic Selection, \cite{on_optimal_selection_of_summary_stats_for_ABC}]\label{alg_minimum_entropy_summary_statistic_selection}
+  \begin{box_algorithm}[Minimum Entropy Summary Statistic Selection]\label{alg_minimum_entropy_summary_statistic_selection}
+    Adapted from \cite[]{on_optimal_selection_of_summary_stats_for_ABC}.
     \begin{algorithm}[H]
       \SetKwInOut{Require}{require}
       \Require{Set of summary statistics $S$}
@@ -1265,7 +1276,8 @@
   \par MRSSE is a desirable statistic to use in the context of Bayesian modelling as there are theoretical results which prove that minimising MRSSE is a good metric for estimating the mean of a distribution and that posterior means are optimal summary statistics. % TODO include this result (https://math.stackexchange.com/questions/633440/proving-that-the-estimate-of-a-mean-is-a-least-squares-estimator)
   MRSSE is straightforward to compute and can be applied to multivariate distributions is sensitive to outlier values. Note that the scale of parameter values will affect the MRSSE and thus parameter values should be standardised before computation. A limitation of MRSSE is its sensitivity of outlier values, which is not mitigated by the standardisation.
 
-  \begin{box_algorithm}[Two-Step ME Summary Statistic Selection\cite{on_optimal_selection_of_summary_stats_for_ABC}]\label{alg_two_step_me}
+  \begin{box_algorithm}[Two-Step ME Summary Statistic Selection]\label{alg_two_step_me}
+    Adapted from \cite[]{on_optimal_selection_of_summary_stats_for_ABC}.
     \begin{algorithm}[H]
       \SetKwInOut{Require}{require}
       \Require{Observations from true model $x_{obs}$, Set of summary statistics $S$, Number of simulations to run $n_{run}$, Number of simulations to accept $n_{obs}$} % TODO x_{obs} is required
@@ -1291,7 +1303,8 @@
 \subsubsection{Semi-Automatic ABC}\label{sec_semi_automatic_abc}
   \cite[]{constructing_summary_statistics_for_approximate_bayesian_computation_semi_automatic_ABC} presents the first algorithm which constructs its own summary statistics for ABC, rather than choose from a set of hand-crafted ones. Their approach (\textbf{Algorithm \ref{alg_semi_auto_abc}}) uses a pilot run of an ABC-method to generate a na\"ive approximation of the parameter posterior which is used to generate summary statistics. The approximate posterior is used to generate a ``training set'' from which a regression model can be fitted. Model parameters are assumed to be independent and one summary statistic is generated per each model parameter. The generated summary statistics target the posterior mean, an optimal summary statistic, and should be used in a proper running of ABC to generate parameter posteriors. This approach is referred to as \underline{semi}-automatic as it requires the user to specify the summary statistics used in the pilot run of ABC however the identity function would be appropriate, although inefficient.
 
-  \begin{box_algorithm}[Semi-Automatic ABC, \cite{constructing_summary_statistics_for_approximate_bayesian_computation_semi_automatic_ABC}]\label{alg_semi_auto_abc}
+  \begin{box_algorithm}[Semi-Automatic ABC]\label{alg_semi_auto_abc}
+    Adapted from \cite[]{constructing_summary_statistics_for_approximate_bayesian_computation_semi_automatic_ABC}.
     \begin{algorithm}[H]
       \SetKwInOut{Require}{require}
       \Require{Observations from true model $x_{obs}$, Set of summary statistics $S$, Number of simulated parameter sets $m$, Theorised model $X$}
