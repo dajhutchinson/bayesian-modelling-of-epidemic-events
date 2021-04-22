@@ -110,9 +110,14 @@
 \newpage
 \section{Bayesian Modelling and Epidemic Processes}
 
+  \par Even if the theorised model is not very close to the true model (e.g. may only be accurate for a subset of the response space etc.) these inferences are still useful as long as the limitations of the theorised model are well understood. % TODO move
+
+\subsection{Bayesian Modelling}
+
+  \par Bayesian statistics is one of the two main statistical paradigms, with frequentist being the other. In frequentist statistics model parameters are considered as fixed quantities which can be estimated, whilst Bayesian statistics treats model parameters as random variables with their own distributions. Classical Bayesians believe in a ``True Model'' which is unknown, while Subjective Bayesians believe that no such model exists and rather than each distribution is only a prediction of future events.
 
   \begin{box_theorem}[Bayes' Rule]\label{the_bayes_rule}
-    Consider two random variables $X$ and $Y$. Bayes' Rule provides a formulation for the conditional distribution of $A$ given $B$.
+    Consider two random variables $X$ and $Y$. Bayes' Rule provides a formulation for the conditional distribution of $Y$ given $X$.
     \[ \prob(Y|X)=\frac{\prob(X|Y)\prob(Y)}{\prob(X)} \]
     where each component is known as
     \begin{itemize}
@@ -122,7 +127,7 @@
       \item $\prob(Y)$, the evidence for fixed event $Y$.
     \end{itemize}
     \begin{proof}
-      Bayes' rule is follows from the definition of conditional distributions and joint distributions
+      Bayes' rule follows from the definition of conditional distributions and joint distributions
       \everymath={\displaystyle}
       \[\begin{array}{rcl}
         \prob(Y|X)&=&\frac{\prob(X,Y)}{\prob(Y)}\\
@@ -131,21 +136,51 @@
     \end{proof}
   \end{box_theorem}
 
-  \par Even if the theorised model is not very close to the true model (e.g. may only be accurate for a subset of the response space etc.) these inferences are still useful as long as the limitations of the theorised model are well understood.
+  \par The keystone of the Bayesian approach to statistics is Bayes' rule (\textbf{Theorem \ref{the_bayes_rule}}). For a model $X$ with parameters $\theta$, a relationship between the model and its parameters can be immediately defined by Bayes rule by setting $Y=\theta$.
 
-\subsection{Bayesian Modelling}
+  \[ \prob(\theta|X)=\frac{\prob(X|\theta)\prob(\theta)}{\prob(X)} \]
 
-\subsection*{Priors}
+  \par The starting point of Bayesian inference is the prior $\prob(\theta)$ which quantifies our existing beliefs about the distribution of the parameters before seeing any data. These beliefs can be very loose with probability mass evenly spread over a large proportion of the parameter space. Bayes rule is used to update our beliefs, once data $X$ has been observed, by calculating a posterior $\prob(\theta|X)$. Typically, the evidence $\prob(X)$ for the observed data is intractable but this is not a limitation of Bayes rule as the evidence is only used as a normalising term and is constant with respect to the parameters $\theta$.
 
-  It is good when priors are well informed and well motivated as it reduces the search area. However, for computational methods it is common to have to define a small prior for tractablility or the priors used as just best guesses. This is bad, and the issues can be hidden
+  \[ \prob(\theta|X)\propto\prob(X|\theta)\prob(\theta) \]
 
-\subsection*{Bayes Factor}
+  \par In practice it is ideal if the posterior follows a standard distribution as inferences and computations are easier, due to tractable closed-form functions for these distributions existing. This is where the concept of ``conjugate priors'' is useful. A prior is said to be conjugate if it has the same distribution as the posterior, this only occurs when certain pairs of distributions are defined for the prior and the likelihood $\prob(X|\theta)$. Conjugate priors are a well studied area of Bayesian statistics and there are several resources which list popular ones, along with the computations required to calculate the parameters for the posterior (See \cite[]{compendium_of_conjugate_priors}).
+
+  \par It is naturally preferable for priors to be informative and well motivated as this reduces the amount of data required for the posterior to resemble the true distribution for a model. However, given enough data, the posterior will converge on the true distribution as long as the support of the prior does not truncate the true support. This demonstrates a difficulty in defining priors as they introduce bias. For computational methods it is common to have to define a prior with a relatively small support for tractability, or for the priors to just best guesses as a prior has to be defined. % TODO posterior consistency
+
+  % TODO credible intervals
+
+  \par A common problem in Bayesian modelling is model choice. The task of having to decide which to two, or more, models is the best fit for some given data. There are several options, including: Akaike Information Criterion (AIC); Deviance information criterion (DIC); and, Cross Validation. Bayes Factor is possibly the most popular due to its simplicity and direct relatedness to Bayes' rule. I define and discuss the Bayes Factor in \textit{Section \ref{sec_abc_model_choice}}.
 
 \subsection{Epidemic Processes}
 
-\subsubsection{SIR Model}
+  \par \cite[]{epidemic_process_in_an_open_population} characterises an epidemic process as ``a time-dependent process of transition by the members of a population, where the state transitions are caused by exposure to some influence called `infections material'.''. Typically this `infectious material' is an infectious disease (e.g. HIV, Ebola, Flu) but can be more abstract concepts such as a secret. I focus on the disease example in this project due to its prevalence in the literature.
+
+  % TODO what is a pandemic
+
+  \par The study of modelling such processes is generally motivated from a public health stand point, as being able to predict or control the spread of infectious diseases can reduce human deaths and suffering. This motivation includes the spread of diseases in animal populations (see \cite[]{dynamic_model_of_bovine_tb_spread_and_control_in_great_britain}) as many human diseases are zootonic\footnote{Originate in animal populations before jumping to human populations.}. Being able to compute accurate models for these processes allows for both qualitative and quantitative analysis to be performed, with the results being used to inform public health policies.
+
+  \par As epidemic processes naturally grow exponentially, it is pivotal to the success of public health programs to be able to respond quickly before the disease gathers momentum and becomes uncontainable. This is often difficult as there will always be a delay between data being observed and it being incorporated into a model, as well as it being harder to be strong inferences from small sample sizes due to the high variability. This delay is typically longer at the start of an epidemic of a novel disease due to lack of awareness. This allows the novel disease to spread unchecked, which is dangerous whilst the leathality of the disease is unknown.
+
+  % TODO Non-Pharamaceutical responses
+
+  \par The ideal theorised model will be a causal model of the underlying epidemic process, rather than just correlated with the process. These models are incredibly rare in practice due to the number of hidden variables, the complex nature of these processes and the lack of quality in the available data. This means that any well fitting model will likely only be correlated with the epidemic process and thus only very weak inferences can be made. In reality these models are rarely useless due to confounding variables which link the epidemic process and the predictor variables being used in these models, although there is no guarantee of this. As always, in reality it is impossible to know whether your theorised model is the true model, or not.
+
+  \par In the modern information age and with the current rise in ``Big Data'' the number of variables for which data is available has increased as well as the amount of data as it is easier to collect individual-level data, rather than just population-level. This allows for more complex models to be theorised.  \cite[]{association_between_mobility_patterns_and_covid_19_transmission_in_the_usa} uses data collected from mobile phones to incorporate individuals mobility into their model for the spread of Covid-19 in the USA.
+
+  \par Although the quantity of data available has increased, much of the data is still of poor quality. As mentioned there is always a delay in the data but further; the data is often incomplete due to undetected or misdiagnosed cases/deaths.
+
+  % TODO popular statistics (R0, Rt)
+
+\subsection{SIR Model}
+
+  \par Models for epidemic processes began with \cite[]{application_of_the_theory_of_probabilities_to_the_study_of_a_prior_pathometry_part_i,application_of_the_theory_of_probabilities_to_the_study_of_a_prior_pathometry_part_ii} and the first recognisable SIR model being the Kermack-McKendrick model presented in \cite[]{contribution_to_the_mathematical_theory_of_epidemics} which considers a closed population.
+
+  % TODO define compartmental model
 
 \subsection{Bayesian Modelling of Epidemic Processes}
+
+  \par A common difficulty in modelling Epidemic Processes is the delay between a public health policy being implemented and the affects of it being seen. % TODO
 
 \newpage
 \section{Approximate Bayesian Computation}\label{sec_ABC}
@@ -500,7 +535,7 @@
     The stationary distribution represents the asymptotic proportion of time the chain spends in each state. The stationary distribution is unique if the Markov chain is irreducible.
   \end{box_definition}
 
-  \par Markov chains are sequences of events where the probability of which event occurs next only depends on the current event. When targeting a probability distribution the transition matrix for a Markov chain will be stationary, this means it will have a stationary distribution which can be approximated.
+  \par Markov chains are sequences of events where the probability of which event occurs next only depends on the current event. When targeting a probability distribution the transition matrix for a Markov chain will be stationary, this means it will have a stationary distribution which can be approximated. Many models of epidemic processes have the Markov property. Most notably SIR models do as each set of values only depend on the number of members in each group in the previous time period.
 
   \par Markov Chain Monte Carlo (MCMC) methods are sampling methods which exploit Markov chains in order to have a more informed search procedure through the parameter space. The Markov chain is used to determine which set of parameters to simulate with next, with the next choice being dependent upon the most recently accepted set of parameters. An acceptance step, similar to ABC-Rejection sampling, is then used to evaluate the simulated response values against the true model values and thus whether to accept the new set of parameters. The distribution of accepted parameter sets is an approximation of the stationary distribution of the Markov chain, and thus of the target distribution. These algorithms are ideally run until the distribution of accepted samples satisfies some convergence criteria, although in practice it is more practical to stop the algorithm once the chain has reached a given length.
 
