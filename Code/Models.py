@@ -91,7 +91,9 @@ class Model():
         for i in range(self.dim_obs):
             y_obs_dim=[y[i] for y in y_obs]
             ax=fig.add_subplot(1,self.dim_obs,i+1)
-            ax.set_title(param_labels[i])
+            ax.set_title(param_labels[i],fontsize=24)
+            # if (i==0): ax.set_ylabel("Population Size",fontsize=16)
+            # ax.set_xlabel("Time Period",fontsize=16)
             ax.scatter(x,y_obs_dim)
             if (constant_scale): ax.set_ylim(y_min,y_max)
 

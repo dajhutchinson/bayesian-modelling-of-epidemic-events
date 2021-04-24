@@ -2,7 +2,7 @@
 
 \usepackage[margin=2.5cm, paperwidth=8.3in, paperheight=11.7in]{geometry}
 \usepackage[vlined,linesnumbered]{algorithm2e}
-\usepackage{amsmath,amsthm,amsfonts,bbm,environ,fancyhdr,graphicx,hyperref,natbib,tikz,mdframed}
+\usepackage{amsmath,amsthm,amsfonts,bbm,chngcntr,environ,fancyhdr,float,graphicx,hyperref,mdframed,natbib,tikz}
 \usepackage[hang,flushmargin]{footmisc}
 \usepackage[nottoc]{tocbibind}
 \usetikzlibrary{automata,positioning}
@@ -50,6 +50,8 @@
 \newmdtheoremenv{box_example}{Example}[section]
 \newmdtheoremenv{box_remark}{Remark}[section]
 \newmdtheoremenv{box_theorem}{Theorem}[section]
+
+\counterwithin{figure}{section}
 
 \begin{document}
 
@@ -154,29 +156,97 @@
 
 \subsection{Epidemic Processes}
 
-  \par \cite[]{epidemic_process_in_an_open_population} characterises an epidemic process as ``a time-dependent process of transition by the members of a population, where the state transitions are caused by exposure to some influence called `infections material'.''. Typically this `infectious material' is an infectious disease (e.g. HIV, Ebola, Flu) but can be more abstract concepts such as a secret. I focus on the disease example in this project due to its prevalence in the literature.
+  \par \cite[]{epidemic_process_in_an_open_population} characterises an epidemic process as ``a time-dependent process of transition by the members of a population, where the state transitions are caused by exposure to some influence called `infections material'.''. Typically this `infectious material' is an infectious disease (e.g. HIV, Ebola, Flu) but can be more abstract concepts such as a secret, learnable skill or drug addiction. A pandemic is an epidemic which has spread to multiple populations, however it is often still effective to model each epidemic separately due to geographical and political borders. I focus on the disease case in this project due to its prevalence in the literature.
 
-  % TODO what is a pandemic
+  \par The study of modelling such processes is generally motivated from a public health stand point, as being able to predict or control the spread of infectious diseases can reduce human deaths and suffering (see \cite[]{mitigation_measures_for_pandemic_influence_in_italy}). This motivation includes the spread of diseases in animal populations (see \cite[]{dynamic_model_of_bovine_tb_spread_and_control_in_great_britain}) as many human diseases are zootonic\footnote{Originate in animal populations before jumping to human populations.}. Being able to compute accurate models for these processes allows for both qualitative and quantitative analysis to be performed, with the results being used to inform public health policies.
 
-  \par The study of modelling such processes is generally motivated from a public health stand point, as being able to predict or control the spread of infectious diseases can reduce human deaths and suffering. This motivation includes the spread of diseases in animal populations (see \cite[]{dynamic_model_of_bovine_tb_spread_and_control_in_great_britain}) as many human diseases are zootonic\footnote{Originate in animal populations before jumping to human populations.}. Being able to compute accurate models for these processes allows for both qualitative and quantitative analysis to be performed, with the results being used to inform public health policies.
+  \begin{box_definition}[Reproduction Number]
+    The basic reproduction number $R_0$ is the expected number of people each infected individual will pass a disease onto under uncontrolled conditions. The effective reproduction number $R_t$ is the mean number of people each infected individual will pass a disease onto at a given time $t$. There may be policies in place at time $t$ which will affect $R_t$ but $R_0$ will remain constant.
+    \par These definitions assume that every member of a population is susceptible and the population size is effectively unlimited.
+  \end{box_definition}
 
-  \par As epidemic processes naturally grow exponentially, it is pivotal to the success of public health programs to be able to respond quickly before the disease gathers momentum and becomes uncontainable. This is often difficult as there will always be a delay between data being observed and it being incorporated into a model, as well as it being harder to be strong inferences from small sample sizes due to the high variability. This delay is typically longer at the start of an epidemic of a novel disease due to lack of awareness. This allows the novel disease to spread unchecked, which is dangerous whilst the leathality of the disease is unknown.
+  \par As policy makers are rarely expert statisticians, several simple statistics have been developed to ease communication between statisticians and policy makers (and, policy makers and the public). These statistics typically summarise the full time-series into a few values and are readily interpretable. The most popular of these are the: basic reproduction number $R_0$; and, effective reproduction number $R_t$. Now these values are calculated depend on the model being used and these might be useful summary statistics for the computational methods discussed later in this project, despite not being sufficient (see \textit{Section \ref{sec_summary_stats}-\ref{sec_abc_and_epidemic_events}}).
+
+  \par As epidemic processes naturally grow exponentially, it is pivotal to the success of public health programs to be able to respond quickly before the disease gathers momentum and becomes uncontainable. This is often difficult as there will always be a delay between data being observed and it being incorporated into a model, as well as it being harder to be strong inferences from small sample sizes due to the high variability. This delay is typically longer at the start of an epidemic of a novel disease due to lack of awareness. This allows the novel disease to spread unchecked, which is dangerous whilst the lethality of the disease is unknown.
 
   % TODO Non-Pharamaceutical responses
 
-  \par The ideal theorised model will be a causal model of the underlying epidemic process, rather than just correlated with the process. These models are incredibly rare in practice due to the number of hidden variables, the complex nature of these processes and the lack of quality in the available data. This means that any well fitting model will likely only be correlated with the epidemic process and thus only very weak inferences can be made. In reality these models are rarely useless due to confounding variables which link the epidemic process and the predictor variables being used in these models, although there is no guarantee of this. As always, in reality it is impossible to know whether your theorised model is the true model, or not.
+  \par The ideal theorised model will be a causal model of the underlying epidemic process, rather than just correlated with the process. These models are incredibly rare in practice due to the number of hidden variables, the complex nature of these processes and the lack of quality in the available data. This means that any well fitting model will likely only be correlated with the epidemic process and thus only very weak inferences can be made. In reality these models are rarely useless due to confounding variables which link the epidemic process and the predictor variables being used in these models, although there is no guarantee of this. As always, in reality it is impossible to know whether your theorised model is the true model, or not. Moreover, the most suitable model for each epidemic will depend on the available data.
 
   \par In the modern information age and with the current rise in ``Big Data'' the number of variables for which data is available has increased as well as the amount of data as it is easier to collect individual-level data, rather than just population-level. This allows for more complex models to be theorised.  \cite[]{association_between_mobility_patterns_and_covid_19_transmission_in_the_usa} uses data collected from mobile phones to incorporate individuals mobility into their model for the spread of Covid-19 in the USA.
 
   \par Although the quantity of data available has increased, much of the data is still of poor quality. As mentioned there is always a delay in the data but further; the data is often incomplete due to undetected or misdiagnosed cases/deaths.
 
-  % TODO popular statistics (R0, Rt)
+\subsection{Compartmental Model}
 
-\subsection{SIR Model}
+  \par Models for epidemic processes began with \cite[]{application_of_the_theory_of_probabilities_to_the_study_of_a_prior_pathometry_part_i,application_of_the_theory_of_probabilities_to_the_study_of_a_prior_pathometry_part_ii} and the first recognisable compartmental model for epidemic processes is the Kermack-McKendrick model presented in \cite[]{contribution_to_the_mathematical_theory_of_epidemics} which considers a closed population.
 
-  \par Models for epidemic processes began with \cite[]{application_of_the_theory_of_probabilities_to_the_study_of_a_prior_pathometry_part_i,application_of_the_theory_of_probabilities_to_the_study_of_a_prior_pathometry_part_ii} and the first recognisable SIR model being the Kermack-McKendrick model presented in \cite[]{contribution_to_the_mathematical_theory_of_epidemics} which considers a closed population.
+  \par Due to epidemic processes representing the transitions of individuals between groups within a population, compartmental models are a popular class of models. Compartmental models define several mutually-exclusive ``compartments'' which partition a population and then a set of equations which govern interactions between these compartments (i.e. How individuals move between compartments). Typically these equations are differential equations so they can capture the interactions between time-periods. The Kermack-McKendrick model is a compartmental model with two states: Susceptible (S); and, Removed\footnote{Sometimes referred to as Recovered.} (R). This model has been generalised to the standard SIR model which has an extra compartment, Infected (I), which sits in-between the susceptible and removed compartments.
 
-  % TODO define compartmental model
+\subsection*{Standard SIR Model}
+
+  \par The standard SIR model \cite[]{mathematical_modelling_and_prediction_in_infectious_disease_epidemiology} is a deterministic model where the total population is assumed to be constant and each compartment represents the following: the Susceptible (S) compartment represents individuals who have not had the disease and could become infected if they came into contact with someone who is infected; the Infected (I) compartment represents individuals who currently have the disease and are able to pass it one to members of the susceptible population; and, the Removed (R) compartment represents who have had the disease but are no longer able to spread it. The removed population includes both those that have died from the disease and those that have gained immunity. I discuss how more complex models separate these groups further later in this section.
+
+  \par This model assumes that individuals meet each other completely at random, with the nature of these interactions governed by two parameters $\beta,\gamma$ (which are explored below).
+
+  \par The proportion of the population in each population is mathematically represented by three time-dependent functions $S(t),I(t),R(t)$. The time period between observations will vary between process, although in reality it is often days. This means the data these functions are representing is non-continuous wrt time, which can cause difficulties when trying to fit continuous functions. As the total population is assumed to be constant $S(t)+I(t)+R(t)=1$ at all time points $t$. A disease has died out if the infected population size ever falls to zero $\exists\ t,\ I(t)=0$.
+
+  \par The standard SIR model only allows for two interactions: Susceptible to Infected ($S\to I$); and, Infected to Removed ($I\to R$).
+
+  \[ S\to I\to R \] % TODO redo as tikz
+
+  \par These two interactions are governed by the following three differential equations which represent the change in the total number of individuals in each compartment over time.
+
+  \[\everymath={\displaystyle}\begin{array}{rcl}
+    \frac{dS}{dt}&=&-\beta SI\\
+    \frac{dI}{dt}&=&\beta SI-\gamma I\\
+    \frac{dR}{dt}&=&\gamma I
+  \end{array}\]
+
+  \par Where $\beta$ is the average number of people infected by the a single infected individual in a single time-period and $\gamma$ is the probability an individual is removed. In the standard model, $\beta$ and $\gamma$ are non-negative constants with $\beta\in\mathbb{R}^{\geq0},\gamma\in[0,1]$. Note that $\frac{dS}{dt}+\frac{dI}{dt}+\frac{dR}{dt}=0$ which ensures the total population size is constant and since each differential equation only depends on the current values of $S(t),I(t)$ and $R(t)$, the standard SIR model is Markovian.
+
+  \par \textit{Figure \ref{fig_example_standard_sir_model}} provides a plot of how the different compartment sizes vary over time for a standard SIR model for the case where each infected individual passes the disease to one over individual each time-period ($\beta=1$) and there is a 50\% chance an infected individual is removed each time period ($\gamma=0.5$).
+
+  \begin{figure}[H]
+    \centering\includegraphics[width=.9\textwidth]{example_sir_model.png}
+    \caption{Realisation of a standard SIR model for a population of size $N=100,000$ over 30 time-periods where $\beta=1$ and $\gamma=0.5$.}
+    \label{fig_example_standard_sir_model}
+  \end{figure}
+
+  \par In \textit{Figure \ref{fig_example_standard_sir_model}} we can observed that there is a point at which the size of the infectious population begins to decrease. We can mathematically identify this time-point where the gradient $\frac{dI}{dt}$ becomes negative. As $\frac{dI}{dt}=I(\beta S-\gamma)$ and $I\geq0$ at all time-points, the gradient becomes negative when $\beta S-\gamma<0$. Thus the maximum number of infections occur at time-period $t$ where
+
+  \begin{equation}\label{eqn_sir_max_infections}
+    S(t)<\frac\gamma\beta
+  \end{equation}
+
+  % TODO can we draw inferences about whether the disease will infect everyone
+
+  \par An alterative way to intuitively understand $\beta,\gamma$ is to consider that $1/\beta$ is the mean time between an infected individual infecting someone who is susceptible and $1/\gamma$ is the mean time before an infected individual dies. This means that $\frac{1/\gamma}{1/\beta}$ is the mean number of people each infectious individual infects, assuming all individuals are susceptible. This is the definition of the basic reproduction number $R_0$ and so by simplify we have a simple result for the $R_0$ value of any standard SIR model.
+
+  \[ R_0=\frac\beta\gamma \]
+
+  \par As $\beta$ and $\gamma$ are constant with respect to time in the standard SIR model, the effective reproduction number $R_t$ is simply the basic reproduction number $R_0$ at all time-points $t$.
+
+  % TODO CLosed form SIR (maybe) (https://ui.adsabs.harvard.edu/abs/2014arXiv1403.2160H) Integral can only be evaluated numerically
+
+\subsection*{SIR Model with Vital Dynamics}
+
+  \par The standard SIR model is obviously very simple but it forms a good basis from which to gain intuition for more complex models. A natural advancement is to incorporate births and natural removals (deaths) into the model. These processes are known collectively as ``Vital Dynamics''. It is reasonable to ignore vital dynamics for many epidemic processes as the rate of infection and removal of the process is significantly greater than that from natural births and deaths. Here I describe the standard SIR model with vital dynamics included.
+
+  \par Typically birth is not assumed to bring immunity to diseases, so each birth causes an increase in the size of the susceptible population. Deaths are modelled as completely removing an individual from the population meaning each death leads to a decrease in the total population size.
+
+  % TODO births and deaths
+
+\subsection*{Extensions to SIR Models}
+
+  % TODO parameters vary over time
+  % TODO other dynamics (Vaccinations, people loose immunity)
+  % TODO under-reporting of cases
+
+\subsection*{Other Compartmental Models}
+
+  %TODO SIS
+  %TODO SEIR
 
 \subsection{Bayesian Modelling of Epidemic Processes}
 
@@ -1452,9 +1522,7 @@
   \par Introduce learning rate (SafeBayes) \cite[]{inconsistency_of_bayesian_inference_for_misspecified_linear_models_and_a_proposal_for_reparing_it}
 
 \newpage
-\section{ABC and Epidemic Events}\label{sec_epidemic_events}
-
-\subsection{SIR Model}\label{abc_sir_model}
+\section{ABC and Epidemic Events}\label{sec_abc_and_epidemic_events}
 
 \newpage
 \section{Conclusion}
