@@ -5,7 +5,7 @@
 \usepackage{amsmath,amsthm,amsfonts,bbm,chngcntr,environ,fancyhdr,float,graphicx,hyperref,mdframed,natbib,tikz}
 \usepackage[hang,flushmargin]{footmisc}
 \usepackage[nottoc]{tocbibind}
-\usetikzlibrary{automata,positioning}
+\usetikzlibrary{automata,positioning,arrows.meta}
 \graphicspath{ {img/} }
 % \usepackage[section,nohyphen]{DomH}
 % \headertitle{Bayesian Modelling of Epidemic Processes}
@@ -193,7 +193,21 @@
 
   \par The standard SIR model only allows for two interactions: Susceptible to Infected ($S\to I$); and, Infected to Removed ($I\to R$).
 
-  \[ S\to I\to R \] % TODO redo as tikz
+  \[ S\to I\to R \] % TODO redo as
+
+  \begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[align=center,node distance=2cm and 4cm]
+      \node[state] (S) {S};
+      \node[state, right of=S] (I) {I};
+      \node[state, right of=I] (R) {R};
+
+      \draw (S) edge[-{Latex[length=3mm]}] (I)
+            (I) edge[-{Latex[length=3mm]}] (R);
+    \end{tikzpicture}
+    \caption{Diagram of interactions between compartments in the standard SIR model.}
+    \label{fig_sir_model_diagram}
+  \end{figure}
 
   \par These two interactions are governed by the following three differential equations which represent the change in the total number of individuals in each compartment over time.
 
