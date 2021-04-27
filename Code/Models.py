@@ -491,6 +491,84 @@ class SIRModel(Model):
 
         return printing_str
 
+class SIRModelWithDistributions(SIRModel):
+
+    def __init__(self,params:(int,"stats.distribution","stats.distribution"),n_obs:int,x_obs:[int]):
+        """
+        DESCRIPTION
+        Classical SIR model
+
+        params ((int,int,float,float)) - (population_size,initial_infectied_population_size,beta,gamma)
+        n_obs (int) - number of time-periods to run model for
+        x_obs ([int]) - days on which to make observations
+        """
+
+        if (params[0]<params[1]): raise ValueError("Number of initially infected individuals cannot be greater than the population size.")
+
+        # all models have the following
+        self.n_params=4
+        self.population_size=params[0]
+        self.initially_infected=params[1]
+        self.beta=params[2]
+        self.gamma=params[3]
+        self.params=params # parameter values
+
+        self.param_labels=["Susceptible","Infectious","Removed"]
+
+        self.n_obs=n_obs # number of observations made by `observe`
+        self.dim_obs=3 # dimension of each observation
+
+        self.noise=0 # variance of additive gaussian noise (default=0)
+
+        self.x_obs=x_obs
+        self.observations=self._calc(x_obs)
+
+    def _calc(self,x_obs:[int]) -> [(int,int,int)]:
+        """
+        DESCRIPTION
+        calculate the time-series of observations from the specified SIR model (using ODEs)
+
+        PARAMS
+        x_obs ([int]) - Days on which to make observations
+
+        RETURNS
+        [(int,int,int)] - time-series with each data-point being (S,I,R)
+        """
+        last_obs=(self.population_size-self.initially_infected,self.initially_infected,0)
+        x_flat=[x[0] for x in x_obs]
+
+        if 0 in x_flat: observations=[last_obs] # [(S,I,R)]
+        else: observations=[]
+
+        for t in range(1,max(x_flat)+1):
+            beta_t=max(self.beta.rvs(1)[0],0)
+            gamma_t=max(self.gamma.rvs(1)[0],0)
+
+            new_infections=int(((last_obs[0]/self.population_size)*last_obs[1])*beta_t)
+            new_infections=min(new_infections,last_obs[0])
+
+            new_removed   =int(gamma_t*last_obs[1])
+
+            d_S=-new_infections
+            d_I=new_infections-new_removed
+            d_R=new_removed
+
+            new_obs=(max(last_obs[0]+d_S,0),last_obs[1]+d_I,min(last_obs[2]+d_R,self.population_size))
+            if (t in x_flat): observations.append(new_obs)
+
+            last_obs=new_obs
+
+        return observations
+
+    def __str__(self) -> str:
+        printing_str="Population Size={:,.1f}\n".format(self.population_size)
+        printing_str+="Initially Infected={:,.1f}\n".format(self.initially_infected)
+        printing_str+="Mean Beta={:.3f}\n".format(self.beta.mean())
+        printing_str+="Mean Gamma={:.3f}\n".format(self.gamma.mean())
+        printing_str+="R_0={:.3f}".format(self.beta.mean()/self.gamma.mean())
+
+        return printing_str
+
 class GaussianMixtureModel_two(Model):
 
     def __init__(self,params:(int,float,float),n_obs:int,sd=(1,1)):

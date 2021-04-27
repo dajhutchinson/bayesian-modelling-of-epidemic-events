@@ -161,7 +161,7 @@
   \par The study of modelling such processes is generally motivated from a public health stand point, as being able to predict or control the spread of infectious diseases can reduce human deaths and suffering (see \cite[]{mitigation_measures_for_pandemic_influence_in_italy}). This motivation includes the spread of diseases in animal populations (see \cite[]{dynamic_model_of_bovine_tb_spread_and_control_in_great_britain}) as many human diseases are zootonic\footnote{Originate in animal populations before jumping to human populations.}. Being able to compute accurate models for these processes allows for both qualitative and quantitative analysis to be performed, with the results being used to inform public health policies.
 
   \begin{box_definition}[Reproduction Number]
-    The basic reproduction number $R_0$ is the expected number of people each infected individual will pass a disease onto under uncontrolled conditions. The effective reproduction number $R_t$ is the mean number of people each infected individual will pass a disease onto at a given time $t$. There may be policies in place at time $t$ which will affect $R_t$ but $R_0$ will remain constant.
+    The basic reproduction number $R_0$ is the expected number of people each infected individual will pass a disease onto under uncontrolled conditions. The effective reproduction number $R_t$ is the mean number of people each infected individual will pass a disease onto at a given time $t$. There may be policies in place at time $t$ which will affect $R_t$ but $R_0$ will remain constant. When $R_t<1$ then the size of the infected population is decreasing at time-point $t$, when $R_t=1$ the size of the infected population is stable and when $R_t>1$ the size of the infected population is increasing.
     \par These definitions assume that every member of a population is susceptible and the population size is effectively unlimited.
   \end{box_definition}
 
@@ -187,13 +187,11 @@
 
   \par The standard SIR model \cite[]{mathematical_modelling_and_prediction_in_infectious_disease_epidemiology} is a deterministic model where the total population is assumed to be constant and each compartment represents the following: the Susceptible (S) compartment represents individuals who have not had the disease and could become infected if they came into contact with someone who is infected; the Infected (I) compartment represents individuals who currently have the disease and are able to pass it one to members of the susceptible population; and, the Removed (R) compartment represents who have had the disease but are no longer able to spread it. The removed population includes both those that have died from the disease and those that have gained immunity. I discuss how more complex models separate these groups further later in this section.
 
-  \par This model assumes that individuals meet each other completely at random, with the nature of these interactions governed by two parameters $\beta,\gamma$ (which are explored below).
+  \par This model assumes that individuals meet each other completely at random, with the nature of these interactions governed by two parameters $\beta,\gamma$ (which are explored below). This assumption is ideal for large populations as individual variations are averaged out by the law of large numbers and when all members of a population are equally susceptible to a disease. In practice susceptibility will vary between individuals due to factors such as age, health conditions and amount of human-to-human interactions that individual has.
 
   \par The proportion of the population in each population is mathematically represented by three time-dependent functions $S(t),I(t),R(t)$. The time period between observations will vary between process, although in reality it is often days. This means the data these functions are representing is non-continuous wrt time, which can cause difficulties when trying to fit continuous functions. As the total population is assumed to be constant $S(t)+I(t)+R(t)=1$ at all time points $t$. A disease has died out if the infected population size ever falls to zero $\exists\ t,\ I(t)=0$.
 
   \par The standard SIR model only allows for two interactions: Susceptible to Infected ($S\to I$); and, Infected to Removed ($I\to R$).
-
-  \[ S\to I\to R \] % TODO redo as
 
   \begin{figure}[H]
     \centering
@@ -205,11 +203,11 @@
       \draw (S) edge[-{Latex[length=3mm]}] (I)
             (I) edge[-{Latex[length=3mm]}] (R);
     \end{tikzpicture}
-    \caption{Diagram of interactions between compartments in the standard SIR model.}
+    \caption{Diagram of interactions between compartments in the standard SIR model. S=Susceptible, I=Infectious, R=Removed.}
     \label{fig_sir_model_diagram}
   \end{figure}
 
-  \par These two interactions are governed by the following three differential equations which represent the change in the total number of individuals in each compartment over time.
+  \par These two interactions are governed by the following three differential equations which represent the change in the total number of individuals in each compartment over time \cite[]{application_of_sir_epidemiological_model}.
 
   \[\everymath={\displaystyle}\begin{array}{rcl}
     \frac{dS}{dt}&=&-\beta SI\\
@@ -223,44 +221,220 @@
 
   \begin{figure}[H]
     \centering\includegraphics[width=.9\textwidth]{example_sir_model.png}
-    \caption{Realisation of a standard SIR model for a population of size $N=100,000$ over 30 time-periods where $\beta=1$ and $\gamma=0.5$.}
+    \caption{Realisation of a standard SIR model for a population of size $N=100,000$ over 30 time-periods where $\beta=1$ and $\gamma=0.5$. ($R_0=2$)}
     \label{fig_example_standard_sir_model}
   \end{figure}
 
-  \par In \textit{Figure \ref{fig_example_standard_sir_model}} we can observed that there is a point at which the size of the infectious population begins to decrease. We can mathematically identify this time-point where the gradient $\frac{dI}{dt}$ becomes negative. As $\frac{dI}{dt}=I(\beta S-\gamma)$ and $I\geq0$ at all time-points, the gradient becomes negative when $\beta S-\gamma<0$. Thus the maximum number of infections occur at time-period $t$ where
+  \par In \textit{Figure \ref{fig_example_standard_sir_model}} we can observed that there is a point at which the size of the infectious population begins to decrease. We can mathematically identify this time-point where the gradient $\frac{dI}{dt}$ becomes negative. As $\frac{dI}{dt}=I(\beta S-\gamma)$ and $I\geq0$ at all time-points, the gradient becomes negative when $\beta S-\gamma<0$. Thus the maximum number of infections occur at time-period $t$ where (\ref{eqn_sir_tipping_point_susceptible}) is satisfied.
 
-  \begin{equation}\label{eqn_sir_max_infections}
+  \begin{equation}\label{eqn_sir_tipping_point_susceptible}
     S(t)<\frac\gamma\beta
   \end{equation}
 
   % TODO can we draw inferences about whether the disease will infect everyone
 
-  \par An alterative way to intuitively understand $\beta,\gamma$ is to consider that $1/\beta$ is the mean time between an infected individual infecting someone who is susceptible and $1/\gamma$ is the mean time before an infected individual dies. This means that $\frac{1/\gamma}{1/\beta}$ is the mean number of people each infectious individual infects, assuming all individuals are susceptible. This is the definition of the basic reproduction number $R_0$ and so by simplify we have a simple result for the $R_0$ value of any standard SIR model.
+  \par This result can be written as (\ref{eqn_sir_tipping_point_ir}), in terms of the total proportion of the population which is either infected or removed. This result is intuitively useful as it provides a value for what proportion of the total population need to be immune from the disease for ``heard-immunity'' to be reached and the rate of spread to decrease naturally. This can be used to set targets for vaccination rollouts. Although the standard SIR model is too basic for these sort of decisions, as it does not allow for $\beta$ or $\gamma$ to vary over time, it is useful for building the intuition which motivates more complex models.
 
-  \[ R_0=\frac\beta\gamma \]
+  \begin{alignat}{5}
+    &1-&I(t)-R(t)& < &\frac\gamma\beta\nonumber&\\
+    \Longleftrightarrow&&1-\frac\gamma\beta& > &I(t)&+R(t)\label{eqn_sir_tipping_point_ir}
+  \end{alignat}
 
-  \par As $\beta$ and $\gamma$ are constant with respect to time in the standard SIR model, the effective reproduction number $R_t$ is simply the basic reproduction number $R_0$ at all time-points $t$.
+  \par An alterative way to intuitively understand $\beta,\gamma$ is to consider that $1/\beta$ is the mean time between an infected individual infecting someone who is susceptible and $1/\gamma$ is the mean time before an infected individual becomes removed. This means that $\frac{1/\gamma}{1/\beta}$ is the mean number of people each infectious individual infects, assuming all individuals are susceptible. This is the definition of the basic reproduction number $R_0$ and so by simplify we have a simple result for the $R_0$ value of any standard SIR model.
+
+  \begin{equation}
+    R_0=\frac\beta\gamma\label{eqn_sir_r0}
+  \end{equation}
+
+  \par As $\beta$ and $\gamma$ are constant with respect to time in the standard SIR model, the effective reproduction number $R_t$ is simply the basic reproduction number $R_0$ at all time-points $t$. We can use (\ref{eqn_sir_r0}) to restate the tipping point equation (\ref{eqn_sir_tipping_point_ir}) in terms of the $R_0$ value.
+
+  \begin{equation}
+    1-\frac1{R_0}>I(t)+R(t)
+  \end{equation}
+
+  \par The standard SIR model has limited uses in practice mainly due to its assumptions of constant $\beta$ and $\gamma$, as well as the assumption that all interactions between individuals are equal. These assumptions may be reasonable for short periods of time where there are no changes in the efforts being made to suppress the spread of a disease\footnote{This would likely due to a disease not being particularly deadly}, such as a single flu season. \cite[]{sir_lecture_slides} fits a standard SIR model to data from the 2004-05 flu season in American and shows how it produces a good fit of the data.
 
   % TODO CLosed form SIR (maybe) (https://ui.adsabs.harvard.edu/abs/2014arXiv1403.2160H) Integral can only be evaluated numerically
 
-\subsection*{SIR Model with Vital Dynamics}
+\subsection*{SIR Model with demography}
 
-  \par The standard SIR model is obviously very simple but it forms a good basis from which to gain intuition for more complex models. A natural advancement is to incorporate births and natural removals (deaths) into the model. These processes are known collectively as ``Vital Dynamics''. It is reasonable to ignore vital dynamics for many epidemic processes as the rate of infection and removal of the process is significantly greater than that from natural births and deaths. Here I describe the standard SIR model with vital dynamics included.
+  \par The standard SIR model is very simple and forms a good basis from which to gain intuition for more complex models. A natural advancement is to incorporate births and natural deaths into the model. These processes are known collectively as ``Demography''. It is reasonable to ignore demography for many epidemic processes as the rate of infection and removal from the epidemic process is significantly greater than that from natural demography.
 
-  \par Typically birth is not assumed to bring immunity to diseases, so each birth causes an increase in the size of the susceptible population. Deaths are modelled as completely removing an individual from the population meaning each death leads to a decrease in the total population size.
+  \par Demography easily extends beyond births and deaths to include immigration and emigration by simply considering immigration and births to be equivalent, and deaths and emigration to be equivalent. If we assume that immigrants cannot carry the disease then these processes are equivalent.
 
-  % TODO births and deaths
+  \par Typically birth is not assumed to bring immunity to diseases, so each birth causes an increase in the size of the susceptible population. Deaths can occur to any individual, regardless of the compartment they are in, and are modelled as completely removing an individual from the population meaning each death leads to a decrease in the total population size. The two interactions from the standard SIR model are unchanged. \textit{Figure \ref{fig_sir_model_diagram_w_demography}} outlines these interactions.
 
-\subsection*{Extensions to SIR Models}
+  \begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[align=center,node distance=2cm and 4cm]
+      \node (birth) {};
+      \node[state,right of=birth] (S) {S};
+      \node[state, right of=S] (I) {I};
+      \node[state, right of=I] (R) {R};
+      \node[below of=I] (death) {};
 
-  % TODO parameters vary over time
-  % TODO other dynamics (Vaccinations, people loose immunity)
-  % TODO under-reporting of cases
+      \draw (birth) edge[-{Latex[length=1mm]}] (S)
+            (S) edge[-{Latex[length=3mm]}] (I)
+            (I) edge[-{Latex[length=3mm]}] (R)
+            (S) edge[-{Latex[length=1mm]}] (death)
+            (I) edge[-{Latex[length=1mm]}] (death)
+            (R) edge[-{Latex[length=1mm]}] (death);
+    \end{tikzpicture}
+    \caption{Diagram of interactions between compartments in an SIR model with demography.}
+    \label{fig_sir_model_diagram_w_vital_dynamics}
+  \end{figure}
+
+  \par Two new parameters are introduced to this model: $\lambda$ the number of births per time-period; and $\mu$ the number of natural deaths per time-period. It is assumed that an individual is equally likely to die naturally, regardless of which compartment they are in. The reciprocal of the death rate $1/\mu$ is the average life-span of each individual in the population. is Both $\lambda$ and $\mu$ are independent of the total population size. The following three differential equations model all of these interactions \cite[]{application_of_sir_epidemiological_model}:
+
+  \[\everymath={\displaystyle}\begin{array}{rcl}
+    \frac{dS}{dt}&=&\lambda-\beta SI-\mu S\\
+    \frac{dI}{dt}&=&\beta SI-\gamma I-\mu I\\
+    \frac{dR}{dt}&=&\gamma I-\mu R
+  \end{array}\]
+
+  \par This system of equations is very similar to that of the SIR model without demography except each equation has a term subtracts the number of natural deaths each time-period, which is proportional to the current population size of the associated compartment. And, the equation for the changes in the susceptible population has a term for introducing natural births.
+
+  \par For the same removal rate $\gamma$, the mean time an individual is infected for is reduced compared to an SIR model without demography due to the possibility of that individual dying naturally before they are removed. The mean time an individual is infected is now $1/(\gamma+\mu)$. This means the $R_0$ for an SIR model with demographics is (\ref{eqn_r0_sir_w_demographics})
+
+  \begin{equation}\label{eqn_r0_sir_w_demographics}
+    R_0=\frac{\beta}{\gamma+\mu}
+  \end{equation}
+
+  \par The inclusion of demography in a model allows for two possible equilibria to occur: the disease dies out; or, for the disease to persist in the population as there is a constant influx of new susceptible people. \textit{Remark \ref{rem_equilibria_sir_w_demography}} presents when each of these outcomes occurs and the resulting equilibria. Both the these results hold as time tends to infinity.
+
+  \begin{box_remark}[Equilibria of SIR model with Demography]\label{rem_equilibria_sir_w_demography}
+    Note that $\lambda,\beta,\gamma,\mu\geq0$. An equilibrium for the SIR model with demography is achieved when
+    \[ \left(\frac{dS}{dt},\frac{dI}{dt},\frac{dR}{dt}\right)=(0,0,0) \]
+    There are two cases to consider: $R_0\geq 1$; and, $R_0<1$. For each case, I derive values $(S^*,I^*,R^*)$ for the population sizes which produce an equilibrium.
+    \begin{itemize}
+      \item[\textit{Case 1}] - $R_0\geq1$.
+      \[\begin{array}{rrcl}
+        &\frac{dI}{dt}&=&0\\
+        \implies&\beta S^*I^*-\gamma I^*-\mu I^*&=&0\\
+        \implies&\beta S^*-\gamma-\mu&=&0\\
+        \implies&S^*&=&\frac{\mu+\gamma}\beta\\
+        &&=&\frac1{R_0}\\
+        \\
+        &\frac{dS}{dt}&=&0\\
+        \implies&\lambda-\beta S^*I^*-\mu S^*&=&0\\
+        \implies&\lambda-\frac{\beta I+\mu}{R_0}&=&0\\
+        \implies&I^*&=&\frac{\lambda R_0-\mu}\beta\\
+        \\
+        &\frac{dR}{dt}&=&0\\
+        \implies&\gamma I^*-\mu^*&=&0\\
+        \implies&R^*&=&\frac\gamma\mu I^*\\
+        &&=&\frac{\gamma\lambda}{\mu+\gamma}-\frac\gamma\beta
+      \end{array}\]
+      Thus, when the $R_0\geq1$ an equilibrium is reached when the compartment populations fulfil
+      \[ (S,I,R)=\left(\frac1{R_0},\ \frac{\lambda R_0-\mu}\beta,\ \frac{\gamma\lambda}{\mu+\gamma}-\frac\gamma\beta\right) \]
+      This state is known as an ``Endemic Equilibrium'' as the disease maintains a constant level of infection.
+
+      \item[\textit{Case 2}] - $R_0<1$.
+      \par As $R_0<1$ the size of the infected population will eventually decrease to zero, after which point no new infections can occur ($I^*=0$). This also means that the removed population can not increase after this point, moreover it will decrease to zero ($R^*=0$) due to those in the population dying. This means the population equilibrium occurs when $\frac{dS}{dt}=0$ and $I=0$.
+      \[\begin{array}{rrcll}
+        &\frac{dS}{dt}&=&0\\
+        \implies&\lambda-\beta S^*I^*-\mu S^*&=&0&\\
+        \implies&\lambda-\mu S^*&=&0&\text{ since }I^*=0\\
+        \implies&S^*&=&\frac\lambda\mu
+      \end{array}\]
+      Thus, when the $R_0\geq1$ an equilibrium is reached when the compartment populations fulfil
+      \[ (S,I,R)=\left(\frac\lambda\mu,0,0\right) \]
+      This state is known as a ``Disease Free Equilibrium''.
+
+    \end{itemize}
+  \end{box_remark}
 
 \subsection*{Other Compartmental Models}
 
   %TODO SIS
+  \begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[align=center,node distance=2cm and 4cm]
+      \node[state] (S) {S};
+      \node[state, right of=S] (I) {I};
+
+      \draw (S) edge[-{Latex[length=3mm]},bend left=30] (I)
+            (I) edge[-{Latex[length=3mm]},bend left=30] (S);
+    \end{tikzpicture}
+    \caption{Diagram of interactions between compartments in an SIS model.}
+    \label{fig_sis_model_diagram}
+  \end{figure}
+
   %TODO SEIR
+  \begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[align=center,node distance=2cm and 4cm]
+      \node[state] (S) {S};
+      \node[state, right of=S] (E) {E};
+      \node[state, right of=E] (I) {I};
+      \node[state, right of=I] (R) {R};
+
+      \draw (S) edge[-{Latex[length=3mm]}] (E)
+            (E) edge[-{Latex[length=3mm]}] (I)
+            (I) edge[-{Latex[length=3mm]}] (R);
+    \end{tikzpicture}
+    \caption{Diagram of interactions between compartments in an SEIR model.}
+    \label{fig_seir_model_diagram}
+  \end{figure}
+
+  %TODO SIRS
+  \begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[align=center,node distance=2cm and 4cm]
+      \node[state] (S) {S};
+      \node[state, right of=S] (I) {I};
+      \node[state, right of=I] (R) {R};
+
+      \draw (S) edge[-{Latex[length=3mm]}] (E)
+            (I) edge[-{Latex[length=3mm]}] (R)
+            (R) edge[-{Latex[length=3mm]},bend left=30] (S);
+    \end{tikzpicture}
+    \caption{Diagram of interactions between compartments in an SIRS model.}
+    \label{fig_sirs_model_diagram}
+  \end{figure}
+
+  %TODO SIRD
+  \begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[align=center,node distance=2cm and 4cm]
+      \node[state] (S) {S};
+      \node[state, right of=S] (I) {I};
+      \node[state, above right of=I] (R) {R};
+      \node[state, below right of=I] (D) {D};
+
+      \draw (S) edge[-{Latex[length=3mm]}] (I)
+            (I) edge[-{Latex[length=3mm]}] (R)
+            (I) edge[-{Latex[length=3mm]}] (D);
+    \end{tikzpicture}
+    \caption{Diagram of interactions between compartments in an SIRD model.}
+    \label{fig_sird_model_diagram}
+  \end{figure}
+
+  %TODO Compartment for different ages georgraphy (network models are better)
+
+\subsection*{Extensions to SIR Models}
+
+  % TODO parameters drawn from a distribution. (Not as necessary for large populations (esp when large for each compartment), )
+  % TODO more compartments for different ages
+  % TODO parameters vary over time
+  % TODO other dynamics (Vaccinations, people loose immunity)
+
+  \begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[align=center,node distance=2cm and 4cm]
+      \node[state] (S) {S};
+      \node[state, right of=S] (I) {I};
+      \node[state, right of=I] (R) {R};
+
+      \draw (S) edge[-{Latex[length=3mm]}] (I)
+            (I) edge[-{Latex[length=3mm]}] (R)
+            (S) edge[-{Latex[length=3mm]},bend left=30] (R);
+    \end{tikzpicture}
+    \caption{Diagram of interactions between compartments in an SIR model with vaccination.}
+    \label{fig_sir_model_diagram_w_vaccination}
+  \end{figure}
+
+  % TODO under-reporting of cases
 
 \subsection{Bayesian Modelling of Epidemic Processes}
 
@@ -494,6 +668,7 @@
 
   \begin{box_algorithm}[ABC-Rejection Sampling ``Fixed Sample Size'']\label{alg_abc_rejection_fixed}
     Adapted from \cite[]{ABC_in_population_genetics}.
+    \par
     \begin{algorithm}[H]
       \SetKwIF{With}{}{Else}{with probability}{}{}{otherwise}{}
       \SetKwInOut{Require}{require}
@@ -579,7 +754,8 @@
   \par An importance sampling approach to ABC is an extension of the rejection sampling approach which replaces calculating acceptance probabilities with calculating importance weightings to each simulation. All simulations are accepted and their importance weight is used to weight them during Bayesian inference. An acceptance kernel $K_\varepsilon$ and distance measure $\|\cdot\|$ still need to be specified as they are required to calculate the importance weights. This approach is given in \textbf{Algorithm \ref{alg_abc_importance_sampling}}.
 
   \begin{box_algorithm}[ABC-Importance Sampling]\label{alg_abc_importance_sampling}
-    Adapted from \cite[]{abc_samplers}
+    Adapted from \cite[]{abc_samplers}.
+    \par
     \begin{algorithm}[H]
       \SetKwInOut{Require}{require}
       \Require{Observed values $x_{obs}$; Summary statistics $s(\cdot)$; Theorised model $f(X|\cdot)$; Prior Distributions $\pi_0(\theta)$ Distance Measure $\|\cdot\|$; Number of Simulations $M$; Importance Kernel $g(\cdot)$.}
@@ -641,6 +817,7 @@
 
   \begin{box_algorithm}[ABC-MCMC]\label{alg_abc_mcmc}
     Adapted from \cite[]{mcmc_wo_likelihood}.
+    \par
     \begin{algorithm}[H]
       \SetKwIF{With}{}{Else}{with probability}{}{}{otherwise}{}
       \SetKwInOut{Require}{require}
@@ -697,6 +874,7 @@
 
   \begin{box_algorithm}[ABC-SMC]\label{alg_abc_smc}
     Adapted from \cite[]{adaptive_ABC}.
+    \par
     \begin{algorithm}[H]
       \everymath={\displaystyle}
       \SetKwIF{With}{}{Else}{with probability}{}{}{otherwise}{}
@@ -909,6 +1087,8 @@
   % TODO posterior mean are optimal summary statistics
 
   In this section I motivate the research into summary statistic selection \textit{Section \ref{sec_summary_stats_motivation}} and discuss features to consider when selecting summary statistics \textit{Section \ref{sec_properties_of_summary_statistics}}. I then describe five methods for summary statistic selection methods: three which use hand-crafted summary statistics \textit{Sections \ref{sec_approximate_sufficient_subset}-\ref{sec_two_step_minimum_entropy}}; and two which automatically generate summary statistics \textit{Sections \ref{sec_semi_automatic_abc}-\ref{sec_non_linear_projection}}. These approaches are covered in the chronological order in which they were original proposed. To close the section I use a toy example of an SIR model to compare these methods \textit{Section \ref{sec_summary_statistics_toy}}.
+
+% TODO Fisher information matrix.
 
 \subsection{Motivation}\label{sec_summary_stats_motivation}
 
@@ -1255,6 +1435,7 @@
 
   \begin{box_algorithm}[Evaluate Proposed Statistic]\label{alg_evaluate_proposed_statistic}
     Adapted from \cite[]{Approximately_sufficient_statistics_and_bayesian_computation}.
+    \par
     \begin{algorithm}[H]
       \footnotetext{The expected values $E$ (Line \ref{alg_expected_value}), the standard deviations $sd$ (Line \ref{alg_standard_deviation}) and the condition of the if statement (Line \ref{alg_line_condition}) are each evaluated piece-wise.}
       \SetKwInOut{Require}{require}
@@ -1353,6 +1534,7 @@
 
   \begin{box_algorithm}[Minimum Entropy Summary Statistic Selection]\label{alg_minimum_entropy_summary_statistic_selection}
     Adapted from \cite[]{on_optimal_selection_of_summary_stats_for_ABC}.
+    \par
     \begin{algorithm}[H]
       \SetKwInOut{Require}{require}
       \Require{Set of summary statistics $S$}
@@ -1397,6 +1579,7 @@
 
   \begin{box_algorithm}[Two-Step ME Summary Statistic Selection]\label{alg_two_step_me}
     Adapted from \cite[]{on_optimal_selection_of_summary_stats_for_ABC}.
+    \par
     \begin{algorithm}[H]
       \SetKwInOut{Require}{require}
       \Require{Observations from true model $x_{obs}$, Set of summary statistics $S$, Number of simulations to run $n_{run}$, Number of simulations to accept $n_{obs}$} % TODO x_{obs} is required
@@ -1424,6 +1607,7 @@
 
   \begin{box_algorithm}[Semi-Automatic ABC]\label{alg_semi_auto_abc}
     Adapted from \cite[]{constructing_summary_statistics_for_approximate_bayesian_computation_semi_automatic_ABC}.
+    \par
     \begin{algorithm}[H]
       \SetKwInOut{Require}{require}
       \Require{Observations from true model $x_{obs}$, Set of summary statistics $S$, Number of simulated parameter sets $m$, Theorised model $X$}
@@ -1537,6 +1721,17 @@
 
 \newpage
 \section{ABC and Epidemic Events}\label{sec_abc_and_epidemic_events}
+
+  \begin{enumerate}
+    \item Use standard SIR model, SIR model with distribution for $\beta,\gamma$.
+    \item Choose loads of hand-crafted summary statistics.
+    \item Use approximate sufficiency; minimising entropy; and two-step ME to choose best set of hand-crafted (Compare with leave-one-out cross validation).
+    \item Plot dimensionality of summary stats against MSE (use ME to choose best at each dimensionality)
+    \item Use Semi-Auto to generate summary stats (compare to best subsets from previous).
+    \item Stick in some covid data (e.g. active cases of first wave from italy). Note that we are ignoring changes in lock down.
+    \item SIR model with stepped $\beta,\gamma$ wrt time
+  \end{enumerate}
+
 
 \newpage
 \section{Conclusion}
