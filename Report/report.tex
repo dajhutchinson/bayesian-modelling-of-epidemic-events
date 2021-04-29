@@ -1,11 +1,13 @@
 \documentclass[11pt,a4paper]{article}
 
-\usepackage[margin=2.5cm, paperwidth=8.3in, paperheight=11.7in]{geometry}
+\usepackage{amsmath,amsthm,amsfonts,bbm,caption,chngcntr,environ,fancyhdr,float,graphicx,hyperref,mdframed,natbib,tikz}
 \usepackage[vlined,linesnumbered]{algorithm2e}
-\usepackage{amsmath,amsthm,amsfonts,bbm,chngcntr,environ,fancyhdr,float,graphicx,hyperref,mdframed,natbib,tikz}
-\usepackage[hang,flushmargin]{footmisc}
+\usepackage[hang,flushmargin,perpage]{footmisc}
+\usepackage[margin=2.5cm,paperwidth=8.3in,paperheight=11.7in]{geometry}
 \usepackage[nottoc]{tocbibind}
+
 \usetikzlibrary{automata,positioning,arrows.meta}
+
 \graphicspath{ {img/} }
 % \usepackage[section,nohyphen]{DomH}
 % \headertitle{Bayesian Modelling of Epidemic Processes}
@@ -53,6 +55,10 @@
 
 \counterwithin{figure}{section}
 
+% \captionsetup{justification=raggedright,singlelinecheck=false}
+\captionsetup[figure]{font=small}
+\captionsetup{width=.9\textwidth}
+
 \begin{document}
 
 \title{Bayesian Modelling of Epidemic Processes}
@@ -84,6 +90,9 @@
 \setcounter{page}{1}
 \section{Introduction}\label{sec_introduction}
 
+  \par Modelling epidemics is important as there is relatively little data available, and little experience to use. Experimenting would cost lives.
+  \par Epidemiology is the mathematical study of the spread of infectious diseases
+  \par Bernoulli theorised an epidemic model in 1760 ish. Probs the first
   \par What is a model? A (simple) mathematical formulation of a process which incorporates parameters of interest and likely some stochastic processes. Models need to be computational tractable (i.e. fairly simple)
   \par ``All models are wrong, some are useful''.
   \par What to use models for? check intuition, explanation \& prediction.
@@ -181,15 +190,15 @@
 
   \par Models for epidemic processes began with \cite[]{application_of_the_theory_of_probabilities_to_the_study_of_a_prior_pathometry_part_i,application_of_the_theory_of_probabilities_to_the_study_of_a_prior_pathometry_part_ii} and the first recognisable compartmental model for epidemic processes is the Kermack-McKendrick model presented in \cite[]{contribution_to_the_mathematical_theory_of_epidemics} which considers a closed population.
 
-  \par Due to epidemic processes representing the transitions of individuals between groups within a population, compartmental models are a popular class of models. Compartmental models define several mutually-exclusive ``compartments'' which partition a population and then a set of equations which govern interactions between these compartments (i.e. How individuals move between compartments). Typically these equations are differential equations so they can capture the interactions between time-periods. The Kermack-McKendrick model is a compartmental model with two states: Susceptible (S); and, Removed\footnote{Sometimes referred to as Recovered.} (R). This model has been generalised to the standard SIR model which has an extra compartment, Infected (I), which sits in-between the susceptible and removed compartments.
+  \par Due to epidemic processes representing the transitions of individuals between groups within a population, compartmental models are a popular class of models. Compartmental models define several mutually-exclusive ``compartments'' which partition a population and then a set of equations which govern interactions between these compartments (i.e. How individuals move between compartments). Typically these equations are differential equations so they can capture the interactions between time-periods. The Kermack-McKendrick model is a compartmental model with two states: Susceptible (S); and, Infected (I). Under the Kermack-McKendrick model, once an individual has recovered from an infection they are removed from the population entirely. This model has been generalised to the standard SIR\footnote{"Susceptible-Infectious-Removed"} model which has an extra compartment, Removed\footnote{Sometimes referred to as Recovered.} (R), where individuals are moved to once they are no longer infectious.
 
-\subsection*{Standard SIR Model}
+\subsubsection{Standard SIR Model}\label{sec_standard_sir_model}
 
-  \par The standard SIR model \cite[]{mathematical_modelling_and_prediction_in_infectious_disease_epidemiology} is a deterministic model where the total population is assumed to be constant and each compartment represents the following: the Susceptible (S) compartment represents individuals who have not had the disease and could become infected if they came into contact with someone who is infected; the Infected (I) compartment represents individuals who currently have the disease and are able to pass it one to members of the susceptible population; and, the Removed (R) compartment represents who have had the disease but are no longer able to spread it. The removed population includes both those that have died from the disease and those that have gained immunity. I discuss how more complex models separate these groups further later in this section.
+  \par The standard SIR model \cite[]{mathematical_modelling_and_prediction_in_infectious_disease_epidemiology} is a deterministic model where the total population is assumed to be constant and each compartment represents the following: the Susceptible (S) compartment represents individuals who have not had the disease and could become infected if they came into contact with someone who is infected; the Infected (I) compartment represents individuals who currently have the disease and are able to pass it one to members of the susceptible population; and, the Removed (R) compartment represents who have had the disease but are no longer able to spread it. For the standard SIR model we can consider the removed population to include both those who have died from the disease and those that have gained immunity. However, for more complex inferential problems, such as the affects of a vaccine program or a new treatment, it becomes necessary to separate these two groups.
 
-  \par This model assumes that individuals meet each other completely at random, with the nature of these interactions governed by two parameters $\beta,\gamma$ (which are explored below). This assumption is ideal for large populations as individual variations are averaged out by the law of large numbers and when all members of a population are equally susceptible to a disease. In practice susceptibility will vary between individuals due to factors such as age, health conditions and amount of human-to-human interactions that individual has.
+  \par This model assumes that individuals are homogeneous, especially with respect to their health and movements, and meet each other completely at random, with the nature of these interactions governed by two parameters $\beta,\gamma$ (which are explored below). This assumption is ideal for large populations as individual variations are averaged out by the law of large numbers and when all members of a population are equally susceptible to a disease. In practice susceptibility will vary between individuals due to factors such as age, health conditions and amount of human-to-human interactions that individual has.
 
-  \par The proportion of the population in each population is mathematically represented by three time-dependent functions $S(t),I(t),R(t)$. The time period between observations will vary between process, although in reality it is often days. This means the data these functions are representing is non-continuous wrt time, which can cause difficulties when trying to fit continuous functions. As the total population is assumed to be constant $S(t)+I(t)+R(t)=1$ at all time points $t$. A disease has died out if the infected population size ever falls to zero $\exists\ t,\ I(t)=0$.
+  \par The size of each population is mathematically represented by three time-dependent functions $S(t),I(t),R(t)$ where time is continuous. The time period between observations will vary between process, although in reality it is often days. This means the data these functions are representing is non-continuous wrt time, which can cause difficulties when trying to fit continuous functions. As the total population is assumed to be constant $S(t)+I(t)+R(t)=N$ at all time points $t$. A disease has died out if the infected population size ever falls to zero $\exists\ t,\ I(t)=0$.
 
   \par The standard SIR model only allows for two interactions: Susceptible to Infected ($S\to I$); and, Infected to Removed ($I\to R$).
 
@@ -207,15 +216,19 @@
     \label{fig_sir_model_diagram}
   \end{figure}
 
-  \par These two interactions are governed by the following three differential equations which represent the change in the total number of individuals in each compartment over time \cite[]{application_of_sir_epidemiological_model}.
+  \par These two interactions are governed by a system of three non-linear ordinary differential equations, given in (\ref{eqn_sir_differential_equations}), which represent the change in the total number of individuals in each compartment over time \cite[]{application_of_sir_epidemiological_model}.
 
-  \[\everymath={\displaystyle}\begin{array}{rcl}
-    \frac{dS}{dt}&=&-\beta SI\\
-    \frac{dI}{dt}&=&\beta SI-\gamma I\\
-    \frac{dR}{dt}&=&\gamma I
-  \end{array}\]
+  \begin{subequations}\label{eqn_sir_differential_equations}
+    \everymath={\displaystyle}\begin{alignat}{2}
+      \frac{dS}{dt}&=-\frac\beta{N} S(t)I(t)\\
+      \frac{dI}{dt}&=\frac\beta{N} S(t)I(t)-\gamma I(t)\\
+      \frac{dR}{dt}&=\gamma I(t)
+    \end{alignat}
+  \end{subequations}
 
-  \par Where $\beta$ is the average number of people infected by the a single infected individual in a single time-period and $\gamma$ is the probability an individual is removed. In the standard model, $\beta$ and $\gamma$ are non-negative constants with $\beta\in\mathbb{R}^{\geq0},\gamma\in[0,1]$. Note that $\frac{dS}{dt}+\frac{dI}{dt}+\frac{dR}{dt}=0$ which ensures the total population size is constant and since each differential equation only depends on the current values of $S(t),I(t)$ and $R(t)$, the standard SIR model is Markovian.
+  \par where $\beta$ is the average number of people infected by the a single infected individual in a single time-period and $\gamma$ is the probability an individual is removed. Initial conditions imposed on this system is that $S(0)\geq0,I(0)\geq0,R(0)\geq0$ and $S(0)+I(0)+R(0)=N$. Note that if $I(t)=0$ at any point in time $t$ then no new infections will occur after time-point $t$. Moreover, if $I(0)=0$ then no infections will ever occur, which is distinctly uninteresting.
+
+  \par In the standard model, $\beta$ and $\gamma$ are non-negative constants with $\beta\in\mathbb{R}^{\geq0},\gamma\in(0,1]$\footnote{$\gamma$ must be non-zero otherwise no-one ever transitions to the removed population and it is impossible for the epidemic to die out.}. Note that $\frac{dS}{dt}+\frac{dI}{dt}+\frac{dR}{dt}=0$ which ensures the total population size is constant and since each differential equation only depends on the current values of $S(t),I(t)$ and $R(t)$, the standard SIR model is Markovian.
 
   \par \textit{Figure \ref{fig_example_standard_sir_model}} provides a plot of how the different compartment sizes vary over time for a standard SIR model for the case where each infected individual passes the disease to one over individual each time-period ($\beta=1$) and there is a 50\% chance an infected individual is removed each time period ($\gamma=0.5$).
 
@@ -225,19 +238,19 @@
     \label{fig_example_standard_sir_model}
   \end{figure}
 
-  \par In \textit{Figure \ref{fig_example_standard_sir_model}} we can observed that there is a point at which the size of the infectious population begins to decrease. We can mathematically identify this time-point where the gradient $\frac{dI}{dt}$ becomes negative. As $\frac{dI}{dt}=I(\beta S-\gamma)$ and $I\geq0$ at all time-points, the gradient becomes negative when $\beta S-\gamma<0$. Thus the maximum number of infections occur at time-period $t$ where (\ref{eqn_sir_tipping_point_susceptible}) is satisfied.
+  \par In \textit{Figure \ref{fig_example_standard_sir_model}} we can observed that there is a point at which the size of the infectious population begins to decrease. We can mathematically identify this time-point where the gradient $\frac{dI}{dt}$ becomes negative. As $\frac{dI}{dt}=I(t)\left(\frac{\beta S(t)}N-\gamma\right)$ and $I(t)\geq0$ at all time-points $t$, the gradient becomes negative when $\frac{\beta S}N-\gamma<0$. Thus the maximum number of infections occur at time-period $t$ where (\ref{eqn_sir_tipping_point_susceptible}) is satisfied.
 
   \begin{equation}\label{eqn_sir_tipping_point_susceptible}
-    S(t)<\frac\gamma\beta
+    S(t)<\frac{N\gamma}\beta
   \end{equation}
 
   % TODO can we draw inferences about whether the disease will infect everyone
 
-  \par This result can be written as (\ref{eqn_sir_tipping_point_ir}), in terms of the total proportion of the population which is either infected or removed. This result is intuitively useful as it provides a value for what proportion of the total population need to be immune from the disease for ``heard-immunity'' to be reached and the rate of spread to decrease naturally. This can be used to set targets for vaccination rollouts. Although the standard SIR model is too basic for these sort of decisions, as it does not allow for $\beta$ or $\gamma$ to vary over time, it is useful for building the intuition which motivates more complex models.
+  \par This result can be written as (\ref{eqn_sir_tipping_point_ir}), in terms of the total population which is either infected or removed. This result is intuitively useful as it provides a value for what proportion of the total population need to be immune from the disease for ``heard-immunity'' to be reached and the rate of spread to decrease naturally. This can be used to set targets for vaccination rollouts. Although the standard SIR model is too basic for these sort of decisions, as it does not allow for $\beta$ or $\gamma$ to vary over time, it is useful for building the intuition which motivates more complex models.
 
   \begin{alignat}{5}
-    &1-&I(t)-R(t)& < &\frac\gamma\beta\nonumber&\\
-    \Longleftrightarrow&&1-\frac\gamma\beta& > &I(t)&+R(t)\label{eqn_sir_tipping_point_ir}
+    &N-&I(t)-R(t)& < &\frac{N\gamma}\beta\nonumber&\\
+    \Longleftrightarrow&&N\left(1-\frac\gamma\beta\right)& > &I(t)&+R(t)\label{eqn_sir_tipping_point_ir}
   \end{alignat}
 
   \par An alterative way to intuitively understand $\beta,\gamma$ is to consider that $1/\beta$ is the mean time between an infected individual infecting someone who is susceptible and $1/\gamma$ is the mean time before an infected individual becomes removed. This means that $\frac{1/\gamma}{1/\beta}$ is the mean number of people each infectious individual infects, assuming all individuals are susceptible. This is the definition of the basic reproduction number $R_0$ and so by simplify we have a simple result for the $R_0$ value of any standard SIR model.
@@ -249,20 +262,58 @@
   \par As $\beta$ and $\gamma$ are constant with respect to time in the standard SIR model, the effective reproduction number $R_t$ is simply the basic reproduction number $R_0$ at all time-points $t$. We can use (\ref{eqn_sir_r0}) to restate the tipping point equation (\ref{eqn_sir_tipping_point_ir}) in terms of the $R_0$ value.
 
   \begin{equation}
-    1-\frac1{R_0}>I(t)+R(t)
+    N\left(1-\frac1{R_0}\right)>I(t)+R(t)
   \end{equation}
 
-  \par The standard SIR model has limited uses in practice mainly due to its assumptions of constant $\beta$ and $\gamma$, as well as the assumption that all interactions between individuals are equal. These assumptions may be reasonable for short periods of time where there are no changes in the efforts being made to suppress the spread of a disease\footnote{This would likely due to a disease not being particularly deadly}, such as a single flu season. \cite[]{sir_lecture_slides} fits a standard SIR model to data from the 2004-05 flu season in American and shows how it produces a good fit of the data.
+  \par Many inference problems focus around the estimation of the parameters $\beta$ and $\gamma$. Given a realisation of the model $\{(S(t),I(t),R(t))\}_t$, it is straightforward to estimate these parameters using the difference equations given in (\ref{eqn_sir_difference_equations}).
+
+  \begin{subequations}\label{eqn_sir_difference_equations}
+    \everymath={\displaystyle}\begin{alignat}{2}
+      \hat\beta&=\frac{S(t_i)-S_{t_{i+1}}}{S(t_i)I(t_i)}\\
+      \hat\gamma&=\frac{R(t_{i+1})-R(t_{i})}{I(t_i)}
+    \end{alignat}
+  \end{subequations}
 
   % TODO CLosed form SIR (maybe) (https://ui.adsabs.harvard.edu/abs/2014arXiv1403.2160H) Integral can only be evaluated numerically
 
-\subsection*{SIR Model with demography}
+  % \par The differential equations which define the standard SIR model are non-integrable in the general case. Finding an exact solution for SIR models is very difficult. \cite[]{note_on_exact_solution_of_sir_and_sis_models} present the first exact solution for a specific case of both an SIR and an SIS model (Discussed later).
+
+\subsection*{SIR Model with Vaccinations}
+
+  \begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[align=center,node distance=2cm and 4cm]
+      \node[state] (S) {S};
+      \node[state, right of=S] (I) {I};
+      \node[state, right of=I] (R) {R};
+
+      \draw (S) edge[-{Latex[length=3mm]}] (I)
+            (I) edge[-{Latex[length=3mm]}] (R)
+            (S) edge[-{Latex[length=3mm]},bend left=30] (R);
+    \end{tikzpicture}
+    \caption{Diagram of interactions between compartments in an SIR model with vaccination.}
+    \label{fig_sir_model_diagram_w_vaccination}
+  \end{figure}
+
+  \par As SIR models are used to model epidemic events, common inferential questions will focus around the effects of introducing a vaccine to a population. For the SIR model it is only necessary to give vaccinations to members of the susceptible population as the removed population are already immune and the infectious population actively have the disease. This means than modelling a vaccination program only requires the inclusion of one extra interaction from the susceptible population to the removed population, as shown in \textit{Figure \ref{fig_sir_model_diagram_w_vaccination}}.
+
+  \begin{subequations}\label{eqn_sir_differential_equations_vaccination}
+    \everymath={\displaystyle}\begin{alignat}{2}
+      \frac{dS}{dt}&=-\frac\beta{N} S(t)I(t)-\alpha\\
+      \frac{dI}{dt}&=\frac\beta{N} S(t)I(t)-\gamma I(t)\\
+      \frac{dR}{dt}&=\gamma I(t)+\alpha
+    \end{alignat}
+  \end{subequations}
+
+  \par Typically this new interaction is implemented by moving a constant number of individuals $\alpha$ from the susceptible population to the removed population. (\ref{eqn_sir_differential_equations_vaccination}) is an extension of (\ref{eqn_sir_differential_equations}) which encodes this interaction. Modelling this as a constant is reasonable for real world scenarios as most vaccination programs aim to vaccinate as many people as possible until the whole susceptible population has been vaccinated, and thus the number of daily vaccinations is very stable. It would be straightforward to define $\alpha(t)$ as a time-dependent function in order to represent an increase in the capacity to vaccinate, or factors such as weekday vs. weekend variations in work patterns.
+
+\subsection*{SIR Model with Demography}
 
   \par The standard SIR model is very simple and forms a good basis from which to gain intuition for more complex models. A natural advancement is to incorporate births and natural deaths into the model. These processes are known collectively as ``Demography''. It is reasonable to ignore demography for many epidemic processes as the rate of infection and removal from the epidemic process is significantly greater than that from natural demography.
 
   \par Demography easily extends beyond births and deaths to include immigration and emigration by simply considering immigration and births to be equivalent, and deaths and emigration to be equivalent. If we assume that immigrants cannot carry the disease then these processes are equivalent.
 
-  \par Typically birth is not assumed to bring immunity to diseases, so each birth causes an increase in the size of the susceptible population. Deaths can occur to any individual, regardless of the compartment they are in, and are modelled as completely removing an individual from the population meaning each death leads to a decrease in the total population size. The two interactions from the standard SIR model are unchanged. \textit{Figure \ref{fig_sir_model_diagram_w_demography}} outlines these interactions.
+  \par Typically birth is not assumed to bring immunity to diseases, so each birth causes an increase in the size of the susceptible population. Deaths can occur to any individual, regardless of the compartment they are in, and are modelled as completely removing an individual from the population meaning each death leads to a decrease in the total population size. The two interactions from the standard SIR model are unchanged. \textit{Figure \ref{fig_sir_model_diagram_w_demography}} outlines these interactions. This is a good model for diseases, such as chickenpox (VZV), which are endemic in a population but non-fatal.
 
   \begin{figure}[H]
     \centering
@@ -281,20 +332,24 @@
             (R) edge[-{Latex[length=1mm]}] (death);
     \end{tikzpicture}
     \caption{Diagram of interactions between compartments in an SIR model with demography.}
-    \label{fig_sir_model_diagram_w_vital_dynamics}
+    \label{fig_sir_model_diagram_w_demography}
   \end{figure}
 
-  \par Two new parameters are introduced to this model: $\lambda$ the number of births per time-period; and $\mu$ the number of natural deaths per time-period. It is assumed that an individual is equally likely to die naturally, regardless of which compartment they are in. The reciprocal of the death rate $1/\mu$ is the average life-span of each individual in the population. is Both $\lambda$ and $\mu$ are independent of the total population size. The following three differential equations model all of these interactions \cite[]{application_of_sir_epidemiological_model}:
+  \par Two new parameters are introduced for the encoding of demography: $\lambda$ the number of births per time-period; and $\mu$ the number of natural deaths per time-period. It is assumed that an individual is equally likely to die naturally, regardless of which compartment they are in. The reciprocal of the death rate $1/\mu$ is the average life-span of each individual in the population. Defining $\lambda$ and $\mu$ to be independent of the total population size is reasonable when the overall time-period of the epidemic is relatively short and when recovery from an infection rarely results in death, as the total population is almost constant. The three differential equations (\ref{eqn_sir_w_demography_differential_equations}) model all of these interactions \cite[]{application_of_sir_epidemiological_model}:
 
-  \[\everymath={\displaystyle}\begin{array}{rcl}
-    \frac{dS}{dt}&=&\lambda-\beta SI-\mu S\\
-    \frac{dI}{dt}&=&\beta SI-\gamma I-\mu I\\
-    \frac{dR}{dt}&=&\gamma I-\mu R
-  \end{array}\]
+  \begin{subequations}\label{eqn_sir_w_demography_differential_equations}
+    \begin{alignat}{2}
+      \frac{dS}{dt}&=\lambda-\beta S(t)I(t)-\mu S(t)\label{eqn_sir_w_demography_dS_dt}\\
+      \frac{dI}{dt}&=\beta S(t)I(t)-\gamma I(t)-\mu I(t)\\
+      \frac{dR}{dt}&=\gamma I(t)-\mu R(t)
+    \end{alignat}
+  \end{subequations}
 
-  \par This system of equations is very similar to that of the SIR model without demography except each equation has a term subtracts the number of natural deaths each time-period, which is proportional to the current population size of the associated compartment. And, the equation for the changes in the susceptible population has a term for introducing natural births.
+  where $\beta,\gamma$ are as defined in (\ref{eqn_sir_differential_equations}) and the same initial conditions are imposed.
 
-  \par For the same removal rate $\gamma$, the mean time an individual is infected for is reduced compared to an SIR model without demography due to the possibility of that individual dying naturally before they are removed. The mean time an individual is infected is now $1/(\gamma+\mu)$. This means the $R_0$ for an SIR model with demographics is (\ref{eqn_r0_sir_w_demographics})
+  \par This system of equations is very similar to (\ref{eqn_sir_differential_equations}) except each equation has a term subtracts the number of natural deaths each time-period, which is proportional to the current population size of the associated compartment. And, (\ref{eqn_sir_w_demography_dS_dt}) has an additional term for introducing natural births.
+
+  \par For the same removal rate $\gamma$, the mean time an individual is infected for is reduced compared to an SIR model without demography due to the possibility of that individual dying naturally before they are removed. The mean time an individual is infected is now $1/(\gamma+\mu)$. This means the $R_0$ for an SIR model with demographics is (\ref{eqn_r0_sir_w_demographics}).
 
   \begin{equation}\label{eqn_r0_sir_w_demographics}
     R_0=\frac{\beta}{\gamma+\mu}
@@ -310,43 +365,100 @@
       \item[\textit{Case 1}] - $R_0\geq1$.
       \[\begin{array}{rrcl}
         &\frac{dI}{dt}&=&0\\
-        \implies&\beta S^*I^*-\gamma I^*-\mu I^*&=&0\\
-        \implies&\beta S^*-\gamma-\mu&=&0\\
-        \implies&S^*&=&\frac{\mu+\gamma}\beta\\
-        &&=&\frac1{R_0}\\
+        \implies&\frac{\beta}N S^*I^*-\gamma I^*-\mu I^*&=&0\\
+        \implies&\frac{\beta}N S^*-\gamma-\mu&=&0\\
+        \implies&S^*&=&\frac{N(\mu+\gamma)}\beta\\
+        &&=&\frac{N}{R_0}\\
         \\
         &\frac{dS}{dt}&=&0\\
-        \implies&\lambda-\beta S^*I^*-\mu S^*&=&0\\
-        \implies&\lambda-\frac{\beta I+\mu}{R_0}&=&0\\
-        \implies&I^*&=&\frac{\lambda R_0-\mu}\beta\\
+        \implies&\lambda-\frac\beta{N} S^*I^*-\mu S^*&=&0\\
+        \implies&\lambda-\frac{\beta I^*+\mu N}{R_0}&=&0\\
+        \implies&I^*&=&\frac{\lambda R_0-\mu N}\beta\\
         \\
         &\frac{dR}{dt}&=&0\\
-        \implies&\gamma I^*-\mu^*&=&0\\
+        \implies&\gamma I^*-\mu R^*&=&0\\
         \implies&R^*&=&\frac\gamma\mu I^*\\
-        &&=&\frac{\gamma\lambda}{\mu+\gamma}-\frac\gamma\beta
+        &&=&\frac{\gamma\lambda R_0}{\mu\beta}-\frac{\gamma N}\beta
       \end{array}\]
       Thus, when the $R_0\geq1$ an equilibrium is reached when the compartment populations fulfil
-      \[ (S,I,R)=\left(\frac1{R_0},\ \frac{\lambda R_0-\mu}\beta,\ \frac{\gamma\lambda}{\mu+\gamma}-\frac\gamma\beta\right) \]
+      \[ (S,I,R)=\left(\frac{N}{R_0},\ \frac{\lambda R_0-\mu N}\beta,\ \frac{\gamma\lambda R_0}{\mu\beta}-\frac{\gamma N}\beta\right) \]
       This state is known as an ``Endemic Equilibrium'' as the disease maintains a constant level of infection.
 
       \item[\textit{Case 2}] - $R_0<1$.
       \par As $R_0<1$ the size of the infected population will eventually decrease to zero, after which point no new infections can occur ($I^*=0$). This also means that the removed population can not increase after this point, moreover it will decrease to zero ($R^*=0$) due to those in the population dying. This means the population equilibrium occurs when $\frac{dS}{dt}=0$ and $I=0$.
       \[\begin{array}{rrcll}
         &\frac{dS}{dt}&=&0\\
-        \implies&\lambda-\beta S^*I^*-\mu S^*&=&0&\\
+        \implies&\lambda-\frac\beta{N} S^*I^*-\mu S^*&=&0&\\
         \implies&\lambda-\mu S^*&=&0&\text{ since }I^*=0\\
         \implies&S^*&=&\frac\lambda\mu
       \end{array}\]
       Thus, when the $R_0\geq1$ an equilibrium is reached when the compartment populations fulfil
       \[ (S,I,R)=\left(\frac\lambda\mu,0,0\right) \]
       This state is known as a ``Disease Free Equilibrium''.
-
     \end{itemize}
   \end{box_remark}
 
-\subsection*{Other Compartmental Models}
+  \begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[align=center,node distance=2cm and 4cm]
+      \node[state] (M) {M};
+      \node[above of=M] (birth) {};
+      \node[state,right of=M] (S) {S};
+      \node[state, right of=S] (I) {I};
+      \node[state, right of=I] (R) {R};
+      \node[below of=I] (death) {};
 
-  %TODO SIS
+      \draw (birth) edge[-{Latex[length=1mm]}] (S)
+            (birth) edge[-{Latex[length=1mm]}] (M)
+            (M) edge[-{Latex[length=3mm]}] (S)
+            (S) edge[-{Latex[length=3mm]}] (I)
+            (I) edge[-{Latex[length=3mm]}] (R)
+            (M) edge[-{Latex[length=1mm]}] (death)
+            (S) edge[-{Latex[length=1mm]}] (death)
+            (I) edge[-{Latex[length=1mm]}] (death)
+            (R) edge[-{Latex[length=1mm]}] (death);
+    \end{tikzpicture}
+    \caption{Diagram of interactions between compartments in an MSIR model.}
+    \label{fig_msir_model_diagram}
+  \end{figure}
+
+  \par For some diseases immunity is passed from mother to child due to antibodies from the mother passing across the placenta. This means that a certain proportion of births are born with immunity, with the proportion typically being the ratio of the size of the removed population to the size of the rest of the population. It would be straightforward to model this by having these children be placed straight into the removed population. However it often makes more sense to create a separate compartment for these children, or to not add these births to the population at all, as many inferential questions focus around the total number of infections.
+
+  \par For some of these diseases, such as measles, the immunity passed from the mother is only temporary and wears off after a period of time. The MSIR\footnote{"Maternal Immunity-Susceptible-Infectious-Removed"} model \cite[]{mathematics_of_infectious_diseases} was introduced to model this scenario, see \textit{Figure \ref{fig_msir_model_diagram}}. The MSIR model introduces a new compartment which is placed before the susceptible compartment, commonly referred to as ``Maternally Derived Immunity'' and denoted by M. A proportion of new births enter the M compartment each time-period, while the rest enter the susceptible population. Members of the M compartment move to the susceptible compartment at a rate $\alpha$, where $1/\alpha$ is the mean time between birth and immunity wearing off, or they die and are removed from the system.
+
+\subsection*{SIR Model with Non-Constant Parameters}
+
+  \par The standard SIR model has limited uses in practice mainly due to its assumptions of constant $\beta$ and $\gamma$, as well as the assumption that all interactions between individuals are equal. These assumptions may be reasonable over short periods of time where there are no changes in the efforts being made to suppress the spread of a disease\footnote{This would likely be due to a disease not being particularly deadly}, such as a single flu season. \cite[]{sir_lecture_slides} fits a standard SIR model to data from the 2004-05 flu season in American and shows how it produces a good fit of the data.
+
+  \par In the real-world true values for the parameters $\beta$ and $\gamma$ do not exist due to noise which occurs from factors such as variability in human interactions, variability in individuals health and the weather. It is much more realistic to model these parameters using non-negative probability distributions and then to sample these distributions each time-period. Due to the removal parameter $\gamma$ needing to be constrained to $(0,1]$ a beta distribution is a common choice. Alternatively, a distribution can be defined for its reciprocal $1/\gamma$ and then $\gamma$ can be calculated after each sample.
+
+  \par Using distributions for model parameters does increase the complexity of analysing such models. However, much of the analysis above can be performed using the expected value of each parameter. Further, the use of distributions allows for further analysis into the uncertainty of a model and whether changes seen are due to changes in policy or just random noise.
+
+\subsection*{SIR Model with Time-Dependent Parameters}
+
+  \par A common modelling problem is to model the effects of introducing a better treatment for those who are infected. This treatment would reduce the mean time each member of the infectious population is infected, and thus an increase to the value of the removal parameter $\gamma$. This is implemented by changing $\gamma$ from being a constant to being a time-dependent step function of the form (\ref{eqn_step_gamma}) where $t'$ is the time-period in which the new treatment is implemented. Naturally, more steps can be added to model several advancements in treatment.
+
+  \begin{equation}\label{eqn_step_gamma}
+    \gamma(t)=\begin{cases}
+      \gamma_0&t\leq t'\\
+      \gamma_1&t>t'
+    \end{cases}
+  \end{equation}
+
+  \par The same extensions can be made to the infection parameter $\beta$ when seeking to model the affects of public health policies which seek to control the rate of infection.
+
+  \par This concept can be generalised to $\beta(t)$ and $\gamma(t)$ being continuous time-dependent functions to account for other factors such as weather. Implementing such a formulation is practically impossible in practice due to lack of data and the only approximate relationships known between these factors and the nature of the disease.
+
+  \par In (\ref{eqn_sir_differential_equations}) the parameters $\beta$ and $\gamma$ represent very general concepts: the average number of people infected by a single infected individual and the probability of an individual being removed, respectively. And, as such, it is reasonable to consider them as functions of other variables. For example, we could define $\beta$ as (\ref{eqn_alt_beta}) the product of the mean number of interactions an individual has each time-period $b$ and the mean probability of someone becoming infected after an interaction with an infectious individual $c$. The possible formulations are endless. Each formulation introduces more parameters which need to be fitted, increasing the modelling difficulty.
+
+  \begin{equation}\label{eqn_alt_beta}
+    \beta=f(b,c)=b\cdot c
+  \end{equation}
+
+\subsubsection{Other Compartmental Models}\label{sec_other_compartmental_models}
+
+  \par The SIR models described so far cover a very narrow, allow common, set of diseases. Here I briefly describe a selection of alternative models to the standard SIR model. To avoid tedium I do not perform much analysis of these models, as it is broadly similar to that of the SIR model for all. It should be apparent that the extensions discussed for the SIR model (demography, vaccinations, maternally derived immunity etc.) are readily applicable to the below models.
+
   \begin{figure}[H]
     \centering
     \begin{tikzpicture}[align=center,node distance=2cm and 4cm]
@@ -354,13 +466,42 @@
       \node[state, right of=S] (I) {I};
 
       \draw (S) edge[-{Latex[length=3mm]},bend left=30] (I)
-            (I) edge[-{Latex[length=3mm]},bend left=30] (S);
+      (I) edge[-{Latex[length=3mm]},bend left=30] (S);
     \end{tikzpicture}
     \caption{Diagram of interactions between compartments in an SIS model.}
     \label{fig_sis_model_diagram}
   \end{figure}
 
-  %TODO SEIR
+  \par The SIR model works on the assumption that recovering from an infection confers immunity from future infection of the individual. This is not always the case, especially for diseases with a high mutation rate such as influenza. Once someone has recovered from an infection from one of these diseases they can be returned to the susceptible group. This means the removed group can be removed completely from the model. This is how we reach the SIS\footnote{"Susceptible-Infectious-Susceptible"} model where individuals only move from the susceptible to the infectious group, and back. \textit{Figure \ref{fig_sis_model_diagram}} represents these interactions.
+
+
+  \par It is straightforward to define differential equations (\ref{eqn_sis_differential_equations}) for the SIS model using those from the standard SIR model (\ref{eqn_sir_differential_equations}). These equations are subject to the restriction that $S(0)\geq0,\ I(0)\geq0$ and $S(0)+I(0)=N$. The $R_0$ value for an SIS model is calculated using the same formula (\ref{eqn_sir_r0}) as for the standard SIR model without demography.
+
+  \begin{subequations}\label{eqn_sis_differential_equations}
+    \everymath={\displaystyle}\begin{alignat}{2}
+      \frac{dS}{dt}&=\gamma I(t)-\beta S(t)I(t)\\
+      \frac{dI}{dt}&=\beta S(t)I(t)-\gamma I(t)\\
+    \end{alignat}
+  \end{subequations}
+  %TODO SIS results (e.g. R0)
+
+  \begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[align=center,node distance=2cm and 4cm]
+      \node[state] (S) {S};
+      \node[state, right of=S] (I) {I};
+      \node[state, right of=I] (R) {R};
+
+      \draw (S) edge[-{Latex[length=3mm]}] (I)
+      (I) edge[-{Latex[length=3mm]}] (R)
+      (R) edge[-{Latex[length=3mm]},bend left=30] (S);
+    \end{tikzpicture}
+    \caption{Diagram of interactions between compartments in an SIRS model.}
+    \label{fig_sirs_model_diagram}
+  \end{figure}
+
+  \par A similar class of diseases are those where individuals loose immunity after some period of time. This can be modelled by an extension to the SIR with one additional dynamic as individuals can now move from the removed compartment back to the susceptible compartment. This is formalised as the SIRS\footnote{"Susceptible-Infectious-Removed-Susceptible".} model, see \textit{Figure \ref{fig_sirs_model_diagram}}.
+
   \begin{figure}[H]
     \centering
     \begin{tikzpicture}[align=center,node distance=2cm and 4cm]
@@ -377,21 +518,19 @@
     \label{fig_seir_model_diagram}
   \end{figure}
 
-  %TODO SIRS
-  \begin{figure}[H]
-    \centering
-    \begin{tikzpicture}[align=center,node distance=2cm and 4cm]
-      \node[state] (S) {S};
-      \node[state, right of=S] (I) {I};
-      \node[state, right of=I] (R) {R};
+  %TODO SEIR
+  \par For many diseases an individual does not become infectious to others the moment they become infected with the disease. Rather there is an incubation period where an individual has the disease but cannot yet infect others, and at the end of this period they will become infectious. In the real world this scenario causes problems for epidemiologist and policy makers as it is difficult to ascertain how many people have the disease. A problem which is compounded if individuals are asymptomatic during the incubation period. Alternatively, individuals may be highly symptomatic during the incubation period and thus naturally isolate themselves from the population before they before infectious, heavily reducing the spread of the disease.
 
-      \draw (S) edge[-{Latex[length=3mm]}] (E)
-            (I) edge[-{Latex[length=3mm]}] (R)
-            (R) edge[-{Latex[length=3mm]},bend left=30] (S);
-    \end{tikzpicture}
-    \caption{Diagram of interactions between compartments in an SIRS model.}
-    \label{fig_sirs_model_diagram}
-  \end{figure}
+  \par The SEIR\footnote{"Susceptible-Exposed-Infectious-Removed"} model is a formalisation of this setup and introduces a new compartment, Exposed (E), between the susceptible and infectious compartments of the standard SIR model.
+
+  % \begin{subequations}\label{eqn_seir_differential_equations}
+  %   \everymath={\displaystyle}\begin{alignat}{2}
+  %     \frac{dS}{dt}&=-\beta I(t)S(t)\\
+  %     \frac{dE}{dt}&=\beta I(t)S(t)-\alpha E(t)\\
+  %     \frac{dI}{dt}&=\alpha E(t)-\gamma I(t)\\
+  %     \frac{dR}{dt}&=\gamma I(t)
+  %   \end{alignat}
+  % \end{subequations}
 
   %TODO SIRD
   \begin{figure}[H]
@@ -410,33 +549,52 @@
     \label{fig_sird_model_diagram}
   \end{figure}
 
-  %TODO Compartment for different ages georgraphy (network models are better)
+  % \begin{subequations}\label{eqn_sird_differential_equations}
+  %   \everymath={\displaystyle}\begin{alignat}{2}
+  %     \frac{dS}{dt}&=-\beta I(t)S(t)\\
+  %     \frac{dI}{dt}&=\beta I(t)S(T)-\gamma I(t)-\mu I(t)\\
+  %     \frac{dR}{dt}&=\gamma I(t)\\
+  %     \frac{dD}{dt}&=\mu I(t)
+  %   \end{alignat}
+  % \end{subequations}
 
-\subsection*{Extensions to SIR Models}
+  \par The final variation of the standard SIR model I will mention is the SIRD\footnote{"Susceptible-Infectious-Removed-Deceased"} model. This model is useful for inferences as it separates the two scenarios by which someone becomes no longer infectious: either becoming removed and thus gaining immunity to future infections; or by dying. This is implemented by adding an additional compartment, deceased (D), to the end of the model and creating a fork which allows for individuals who are infectious to move either the removed or deceased compartments. Different parameters are assigned for each of these dynamics. See \textit{Figure \ref{fig_sird_model_diagram}}
 
-  % TODO parameters drawn from a distribution. (Not as necessary for large populations (esp when large for each compartment), )
-  % TODO more compartments for different ages
-  % TODO parameters vary over time
-  % TODO other dynamics (Vaccinations, people loose immunity)
+  \par Separating the removed population into these two classes is useful for inferential problems which concern the death rate of a disease. Public health policy makers \underline{should} wish to implement policies which minimise death, and suffering, whilst also minimising the restrictions placed on the lives of individuals.
 
-  \begin{figure}[H]
-    \centering
-    \begin{tikzpicture}[align=center,node distance=2cm and 4cm]
-      \node[state] (S) {S};
-      \node[state, right of=S] (I) {I};
-      \node[state, right of=I] (R) {R};
+  \par From these extensions to the standard SIR model, it is evident that the concept of the SIR model can be extended almost endlessly by adding more dynamics and compartments. It is reasonable to want to create different compartments which group people by intrinsic characteristics (age, gender, geography etc.) as it is likely that the parameters governing the dynamics for how each group interacts with a disease will vary. Although these models may better represent a given disease it becomes very difficult to fit them due to their very high degrees of freedom. This is especially true when a population size is relatively small, as the sample size for each compartment will be even smaller and thus random noise will dominate observations. And, these are issues which arise before considering impurity in the available data.
 
-      \draw (S) edge[-{Latex[length=3mm]}] (I)
-            (I) edge[-{Latex[length=3mm]}] (R)
-            (S) edge[-{Latex[length=3mm]},bend left=30] (R);
-    \end{tikzpicture}
-    \caption{Diagram of interactions between compartments in an SIR model with vaccination.}
-    \label{fig_sir_model_diagram_w_vaccination}
-  \end{figure}
+\subsubsection{Stochastic SIR Model}
 
-  % TODO under-reporting of cases
+  \begin{box_definition}{One-Dimensional Brownian Motion\footnote{Also known as a Wiener Process as its existence was proved by Norbert Wiener.}}
+    A stochastic process $\{W_t\}_{t\geq0}$ is called Standard Brownian Motion if it fulfils the following for criteria
+    \begin{enumerate}
+      \item $W_0=0$, almost surely.
+      \item Increments of $W$ are independent: $(W_{t+u}-W_t)$ are independent of the filtration $\mathcal{F}_t$ for all $t,u\geq0$.
+      \item Increments of $W$ have a stationary Gaussian distributions: $(W_{t+u}-W_t)\sim\mathcal{N}(0,u)$ for all $t,u\geq0$.
+      \item $W_t$ is continuous with respect to $t$.
+    \end{enumerate}
+  \end{box_definition}
+
+  \begin{box_definition}{It\^o Process}
+    A stochastic process $\{X_t\}_{t\in[0,T]}$ is called an It\^o Process if it has the following form
+    \[ X_t=X_0+\int_0^tb(u,X_u)d_u+\int_0^t\sigma(u,X_u)dW_u \]
+    where $b,\sigma$ are functions and $W_t$ is standard one-dimensional Brownian motion. Note that the first integral is a standard integral whilst the second is a stochastic integral.
+    \par This form can be stated as the following differential equation
+    \[ dX_t=b(t,X_t)dt+\sigma(t,X_t)dW_t \]
+  \end{box_definition}
+
+  \par The SIR model discussed in \textit{Sections \ref{sec_standard_sir_model} \& \ref{sec_other_compartmental_models}} are deterministic\footnote{Disregarding the brief mention of using probability distributions in place of constants.}. This is highly limiting in real-world applications were noise is guaranteed to exist.  \cite[]{infectious_disease_spread_analysis_using_sdes} present a formulation of the SIR model which replaces (\ref{eqn_sir_differential_equations}) with a system of stochastic differential equations.
+
+\subsection{Beyond Compartmental Models}
+
+  \par Agent based models
+  \par Network based models
+  \par Internet based models
 
 \subsection{Bayesian Modelling of Epidemic Processes}
+
+  \par We have some data (e.g. ....). Now make inferences
 
   \par A common difficulty in modelling Epidemic Processes is the delay between a public health policy being implemented and the affects of it being seen. % TODO
 
@@ -1732,6 +1890,7 @@
     \item SIR model with stepped $\beta,\gamma$ wrt time
   \end{enumerate}
 
+  % TODO do this https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=6498254
 
 \newpage
 \section{Conclusion}
