@@ -12,6 +12,7 @@ import ABC,Models
     HELPER METHODS
 """
 def __record_results(fitting_model,fitted_model,removed,error) -> float:
+    
     if type(fitting_model) is Models.SIRModel: # SIRModel._calc requires a list rather than a single value
         fitted_val=fitted_model._calc([removed[0]])[0]
     else:

@@ -39,6 +39,7 @@
 \newcommand*{\indexed}{\mathbbm{1}}
 \newcommand*{\prob}{\mathbb{P}}
 \newcommand*{\expect}{\mathbb{E}}
+\newcommand*{\var}{\text{Var}}
 \newtheoremstyle{break}
   {\topsep}{\topsep}%
   {\itshape}{}%
@@ -194,6 +195,8 @@
 
 \subsubsection{Standard SIR Model}\label{sec_standard_sir_model}
 
+  % TODO equilibria points
+
   \par The standard SIR model \cite[]{mathematical_modelling_and_prediction_in_infectious_disease_epidemiology} is a deterministic model where the total population is assumed to be constant and each compartment represents the following: the Susceptible (S) compartment represents individuals who have not had the disease and could become infected if they came into contact with someone who is infected; the Infected (I) compartment represents individuals who currently have the disease and are able to pass it one to members of the susceptible population; and, the Removed (R) compartment represents who have had the disease but are no longer able to spread it. For the standard SIR model we can consider the removed population to include both those who have died from the disease and those that have gained immunity. However, for more complex inferential problems, such as the affects of a vaccine program or a new treatment, it becomes necessary to separate these two groups.
 
   \par This model assumes that individuals are homogeneous, especially with respect to their health and movements, and meet each other completely at random, with the nature of these interactions governed by two parameters $\beta,\gamma$ (which are explored below). This assumption is ideal for large populations as individual variations are averaged out by the law of large numbers and when all members of a population are equally susceptible to a disease. In practice susceptibility will vary between individuals due to factors such as age, health conditions and amount of human-to-human interactions that individual has.
@@ -220,9 +223,9 @@
 
   \begin{subequations}\label{eqn_sir_differential_equations}
     \everymath={\displaystyle}\begin{alignat}{2}
-      \frac{dS}{dt}&=-\frac\beta{N} S(t)I(t)\\
-      \frac{dI}{dt}&=\frac\beta{N} S(t)I(t)-\gamma I(t)\\
-      \frac{dR}{dt}&=\gamma I(t)
+      \frac{dS}{dt}&=-\frac\beta{N} S(t)I(t)\label{eqn_sir_differential_equations_S}\\
+      \frac{dI}{dt}&=\frac\beta{N} S(t)I(t)-\gamma I(t)\label{eqn_sir_differential_equations_I}\\
+      \frac{dR}{dt}&=\gamma I(t)\label{eqn_sir_differential_equations_R}
     \end{alignat}
   \end{subequations}
 
@@ -230,13 +233,13 @@
 
   \par In the standard model, $\beta$ and $\gamma$ are non-negative constants with $\beta\in\mathbb{R}^{\geq0},\gamma\in(0,1]$\footnote{$\gamma$ must be non-zero otherwise no-one ever transitions to the removed population and it is impossible for the epidemic to die out.}. Note that $\frac{dS}{dt}+\frac{dI}{dt}+\frac{dR}{dt}=0$ which ensures the total population size is constant and since each differential equation only depends on the current values of $S(t),I(t)$ and $R(t)$, the standard SIR model is Markovian.
 
-  \par \textit{Figure \ref{fig_example_standard_sir_model}} provides a plot of how the different compartment sizes vary over time for a standard SIR model for the case where each infected individual passes the disease to one over individual each time-period ($\beta=1$) and there is a 50\% chance an infected individual is removed each time period ($\gamma=0.5$).
-
   \begin{figure}[H]
     \centering\includegraphics[width=.9\textwidth]{example_sir_model.png}
     \caption{Realisation of a standard SIR model for a population of size $N=100,000$ over 30 time-periods where $\beta=1$ and $\gamma=0.5$. ($R_0=2$)}
     \label{fig_example_standard_sir_model}
   \end{figure}
+
+  \par \textit{Figure \ref{fig_example_standard_sir_model}} provides a plot of how the different compartment sizes vary over time for a standard SIR model for the case where each infected individual passes the disease to one over individual each time-period ($\beta=1$) and there is a 50\% chance an infected individual is removed each time period ($\gamma=0.5$).
 
   \par In \textit{Figure \ref{fig_example_standard_sir_model}} we can observed that there is a point at which the size of the infectious population begins to decrease. We can mathematically identify this time-point where the gradient $\frac{dI}{dt}$ becomes negative. As $\frac{dI}{dt}=I(t)\left(\frac{\beta S(t)}N-\gamma\right)$ and $I(t)\geq0$ at all time-points $t$, the gradient becomes negative when $\frac{\beta S}N-\gamma<0$. Thus the maximum number of infections occur at time-period $t$ where (\ref{eqn_sir_tipping_point_susceptible}) is satisfied.
 
@@ -449,11 +452,16 @@
 
   \par This concept can be generalised to $\beta(t)$ and $\gamma(t)$ being continuous time-dependent functions to account for other factors such as weather. Implementing such a formulation is practically impossible in practice due to lack of data and the only approximate relationships known between these factors and the nature of the disease.
 
-  \par In (\ref{eqn_sir_differential_equations}) the parameters $\beta$ and $\gamma$ represent very general concepts: the average number of people infected by a single infected individual and the probability of an individual being removed, respectively. And, as such, it is reasonable to consider them as functions of other variables. For example, we could define $\beta$ as (\ref{eqn_alt_beta}) the product of the mean number of interactions an individual has each time-period $b$ and the mean probability of someone becoming infected after an interaction with an infectious individual $c$. The possible formulations are endless. Each formulation introduces more parameters which need to be fitted, increasing the modelling difficulty.
+  \par In (\ref{eqn_sir_differential_equations}) the parameters $\beta$ and $\gamma$ represent very general concepts: the average number of people infected by a single infected individual and the probability of an individual being removed, respectively. And, as such, it is reasonable to consider them as functions of other variables. For example, we could define $\beta$ as (\ref{eqn_alt_beta}) the product of the mean number of interactions an individual has each time-period $b$ and the mean probability of someone becoming infected after an interaction with an infectious individual $c$; And, $\gamma$ as (\ref{eqn_alt_gamma}) the empirical mean for time of an infection across different strains of the disease where \textbf{p} is the distribution of likelihood of each strain and \textbf{s} is the mean time of infection for each strain. The possible formulations are endless. Each formulation introduces more parameters which need to be fitted, increasing the modelling difficulty.
 
-  \begin{equation}\label{eqn_alt_beta}
-    \beta=f(b,c)=b\cdot c
-  \end{equation}
+  \begin{subequations}\label{eqn_alt_parameters}
+    \begin{alignat}{2}
+      \beta&=f(b,c)=b\cdot c\label{eqn_alt_beta}\\
+      \gamma&=g(\mathbf{p},\mathbf{s})=\mathbf{p}^T\mathbf{s}\label{eqn_alt_gamma}
+    \end{alignat}
+  \end{subequations}
+
+  \par
 
 \subsubsection{Other Compartmental Models}\label{sec_other_compartmental_models}
 
@@ -566,7 +574,7 @@
 
 \subsubsection{Stochastic SIR Model}
 
-  \begin{box_definition}{One-Dimensional Brownian Motion\footnote{Also known as a Wiener Process as its existence was proved by Norbert Wiener.}}
+  \begin{box_definition}[One-Dimensional Brownian Motion\footnote{Also known as a Wiener Process as its existence was proved by Norbert Wiener.}]
     A stochastic process $\{W_t\}_{t\geq0}$ is called Standard Brownian Motion if it fulfils the following for criteria
     \begin{enumerate}
       \item $W_0=0$, almost surely.
@@ -576,15 +584,73 @@
     \end{enumerate}
   \end{box_definition}
 
-  \begin{box_definition}{It\^o Process}
-    A stochastic process $\{X_t\}_{t\in[0,T]}$ is called an It\^o Process if it has the following form
-    \[ X_t=X_0+\int_0^tb(u,X_u)d_u+\int_0^t\sigma(u,X_u)dW_u \]
+  \begin{box_definition}[It\^o Process]
+    A stochastic process $\{X(t)\}_{t\in[0,T]}$ is called an It\^o Process if it has the following form
+    \[ X(t)=X(0)+\int_0^tb(u,X(u))d_u+\int_0^t\sigma(u,X(u))dW_u \]
     where $b,\sigma$ are functions and $W_t$ is standard one-dimensional Brownian motion. Note that the first integral is a standard integral whilst the second is a stochastic integral.
     \par This form can be stated as the following differential equation
-    \[ dX_t=b(t,X_t)dt+\sigma(t,X_t)dW_t \]
+    \[ dX(t)=b(t,X(t))dt+\sigma(t,X(t))dW_t \]
   \end{box_definition}
 
-  \par The SIR model discussed in \textit{Sections \ref{sec_standard_sir_model} \& \ref{sec_other_compartmental_models}} are deterministic\footnote{Disregarding the brief mention of using probability distributions in place of constants.}. This is highly limiting in real-world applications were noise is guaranteed to exist.  \cite[]{infectious_disease_spread_analysis_using_sdes} present a formulation of the SIR model which replaces (\ref{eqn_sir_differential_equations}) with a system of stochastic differential equations.
+  \par The SIR model discussed in \textit{Sections \ref{sec_standard_sir_model} \& \ref{sec_other_compartmental_models}} are deterministic\footnote{Disregarding the brief mention of using probability distributions in place of constants.}. This is highly limiting in real-world applications were noise is guaranteed to exist.  \cite[]{infectious_disease_spread_analysis_using_sdes} present a formulation of the SIR model which replaces (\ref{eqn_sir_differential_equations}) with a system of equations which include a stochastic differential equation (\ref{eqn_sir_stochastic_differential_equations}).
+
+  \begin{subequations}\label{eqn_sir_stochastic_differential_equations}
+    \begin{alignat}{2}
+      dS&=-\frac\beta{N} S(t)I(t)dt\label{eqn_sir_stochastic_differential_equations_S}\\
+      dI&=\left(\frac\beta{N} S(t)I(t)-\gamma I(t)\right)dt+\sigma(t,I(t))dW_t\label{eqn_sir_stochastic_differential_equations_I}\\
+      R&=N-I(t)-S(t)\label{eqn_sir_stochastic_differential_equations_R}
+    \end{alignat}
+  \end{subequations}
+
+  where $W_t$ is a one-dimensional Brownian Motion and $\sigma(t,I(t))=\alpha I(t)$ for some diffusion constant $\alpha\in\mathbb{R}$. This system of equations is subject to the initial conditions $I(0)>0$ and $S(0)\geq0$.
+
+  \par The system of equations defined in (\ref{eqn_sir_stochastic_differential_equations}) is very similar to (\ref{eqn_sir_differential_equations}) for the standard SIR model. Moreover, the equations (\ref{eqn_sir_differential_equations_S},\ref{eqn_sir_stochastic_differential_equations_S}) for $\frac{dS}{dt}$ are identical and the definition of (\ref{eqn_sir_stochastic_differential_equations_R}) is necessary to ensure the population size is constant.
+
+  \par The only differences occurs in (\ref{eqn_sir_stochastic_differential_equations_I}) which, due to the inclusion of the stochastic term $\sigma(t,I(t))dW_t$, is now an It\^o Process with $b(t,I(t))=(\beta S(t)I(t)-\gamma I(t))$. This is the equation which turns the system into a stochastic system of equations.
+
+  \par (\ref{eqn_sir_stochastic_differential_equations}) has one additional parameter, the diffusion parameter $\alpha$, which needs to be estimated when compared to (\ref{eqn_sir_differential_equations}). The parameters $\beta$ and $\gamma$ can be estimated using difference equations (\ref{eqn_sir_difference_equations}) as for the standard SIR model. \cite[]{infectious_disease_spread_analysis_using_sdes} recommends the use of (\ref{eqn_estimate_alpha}) as an estimator for the diffusion parameter $\alpha$. This result is follows from the quadratic variance of (\ref{eqn_sir_stochastic_differential_equations_I})
+
+  \begin{equation}\label{eqn_estimate_alpha}
+    \hat\alpha^2=\frac{\sum_i\left(I(t_{i+1})-I(t_i)\right)^2}{\sum_i\left(t_{i+1}-t_i\right)I(t_i)^2}
+  \end{equation}
+
+  \begin{figure}[H]
+    \centering\includegraphics[width=.9\textwidth]{example_stochastic_sir_model.png}
+    \caption{95\% confidence intervals for the sizes of the different compartments of a stochastic SIR model with population size $N=100,000$ over 30 time-periods where $\beta=1,\gamma=.0.5$ and $\alpha=0.1$. ($R_0=2$)}
+    \label{fig_example_stochastic_sir_model}
+  \end{figure}
+
+  \par \textit{Figure \ref{fig_example_stochastic_sir_model}} provides a plot of an example stochastic SIR model. The example model use has the same parameters as the standard SIR model depicted in \textit{Figure \ref{fig_example_standard_sir_model}} except with the diffusion parameter $\alpha=0.1$. Notice how the mean for each series is identical to the realisation in \textit{Figure \ref{fig_example_standard_sir_model}}.
+
+  \par A numerical evaluation of the deterministic system of differential equations (\ref{eqn_sir_difference_equations}) is straightforward as there is only one set of possible results. Whereas, as (\ref{eqn_sir_stochastic_differential_equations}) is stochastic a numerical evaluation is not quite so straightforward. The Euler-Maruyama formula \cite[]{on_one_step_method_of_euler_maruyama} provides a straightforward method for calculating an approximate numerical solution (\ref{eqn_approximate_numerical_stochastic_I}) to a stochastic differential equation such as (\ref{eqn_sir_stochastic_differential_equations_I}).
+
+  \begin{equation}\label{eqn_approximate_numerical_stochastic_I}
+    \begin{array}{rrl}
+      &I(t_{i+1})&=I(t_i)+\left\{\beta S(t_i)I(t_i)-\gamma I(t_i)\right\}\Delta t_i+\alpha I(t_i)\Delta W_i\\
+      \text{where}&\Delta t_i&:=t_{i+1}-t_i\\
+      &\Delta W_i&:=W_{t_{i+1}}-W_{t_i}
+    \end{array}
+  \end{equation}
+
+  \par Note that $\Delta W_i\sim\mathcal{N}(0,t_{i+1}-t_i)$ by the definition of Brownian motion having stationary Gaussian increments, while $\Delta t_i$ can be treated as constant due to it representing a step in time. We can therefore deduce the expectation and variance of $I(t_{i+1})$ given a filtration up to time-period $t_i$ $\mathcal{F}_{t_i}$\footnote{i.e. We know the values of $\{(S(t),I(t),R(T))\}_{t\in[0,t_i]}$.}, as shown below.
+
+  \[\begin{array}{rcl}
+    \expect\left[I(t_{i+1})|\mathcal{F}_{t_i}\right]&=&\expect\left[I(t_i)+\left\{\beta S(t_i)I(t_i)-\gamma I(t_i)\right\}\Delta t_i+\alpha I(t_i)\Delta W_i\right]\\
+    &=&I(t_i)+\left\{\beta S(t_i)I(t_i)-\gamma I(t_i)\right\}\Delta t_i+\alpha I(t_i)\expect\left[\Delta W_i\right]\\
+    &=&I(t_i)+\left\{\beta S(t_i)I(t_i)-\gamma I(t_i)\right\}\Delta t_i\\
+    \\
+    \var\left[I(t_{i+1})|\mathcal{F}_{t_i}\right]&=&\var\left[\alpha I(t_i)\Delta W_i|\mathcal{F}_{t_i}\right]\\
+    &=&(\alpha I(t_i))^2\var[\Delta W_i]\\
+    &=&(\alpha I(t_i))^2(t_{i+1}-t_i)\\
+  \end{array}\]
+
+  \par By linearity, we can thus deduce the distribution of $I(t_{i+1})$ given a filtration $\mathcal{F}_{t_i}$ to be (\ref{eqn_distribution_I_t_i_plus_1}). This distribution allows us to calculate confidence intervals for the size of the population at each time-period.
+
+  \begin{equation}\label{eqn_distribution_I_t_i_plus_1}
+    (I_{t_{i+1}}|\mathcal{F}_{t_i})\sim\mathcal{N}\left(I(t_i)+\left\{\beta S(t_i)I(t_i)-\gamma I(t_i)\right\}\Delta t_i,\ (\alpha I(t_i))^2(t_{i+1}-t_i)\right)
+  \end{equation}
+
+  This means that the expected result of (\ref{eqn_approximate_numerical_stochastic_I}) is identical to the guaranteed result of (\ref{eqn_sir_differential_equations_I}). This is an important result as it shows (\ref{eqn_sir_stochastic_differential_equations}) describes the same scenarios as (\ref{eqn_sir_differential_equations}) but with stochastic variation. This means much of the analysis performed on the standard deterministic SIR model in \textit{Section \ref{sec_standard_sir_model}} holds for the expected results of the stochastic SIR model discussed hear.
 
 \subsection{Beyond Compartmental Models}
 

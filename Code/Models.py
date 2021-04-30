@@ -493,12 +493,12 @@ class SIRModel(Model):
 
 class SIRModelWithDistributions(SIRModel):
 
-    def __init__(self,params:(int,"stats.distribution","stats.distribution"),n_obs:int,x_obs:[int]):
+    def __init__(self,params:(int,int,"stats.distribution","stats.distribution"),n_obs:int,x_obs:[int]):
         """
         DESCRIPTION
-        Classical SIR model
+        Classical SIR model with beta and gamma defined to have probability distributions which are sampled each iteration
 
-        params ((int,int,float,float)) - (population_size,initial_infectied_population_size,beta,gamma)
+        params ((int,int,distribution,distribution)) - (population_size,initial_infectied_population_size,beta,gamma)
         n_obs (int) - number of time-periods to run model for
         x_obs ([int]) - days on which to make observations
         """
@@ -566,6 +566,94 @@ class SIRModelWithDistributions(SIRModel):
         printing_str+="Mean Beta={:.3f}\n".format(self.beta.mean())
         printing_str+="Mean Gamma={:.3f}\n".format(self.gamma.mean())
         printing_str+="R_0={:.3f}".format(self.beta.mean()/self.gamma.mean())
+
+        return printing_str
+
+class StochasticSIRModel(SIRModel):
+
+    def __init__(self,params:(int,int,float,float,float),n_obs:int,x_obs:[int]):
+        """
+        DESCRIPTION
+        Stochastic SIR model with constant population.
+        Defined in https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=6498254
+
+        params ((int,int,float,float,float)) - (population_size,initial_infectied_population_size,beta,gamma,alpha) where alpha is stochastic term
+        n_obs (int) - number of time-periods to run model for
+        x_obs ([int]) - days on which to make observations
+        """
+
+        if (params[0]<params[1]): raise ValueError("Number of initially infected individuals cannot be greater than the population size.")
+
+        # all models have the following
+        self.n_params=5
+        self.population_size=params[0]
+        self.initially_infected=params[1]
+        self.beta=params[2]
+        self.gamma=params[3]
+        self.alpha=params[4]
+        self.params=params # parameter values
+
+        self.param_labels=["Susceptible","Infectious","Removed"]
+
+        self.n_obs=n_obs # number of observations made by `observe`
+        self.dim_obs=3 # dimension of each observation
+
+        self.brownian_motion=StochasticSIRModel.__standard_brownian_motion(max(x_obs,key=lambda x:x[0])[0])
+
+        self.noise=0 # variance of additive gaussian noise (default=0)
+
+        self.x_obs=x_obs
+        self.observations=self._calc(x_obs)
+
+    @staticmethod
+    def __standard_brownian_motion(n:int):
+        # generate standard brownian motion over n equal time periods
+        X_is=[stats.norm(0,1).rvs(1)[0] for _ in range(1,n)]
+        S_ns=[0]+list(np.cumsum(X_is))
+        W_ts=[x/np.sqrt(n) for x in S_ns]
+        return W_ts
+
+    def _calc(self,x_obs:[int]) -> [(int,int,int)]:
+        """
+        DESCRIPTION
+        calculate the time-series of observations from the specified SIR model (using ODEs)
+
+        PARAMS
+        x_obs ([int]) - Days on which to make observations
+
+        RETURNS
+        [(int,int,int)] - time-series with each data-point being (S,I,R)
+        """
+        last_obs=(self.population_size-self.initially_infected,self.initially_infected,0)
+        x_flat=[x[0] for x in x_obs]
+
+        if 0 in x_flat: observations=[last_obs] # [(S,I,R)]
+        else: observations=[]
+
+        for t in range(1,max(x_flat)+1):
+
+            dS=-int((self.beta*last_obs[0]*last_obs[1])/self.population_size)
+            dI=-dS-int(self.gamma*last_obs[1])
+
+            new_S=max(last_obs[0]+dS,0)
+            new_I=min(last_obs[1]+dI+self.alpha*last_obs[1]*self.brownian_motion[t-1],self.population_size-new_S)
+            new_R=min(self.population_size-new_S-new_I,self.population_size)
+
+            new_obs=(new_S,new_I,new_R)
+
+            if (t in x_flat): observations.append(new_obs)
+
+            last_obs=new_obs
+
+        return observations
+
+    def __str__(self) -> str:
+        printing_str="Population Size={:,.1f}\n".format(self.population_size)
+        printing_str+="Initially Infected={:,.1f}\n".format(self.initially_infected)
+        printing_str+="Beta={:.3f}\n".format(self.beta)
+        printing_str+="Gamma={:.3f}\n".format(self.gamma)
+        printing_str+="Alpha={:.3f}\n".format(self.alpha)
+        printing_str+="E[R_0]={:.3f}".format(self.beta/self.gamma)
 
         return printing_str
 
