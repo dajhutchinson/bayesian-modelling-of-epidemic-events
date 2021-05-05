@@ -113,9 +113,19 @@
 
 \section{Approximate Bayesian Computation}
 
-\begin{frame}{ABC Motivation}
+\begin{frame}{ABC Motivation}\small
   Computational method for approximating posteriors for the parameters $\theta$ of models $X$ where the likelihood $\mathbb{P}(X|\theta)$ is intractable.
   \[ \mathbb{P}(\theta|X)=\frac{\mathbb{P}(X|\theta)\mathbb{P}(\theta)}{\mathbb{P}(X)}\propto\mathbb{P}(X|\theta)\mathbb{P}(\theta) \]
+
+  ABC methods target sampling from the joint distribution $\pi_{ABC}(\theta,s|s_{obs})$.
+  \[ \pi_{ABC}(\theta,s|s_{obs}):=K_\varepsilon(\|s-s_{obs}\|)\mathbb{P}(s|\theta)\pi_0(\theta) \]
+  Since
+  \[\everymath={\displaystyle}\begin{array}{rrrl}
+    &\pi_{ABC}(\theta|s_{obs})&=&\int \pi_{ABC}(\theta,s|s_{obs})ds\\
+    \implies&\lim_{\varepsilon\to0}\pi_{ABC}(\theta|x_{obs})&=&\lim_{\varepsilon\to0}\int K_\varepsilon(\|x-x_{obs}\|)\mathbb{P}(x|\theta)\pi_0(\theta)dx\\
+    &&=&\int \delta_{x_{obs}}(x)\mathbb{P}(x|\theta)dx\cdot \pi_0(\theta)\\
+    &&=&\mathbb{P}(x_{obs}|\theta)\pi_0(\theta)\propto\mathbb{P}(\theta|x_{obs})
+  \end{array}\]
 \end{frame}
 
 \begin{frame}{Approximate Bayesian Computation}
