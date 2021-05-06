@@ -46,7 +46,7 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \title[Short Title]{Summary Statistic Selection for Approximate Bayesian Computation}
-\subtitle{Can machines do it?}
+\subtitle{Can the machines do it?}
 \author{Dom Hutchinson}
 % \institute{Job Title or Affiliation}
 \date{06/05/2021}
@@ -157,7 +157,7 @@
   \begin{multicols}{2}
     \begin{itemize}
       \item Theorised Model.
-      \item Priors
+      \item Priors.
       \item Summary Statistics.
       \item Acceptance Kernel.
       \item Distance Measure.
@@ -176,24 +176,26 @@
 \section{Summary Statistics}
 
 \begin{frame}{Summary Statistics}
-  \par Large datasets take longer to process and suffer from the curse of dimensionality. For example, the SIR model from \textit{Figure \ref{fig_sir_example}} covers only a short period but still generates 90 data-points.
+  \par Large datasets take longer to process and suffer from the curse of dimensionality. For example, an SIR model over only 30 time-periods still generates 90 data-points.
   \par Summary statistics $s$ project data to lower dimensions whilst retain information.
   \[\begin{array}{rcll}
     s&:&\mathbb{R}^m\to\mathbb{R}^n&\text{ with }m>n\\
     s&:&\mathbb{R}^{m\times p}\to\mathbb{R}^n&\text{ with }m\times p>n\\
   \end{array}\]
+  \par Examples: Mean, Median, Variance.
   \par In general, each dimension of the output of a summary statistic is defined independently.
-  \par Summary statistics have traditionally been chosen using intuition and by the prevalence of the statistic in the literature.
+  \par Summary statistics have traditionally been chosen manually using intuition and by the prevalence of the statistic in the literature.
 \end{frame}
 
 \begin{frame}{Summary Statistics - Comments}
   A good summary statistic has the following properties:
   \begin{multicols}{2}
     \begin{itemize}
-      \item High levels of information extraction.
+      \item Minimal information loss.
       \item High dimensionality reduction.
       \item Unbiased.
       \item Computationally efficient.
+      \item Map to a known dimensionality.
       \item Interpretable.
     \end{itemize}
   \end{multicols}
@@ -203,7 +205,7 @@
 \begin{frame}{Sufficient Summary Statistic}
   \par Sufficient summary statistics are those which can reduce dimensionality whilst still retain all the information contained in the full data set.
   \[ \mathbb{P}(X|s(X))=\mathbb{P}(X|s(X),\theta) \]
-  \par e.g. The sample mean is a sufficient statistic for a normal distribution with unknown mean, but known variance.
+  \par Example: The sample mean is a sufficient statistic for a normal distribution with unknown mean, but known variance.
   \par The identity function is a sufficient statistic for all models, but this is not very helpful for computational problems.
 \end{frame}
 
@@ -465,7 +467,7 @@
 \end{frame}
 
 \begin{frame}[leftcolor=CoolGrey,rightcolor=UniversityRed,div=0.85\paperwidth]{Summary}
-  There are effective methods which automate the process of choosing summary statistics.
+  Yes, there are effective methods which automate the process of choosing summary statistics.
 \end{frame}
 
 \end{document}
