@@ -461,7 +461,7 @@
     \end{alignat}
   \end{subequations}
 
-  \par
+  \par Being able to respecify these abstract parameters in terms of real world quantities helps us make a leap from correlation to causation, and to help understand the relative role of different real world events.
 
 \subsubsection{Other Compartmental Models}\label{sec_other_compartmental_models}
 
@@ -1105,6 +1105,15 @@
   \par The algorithm can be made more adaptable by having it actively update the perturbation kernel to maintain a target acceptance rate. In the case of an additive gaussian noise kernel, increasing the variance should lead to a decrease in acceptance rate as it is more likely that large steps will be taken. The acceptance rate can also be managed by adaptively setting the bandwidth on the acceptance kernel used in calculating the Metropolis acceptance ratio.
 
   \par The acceptance rate of an MCMC methods controls the rate of convergence, with both too high and too low values leading to slow convergence. An ideal acceptance rate will how a good level of mixing, so that the parameter space is explored efficiently. It was shown in \cite[]{weak_convergence_and_optimal_scaling_of_RWM_algorithms} that the asympotitcally optimal acceptance rate for a Metropolis-Hasting sampler is 0.234, as the number of dimensions tends to infinity, when the target distribution is Gaussian. This result does rely on each dimension being independent identically distribution gaussian distributions, which is not always reasonable. Study into some more general in-homogeneous target distributions have also shown 0.234 to be the asymptotically optimal acceptance rate (See \cite[]{optimal_scaling_for_various_metropolis_hastings_algorithms}) but a general result has yet to be found. This research does motivate the use of adaptive MCMC methods which target an acceptance rate of 23.4\%.
+
+  % TODO figure of label switching
+
+  % \begin{figure}[H]
+  %   \centering\includegraphics[width=.7\textwidth]{label_switching_MCMC.png}
+  %   \caption{Example of ``Label Switching Problem'' when ABC-MCMC is used to fit a Gaussian Mixtures Model with means $\mu_0=20,\mu_1=-20$ and each gaussian has weight $w=0.5$.
+  %   \par Theta\_0=$\mu_0$, Theta\_1=$\mu_1$ and Theta_2=$w$.}
+  %   \label{fig_label_switching_mcmc}
+  % \end{figure}
 
   \par Due to their more informed search procedure, ABC-MCMC significantly outperforms ABC-Rejection and Importance Sampling in cases where the prior and posterior are very different. This makes ABC-MCMC a better choice in cases were informative priors are not known. However, the ABC-MCMC approach perform very poorly with mixtures models, which are becoming increasingly popular, due to the ``Label Switching Problem'' \cite[]{mcmc_methods_and_the_label_switching_problem_in_bayesian_mixture_modeling} which occurs when two, or more, parameters are nonidentifiable when assigned the same priors\footnote{In a gaussian mixtures model with two mixtures. The parameters associated with each mean can be swapped without affecting the fit of the model. This means that under identical priors it is impossible to separate these two parameters.} and thus the posteriors produced for them will be a combination of all of their true posteriors. \cite[]{mcmc_methods_and_the_label_switching_problem_in_bayesian_mixture_modeling} explore the ``Label Switching Problem''.
 
@@ -1830,7 +1839,7 @@
       \SetKwInOut{Require}{require}
       \Require{Observations from true model $x_{obs}$, Set of summary statistics $S$, Number of simulations to run $n_{run}$, Number of simulations to accept $n_{obs}$} % TODO x_{obs} is required
       $S_{ME}\leftarrow$\textbf{Algorithm \ref{alg_minimum_entropy_summary_statistic_selection}}($S$)\\
-      $\hat{\Theta}_{ME}\leftarrow$Parameter sets accepted from ``Best Samples'' ABC-RS($x_{obs},S',n_{run},n_{acc}$)\\
+      $\hat{\Theta}_{ME}\leftarrow$Parameter sets accepted from ``Best Samples'' ABC-RS($x_{obs},S_{ME},n_{run},n_{acc}$)\\
       Standardise $\hat\Theta_{ME}$\\
       \For{$S'\in 2^{S}$}{\label{alg_two_step_me_for_loop}
         $\Theta_{acc}\leftarrow$Parameter sets accepted from ``Best Samples'' ABC-RS($x_{obs},S',n_{run},n_{acc}$)\\
@@ -1968,6 +1977,8 @@
 \newpage
 \section{ABC and Epidemic Events}\label{sec_abc_and_epidemic_events}
 
+  \par Summary statistic methods should perform well in all scenarios where ABC performs well as they are just extensions of ABC.
+
   \par In this section I pull the theory and methodology discussed in \textit{Sections \ref{sc_bayesian_modelling_and_epidemic_processes}-\ref{sec_summary_stats}} together and implement ABC methods to fit SIR models. I will first address which of the discussed ABC methods is the most suitable and shall then focus on summary statistic selection. For the choice of summary statistics we of course want to find, for computational efficency, those which minimise dimensionality while also minimising loss in the fit. Additionally, we want to use summary statistics which are interpretable due to he use of these models by non-experts. % TODO rewrite
 
   \par A common difficulty in modelling epidemic events is the lack of available data. Morever, most epidemics are only experienced once making it very difficult to account for random variabiltiy. % TODO
@@ -1975,6 +1986,7 @@
   \begin{enumerate}
     \item Use standard SIR model, SIR model with distribution for $\beta,\gamma$.
     \item Choose loads of hand-crafted summary statistics.
+    \item Brute force best set by calculating MSE for each set of SSs
     \item Use approximate sufficiency; minimising entropy; and two-step ME to choose best set of hand-crafted (Compare with leave-one-out cross validation).
     \item Plot dimensionality of summary stats against MSE (use ME to choose best at each dimensionality)
     \item Use Semi-Auto to generate summary stats (compare to best subsets from previous).
