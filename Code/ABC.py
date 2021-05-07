@@ -728,7 +728,7 @@ def adaptive_abc_smc(n_obs:int,y_obs:[[float]],
 
         plt.show()
 
-    return model_hat,param_values
+    return model_hat,param_values,weights
 
 
 """
@@ -857,7 +857,7 @@ def joyce_marjoram(summary_stats:["function"],n_obs:int,y_obs:[[float]],fitting_
         accepted_params_curr=[]
         for (theta_t,s_t) in samples_curr:
             norm_vals=[distance_measure(s_t_i,s_obs_i) for (s_t_i,s_obs_i) in zip(s_t,s_obs_curr)]
-            if (KERNEL(l1_norm(norm_vals),BANDWIDTH*len(ACCEPTED_SUMMARY_STATS_ID))): # NOTE - l1_norm() can be replaced by anyother other norm
+            if (KERNEL(l1_norm(norm_vals),BANDWIDTH)): # NOTE - l1_norm() can be replaced by anyother other norm
                 accepted_params_curr.append(theta_t)
 
         # chooose next ss to try
@@ -874,7 +874,7 @@ def joyce_marjoram(summary_stats:["function"],n_obs:int,y_obs:[[float]],fitting_
         accepted_params_prop=[]
         for (theta_t,s_t) in samples_prop:
             norm_vals=[distance_measure(s_t_i,s_obs_i) for (s_t_i,s_obs_i) in zip(s_t,s_obs_prop)]
-            if (KERNEL(l1_norm(norm_vals),BANDWIDTH*len(ACCEPTED_SUMMARY_STATS_ID+[id_to_try]))): # NOTE - l1_norm() can be replaced by anyother other norm
+            if (KERNEL(l1_norm(norm_vals),BANDWIDTH)): # NOTE - l1_norm() can be replaced by anyother other norm
                 accepted_params_prop.append(theta_t)
 
 
@@ -897,7 +897,7 @@ def joyce_marjoram(summary_stats:["function"],n_obs:int,y_obs:[[float]],fitting_
                 accepted_params_minus=[]
                 for (theta_t,s_t) in samples_minus:
                     norm_vals=[distance_measure(s_t_i,s_obs_i) for (s_t_i,s_obs_i) in zip(s_t,s_obs_minus)]
-                    if (KERNEL(l1_norm(norm_vals),BANDWIDTH*len(ids_minus))): # NOTE - l1_norm() can be replaced by anyother other norm
+                    if (KERNEL(l1_norm(norm_vals),BANDWIDTH)): # NOTE - l1_norm() can be replaced by anyother other norm
                         accepted_params_minus.append(theta_t)
 
                 if (__compare_summary_stats(accepted_params_prop,accepted_params_minus,param_bounds,n_params=len(priors),n_bins=10)):
@@ -953,7 +953,7 @@ def k_nn_estimate_entropy(n_params:int,parameter_samples:[(float)],k=4) -> float
 
     return h_hat
 
-def minimum_entropy(summary_stats:["function"],n_obs:int,y_obs:[[float]],fitting_model:Model,priors:["stats.Distribution"],max_subset_size=None,n_samples=1000,n_accept=100,k=4,printing=False) -> ([int],[[float]]):
+def minimum_entropy(summary_stats:["function"],n_obs:int,y_obs:[[float]],fitting_model:Model,priors:["stats.Distribution"],min_subset_size=1,max_subset_size=None,n_samples=1000,n_accept=100,k=4,printing=False) -> ([int],[[float]]):
     """
 
     RETURNS
@@ -967,7 +967,7 @@ def minimum_entropy(summary_stats:["function"],n_obs:int,y_obs:[[float]],fitting
     n_stats=len(summary_stats)
     max_subset_size=max_subset_size if (max_subset_size) else n_stats
     perms=[]
-    for n in range(1,min(n_stats+1,max_subset_size+1)):
+    for n in range(max(min_subset_size,1),min(n_stats+1,max_subset_size+1)):
         perms+=[x for x in combinations([i for i in range(n_stats)],n)]
 
     sampling_details={"sampling_method":"best","num_runs":n_samples,"sample_size":n_accept}
@@ -981,6 +981,7 @@ def minimum_entropy(summary_stats:["function"],n_obs:int,y_obs:[[float]],fitting
         if (printing): print("Estimate_ent of ",perm,"= {:,.2f}\n".format(estimate_ent),sep="")
         if (estimate_ent<lowest[1]): lowest=(perm,estimate_ent,accepted_theta)
 
+    # return lowest[1]
     return lowest[0],lowest[2]
 
 """
@@ -1017,7 +1018,7 @@ def two_step_minimum_entropy(summary_stats:["function"],n_obs:int,y_obs:[[float]
 
     """
     # find summary stats which minimise entropy
-    me_stats_id,accepted_theta=minimum_entropy(summary_stats,n_obs,y_obs,fitting_model,priors,n_samples,n_accept,k,printing)
+    me_stats_id,accepted_theta=minimum_entropy(summary_stats,n_obs,y_obs,fitting_model,priors,max_subset_size=3,n_samples=n_samples,n_accept=n_accept,k=k,printing=printing)
     me_stats=[summary_stats[i] for i in me_stats_id]
     s_obs=[s(y_obs) for s in me_stats]
     if (printing): print("ME stats found -",me_stats_id,"\n")
@@ -1046,7 +1047,7 @@ def two_step_minimum_entropy(summary_stats:["function"],n_obs:int,y_obs:[[float]
     lowest=([],maxsize,[])
 
     # compare subsets of summary stats to
-    sampling_details={"sampling_method":"best","num_runs":n_samples,"sample_size":n_accept}
+    sampling_details={"sampling_method":"best","num_runs":n_samples,"sample_size":n_accept,"distance_measure":log_l2_norm}
     for perm in perms:
         if (printing): print("Permutation = ",perm,sep="")
         ss=[summary_stats[i] for i in perm]

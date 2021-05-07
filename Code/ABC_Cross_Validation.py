@@ -12,7 +12,7 @@ import ABC,Models
     HELPER METHODS
 """
 def __record_results(fitting_model,fitted_model,removed,error) -> float:
-    
+
     if type(fitting_model) is Models.SIRModel: # SIRModel._calc requires a list rather than a single value
         fitted_val=fitted_model._calc([removed[0]])[0]
     else:
@@ -29,7 +29,7 @@ def __record_results(fitting_model,fitted_model,removed,error) -> float:
 """
     CROSS-VALIDATION
 """
-def LOO_CV_abc_rejection(n_obs:int,x_obs:[[float]],y_obs:[[float]],fitting_model:Models.Model,priors:["stats.Distribution"],sampling_details:dict,summary_stats=None) -> float:
+def LOO_CV_abc_rejection(n_obs:int,x_obs:[[float]],y_obs:[[float]],fitting_model:Models.Model,priors:["stats.Distribution"],sampling_details:dict,summary_stats=None,distance_measure=ABC.l2_norm) -> float:
 
     error=0
     for i in range(len(y_obs)):
@@ -53,7 +53,7 @@ def LOO_CV_abc_rejection(n_obs:int,x_obs:[[float]],y_obs:[[float]],fitting_model
     return error
 
 def LOO_CV_abc_mcmc(n_obs:int,x_obs:[[float]],y_obs:[[float]],fitting_model:Models.Model,priors:["stats.Distribution"],
-        perturbance_kernels:["func"],acceptance_kernel:"func",scaling_factor:int,
+        perturbance_kernels:["func"],acceptance_kernel:"func",scaling_factor:int,distance_measure=ABC.l2_norm,
         chain_length=10000,summary_stats=None) -> float:
 
     error=0
@@ -71,14 +71,15 @@ def LOO_CV_abc_mcmc(n_obs:int,x_obs:[[float]],y_obs:[[float]],fitting_model:Mode
         model_minus.x_obs=x_minus
         model_minus.n_obs=n_minus
 
-        fitted_model,_=ABC.abc_mcmc(n_obs=n_minus,y_obs=y_minus,fitting_model=model_minus,priors=priors,chain_length=chain_length,perturbance_kernels=perturbance_kernels,acceptance_kernel=acceptance_kernel,scaling_factor=scaling_factor,summary_stats=summary_stats,show_plots=False,printing=False)
+        fitted_model,_=ABC.abc_mcmc(n_obs=n_minus,y_obs=y_minus,fitting_model=model_minus,priors=priors,chain_length=chain_length,perturbance_kernels=perturbance_kernels,acceptance_kernel=acceptance_kernel,scaling_factor=scaling_factor,summary_stats=summary_stats,show_plots=False,printing=False,
+        distance_measure=distance_measure)
 
         error=__record_results(fitting_model,fitted_model,removed,error)
 
     return error
 
 def LOO_CV_abc_smc(n_obs:int,x_obs:[[float]],y_obs:[[float]],fitting_model:Models.Model,priors:["stats.Distribution"],
-        perturbance_kernels:["func"],perturbance_kernel_probability:"[function]",acceptance_kernel:"func",scaling_factors:[float],
+        perturbance_kernels:["func"],perturbance_kernel_probability:"[function]",acceptance_kernel:"func",scaling_factors:[float],distance_measure=ABC.l2_norm,
         num_steps=10,sample_size=100,summary_stats=None) -> float:
 
     error=0
@@ -99,6 +100,35 @@ def LOO_CV_abc_smc(n_obs:int,x_obs:[[float]],y_obs:[[float]],fitting_model:Model
         fitted_model,_=ABC.abc_smc(n_obs=n_minus,y_obs=y_minus,fitting_model=model_minus,priors=priors,
             num_steps=num_steps,sample_size=sample_size,scaling_factors=scaling_factors,
             perturbance_kernels=perturbance_kernels,perturbance_kernel_probability=perturbance_kernel_probability,
+            distance_measure=distance_measure,acceptance_kernel=ABC.gaussian_kernel,
+            show_plots=False,printing=False)
+
+        error=__record_results(fitting_model,fitted_model,removed,error)
+
+    return error
+
+def LOO_CV_adaptive_perturbance_abc_smc(n_obs:int,x_obs:[[float]],y_obs:[[float]],fitting_model:Models.Model,priors:["stats.Distribution"],
+        acceptance_kernel:"func",scaling_factors:[float],distance_measure=ABC.l2_norm,
+        num_steps=10,sample_size=100,summary_stats=None) -> float:
+
+    error=0
+    for i in range(len(y_obs)):
+        if (i==0) and (type(fitting_model) is Models.LinearModel): continue
+        removed=(x_obs[i],y_obs[i])
+        print("{}/{}. ".format(i,len(y_obs)),end="")
+
+        x_minus=x_obs[:i]+x_obs[i+1:]
+        y_minus=y_obs[:i]+y_obs[i+1:]
+
+        n_minus=n_obs-1
+
+        model_minus=fitting_model.copy([1 for _ in range(len(priors))])
+        model_minus.x_obs=x_minus
+        model_minus.n_obs=n_minus
+
+        fitted_model,_=ABC.abc_smc(n_obs=n_minus,y_obs=y_minus,fitting_model=model_minus,priors=priors,
+            num_steps=num_steps,sample_size=sample_size,scaling_factors=scaling_factors,
+            adaptive_perturbance=True,distance_measure=distance_measure,
             acceptance_kernel=ABC.gaussian_kernel,show_plots=False,printing=False)
 
         error=__record_results(fitting_model,fitted_model,removed,error)
@@ -106,7 +136,7 @@ def LOO_CV_abc_smc(n_obs:int,x_obs:[[float]],y_obs:[[float]],fitting_model:Model
     return error
 
 def LOO_CV_adaptive_abc_smc(n_obs:int,x_obs:[[float]],y_obs:[[float]],fitting_model:Models.Model,priors:["stats.Distribution"],
-        max_steps:int,max_simulations:int,alpha:float,terminal_scaling_factor=None,sample_size=100,summary_stats=None) -> float:
+        max_steps:int,max_simulations:int,alpha:float,terminal_scaling_factor=None,sample_size=100,summary_stats=None,distance_measure=ABC.l2_norm) -> float:
 
     error=0
     for i in range(len(y_obs)):
@@ -125,7 +155,8 @@ def LOO_CV_adaptive_abc_smc(n_obs:int,x_obs:[[float]],y_obs:[[float]],fitting_mo
 
         fitted_model,_=ABC.adaptive_abc_smc(n_obs=n_minus,y_obs=y_minus,fitting_model=model_minus,priors=priors,
             max_steps=max_steps,sample_size=sample_size,alpha=alpha,max_simulations=max_simulations,terminal_scaling_factor=terminal_scaling_factor,
-            acceptance_kernel=ABC.uniform_kernel,show_plots=False,printing=False)
+            acceptance_kernel=ABC.uniform_kernel,distance_measure=distance_measure,summary_stats=summary_stats,
+            show_plots=False,printing=False)
 
         error=__record_results(fitting_model,fitted_model,removed,error)
 
@@ -133,7 +164,9 @@ def LOO_CV_adaptive_abc_smc(n_obs:int,x_obs:[[float]],y_obs:[[float]],fitting_mo
 """
     CV SEMI-AUTO
 """
-def LOO_CV_abc_rejection_semi_auto(n_obs:int,x_obs:[[float]],y_obs:[[float]],fitting_model:Models.Model,priors:["stats.Distribution"],sampling_details:dict,pilot_distance_measure=ABC.l2_norm,n_pilot_samples=10000,n_pilot_acc=1000,n_params_sample_size=500,summary_stats=None) -> float:
+def LOO_CV_abc_rejection_semi_auto(n_obs:int,x_obs:[[float]],y_obs:[[float]],fitting_model:Models.Model,priors:["stats.Distribution"],
+        sampling_details:dict,pilot_distance_measure=ABC.l2_norm,
+        n_pilot_samples=10000,n_pilot_acc=1000,n_params_sample_size=500) -> float:
 
     error=0
     for i in range(len(y_obs)):
@@ -162,8 +195,7 @@ def LOO_CV_abc_rejection_semi_auto(n_obs:int,x_obs:[[float]],y_obs:[[float]],fit
 
 def LOO_CV_abc_mcmc_semi_auto(n_obs:int,x_obs:[[float]],y_obs:[[float]],fitting_model:Models.Model,priors:["stats.Distribution"],
         perturbance_kernels:["func"],acceptance_kernel:"func",scaling_factor:int,chain_length=10000,
-        pilot_distance_measure=ABC.l2_norm,n_pilot_samples=10000,n_pilot_acc=1000,n_params_sample_size=500,
-        summary_stats=None) -> float:
+        pilot_distance_measure=ABC.l2_norm,n_pilot_samples=10000,n_pilot_acc=1000,n_params_sample_size=500) -> float:
 
     error=0
     for i in range(len(y_obs)):
@@ -193,8 +225,7 @@ def LOO_CV_abc_mcmc_semi_auto(n_obs:int,x_obs:[[float]],y_obs:[[float]],fitting_
 def LOO_CV_abc_smc_semi_auto(n_obs:int,x_obs:[[float]],y_obs:[[float]],fitting_model:Models.Model,priors:["stats.Distribution"],
         perturbance_kernels:["func"],perturbance_kernel_probability:"[function]",acceptance_kernel:"func",scaling_factors:[float],
         num_steps=10,sample_size=100,
-        pilot_distance_measure=ABC.l2_norm,n_pilot_samples=10000,n_pilot_acc=1000,n_params_sample_size=500,
-        summary_stats=None) -> float:
+        pilot_distance_measure=ABC.l2_norm,n_pilot_samples=10000,n_pilot_acc=1000,n_params_sample_size=500) -> float:
 
     error=0
     for i in range(len(y_obs)):
@@ -218,6 +249,39 @@ def LOO_CV_abc_smc_semi_auto(n_obs:int,x_obs:[[float]],y_obs:[[float]],fitting_m
             num_steps=num_steps,sample_size=sample_size,scaling_factors=scaling_factors,
             perturbance_kernels=perturbance_kernels,perturbance_kernel_probability=perturbance_kernel_probability,
             acceptance_kernel=ABC.gaussian_kernel,show_plots=False,printing=True)
+        print("* ",end="")
+
+        error=__record_results(fitting_model,fitted_model,removed,error)
+
+    return error
+
+def LOO_CV_abc_adaptive_smc_semi_auto(n_obs:int,x_obs:[[float]],y_obs:[[float]],fitting_model:Models.Model,priors:["stats.Distribution"],
+        sample_size=100,max_steps=100,max_simulations=10000,alpha=.9,terminal_scaling_factor=None,
+        distance_measure=ABC.l2_norm,n_pilot_samples=10000,n_pilot_acc=1000,n_params_sample_size=500) -> float:
+
+    error=0
+    for i in range(len(y_obs)):
+        if (i==0) and (type(fitting_model) is Models.LinearModel): continue
+        removed=(x_obs[i],y_obs[i])
+        print("{}/{}. ".format(i,len(y_obs)),end="")
+
+        x_minus=x_obs[:i]+x_obs[i+1:]
+        y_minus=y_obs[:i]+y_obs[i+1:]
+
+        n_minus=n_obs-1
+
+        model_minus=fitting_model.copy([1 for _ in range(len(priors))])
+        model_minus.x_obs=x_minus
+        model_minus.n_obs=n_minus
+
+        print("*",end="")
+        summary_stats_minus,coefs=ABC.abc_semi_auto(n_obs=n_minus,y_obs=y_minus,fitting_model=model_minus,priors=priors,distance_measure=distance_measure,n_pilot_samples=n_pilot_samples,n_pilot_acc=n_pilot_acc,n_params_sample_size=n_params_sample_size,printing=False)
+        print("*",end="")
+        fitted_model,_=ABC.adaptive_abc_smc(n_obs=n_minus,y_obs=y_minus,fitting_model=model_minus,priors=priors,
+            max_steps=max_steps,sample_size=sample_size,alpha=alpha,max_simulations=max_simulations,
+            acceptance_kernel=ABC.uniform_kernel,distance_measure=distance_measure,terminal_scaling_factor=terminal_scaling_factor,
+            summary_stats=summary_stats_minus,
+            show_plots=False,printing=False)
         print("* ",end="")
 
         error=__record_results(fitting_model,fitted_model,removed,error)

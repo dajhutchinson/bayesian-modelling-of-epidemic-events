@@ -369,7 +369,7 @@ class ExponentialModel(Model): # ae^{xb}
 
 class SIRModel(Model):
 
-    def __init__(self,params:(int,float,float),n_obs:int,x_obs:[int]):
+    def __init__(self,params:(int,float,float,float),n_obs:int,x_obs:[int]):
         """
         DESCRIPTION
         Classical SIR model
