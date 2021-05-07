@@ -8,7 +8,7 @@
 
 \usetikzlibrary{automata,positioning,arrows.meta}
 
-\graphicspath{ {img/} }
+\graphicspath{ {../img/} }
 % \usepackage[section,nohyphen]{DomH}
 % \headertitle{Bayesian Modelling of Epidemic Processes}
 
@@ -689,7 +689,7 @@
 \newpage
 \section{Approximate Bayesian Computation}\label{sec_ABC}
 
-  \par In this section I motivate and provide the mathematical background for Approximate Bayesian Computation (ABC) methods \textit{Section \ref{sec_ABC_background}}; Present the general approach of ABC methods \textit{Section \ref{sec_ABC_ABC_methods}} and discuss four flavours of ABC algorithm \textit{Section \ref{sec_abc_rejection_sampling}-\ref{sec_abc_smc}}; Provide a comparison of these four methods \textit{Section \ref{sec_abc_comparison}}; and, I close this section by exploring how ABC methods can be used for model choice \textit{Section \ref{sec_abc_model_choice}} and how regression adjustment can be used to improve the results of ABC methods \textit{Section \ref{sec_abc_regression_adjustment}}.
+  \par In this section I motivate and provide the mathematical background for Approximate Bayesian Computation (ABC) methods \textit{Section \ref{sec_ABC_background}}; Present the general approach of ABC methods \textit{Section \ref{sec_ABC_ABC_methods}} and discuss four flavours of ABC algorithm \textit{Section \ref{sec_abc_rejection_sampling}-\ref{sec_abc_smc}}; I close this section by exploring how ABC methods can be used for model choice \textit{Section \ref{sec_abc_model_choice}} and how regression adjustment can be used to improve the results of ABC methods \textit{Section \ref{sec_abc_regression_adjustment}}.
 
 \subsection{Motivation and Background}\label{sec_ABC_background}
 
@@ -1207,12 +1207,6 @@
   \par Incorporating this adaptive approach to bandwidth selection removes the need to define a set of bandwidths $\{\varepsilon_0,\dots,\varepsilon_T\}$ or the number of iterations $T$; and replaces them with defining an acceptance rate and number of simulations for the ``Initial Sample Step'', a target acceptance rate between resampling iterations and a maximum number of simulations. These are significantly easier hyperparameters to define as their affects are much more apparent and predictable.
 
   % TODO perturbation kernels https://arxiv.org/pdf/1106.6280.pdf
-
-\subsubsection{Comparison}\label{sec_abc_comparison}
-
-  Which algorithm to use in different scenarios - complexity of model, amount of data available.
-
-  \par I compare each algorithm's performance using a toy SIR model example. See \textit{Section \ref{abc_sir_model}} for a formal definition and discussion of the SIR model.
 
 \subsection{ABC for Model Choice}\label{sec_abc_model_choice}
 
@@ -1977,24 +1971,46 @@
 \newpage
 \section{ABC and Epidemic Events}\label{sec_abc_and_epidemic_events}
 
-  \par Summary statistic methods should perform well in all scenarios where ABC performs well as they are just extensions of ABC.
+  \par In this section I pull the theory and methodology discussed in \textit{Sections \ref{sc_bayesian_modelling_and_epidemic_processes}-\ref{sec_summary_stats}} together and implement ABC methods to fit SIR models. I will first address which of the discussed ABC methods is the most suitable and shall then focus on summary statistic selection. For the choice of summary statistics we of course want to find, for computational efficiency, those which minimise dimensionality while also minimising loss in the fit. Additionally, we want to use summary statistics which are interpretable due to he use of these models by non-experts. % TODO rewrite
 
-  \par In this section I pull the theory and methodology discussed in \textit{Sections \ref{sc_bayesian_modelling_and_epidemic_processes}-\ref{sec_summary_stats}} together and implement ABC methods to fit SIR models. I will first address which of the discussed ABC methods is the most suitable and shall then focus on summary statistic selection. For the choice of summary statistics we of course want to find, for computational efficency, those which minimise dimensionality while also minimising loss in the fit. Additionally, we want to use summary statistics which are interpretable due to he use of these models by non-experts. % TODO rewrite
+  \par A common difficulty in modelling epidemic events is the lack of available data. Moreover, most epidemics are only experienced once making it very difficult to account for random variability. % TODO
 
-  \par A common difficulty in modelling epidemic events is the lack of available data. Morever, most epidemics are only experienced once making it very difficult to account for random variabiltiy. % TODO
+
+\par Summary statistic methods should perform well in all scenarios where ABC performs well as they are just extensions of ABC.
 
   \begin{enumerate}
+    \item Identify best ABC method.
     \item Use standard SIR model, SIR model with distribution for $\beta,\gamma$.
     \item Choose loads of hand-crafted summary statistics.
     \item Brute force best set by calculating MSE for each set of SSs
     \item Use approximate sufficiency; minimising entropy; and two-step ME to choose best set of hand-crafted (Compare with leave-one-out cross validation).
     \item Plot dimensionality of summary stats against MSE (use ME to choose best at each dimensionality)
     \item Use Semi-Auto to generate summary stats (compare to best subsets from previous).
-    \item Stick in some covid data (e.g. active cases of first wave from italy). Note that we are ignoring changes in lock down.
-    \item SIR model with stepped $\beta,\gamma$ wrt time
+    \item Stick in some covid data (e.g. active cases of first wave from Italy). Note that we are ignoring changes in lock down.
+    \item SIR model with stepped $\beta,\gamma$ wrt time.
   \end{enumerate}
 
   % TODO do this https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=6498254
+
+  \begin{table}
+    \centering
+    \begin{tabular}{|l|l|}
+      \hline
+      \textbf{Algorithm}&\textbf{LOO-CS Score}\\\hline\hline
+      ``Best Samples'' ABC-Rejection Sampling&184,063\\\hline
+      ABC-MCMC&90,713\\\hline
+      ABC-SMC&19,300\\\hline
+      Adaptive ABC-SMC&13,160\\\hline
+    \end{tabular}
+    \caption{Leave-One-Out Cross-Validation Scores for different ABC algorithms when applied to the SIR model described in \textit{Figure \ref{fig_example_standard_sir_model}}. Each algorithm performed approximately 10,000 simulations, had rough tuning to achieve appropriate acceptance rates and used the identity function as the summary statistic.}
+    \label{table_abc_methods_on_sir_model}
+  \end{table}
+
+  \begin{figure}[H]
+    \centering\includegraphics[width=.7\textwidth]{Semi_Auto_ABC_SMC_full_data_CI.png}
+    \caption{95\% Confidence Intervals for model fitted to the SIR model described in \textit{Figure \ref{fig_example_standard_sir_model}} using adaptive ABC-SMC with ~10,000 simulations and the identity function as the summary statistic. Confidence Interval for $R_0$ is [1.871,2.170].}
+    \label{fig_abc_smc_sir_identity_95_ci}
+  \end{figure}
 
 \newpage
 \section{Conclusion}
