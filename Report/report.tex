@@ -120,7 +120,7 @@
 \subsection*{Successful Applications of these Methods}\label{sec_successful_applications}
 
 \newpage
-\section{Bayesian Modelling and Epidemic Processes}
+\section{Bayesian Modelling and Epidemic Processes}\label{sec_bayesian_modelling_and_epidemic_processes}
 
   \par Even if the theorised model is not very close to the true model (e.g. may only be accurate for a subset of the response space etc.) these inferences are still useful as long as the limitations of the theorised model are well understood. % TODO move
 
@@ -168,7 +168,7 @@
 
   \par \cite[]{epidemic_process_in_an_open_population} characterises an epidemic process as ``a time-dependent process of transition by the members of a population, where the state transitions are caused by exposure to some influence called `infections material'.''. Typically this `infectious material' is an infectious disease (e.g. HIV, Ebola, Flu) but can be more abstract concepts such as a secret, learnable skill or drug addiction. A pandemic is an epidemic which has spread to multiple populations, however it is often still effective to model each epidemic separately due to geographical and political borders. I focus on the disease case in this project due to its prevalence in the literature.
 
-  \par The study of modelling such processes is generally motivated from a public health stand point, as being able to predict or control the spread of infectious diseases can reduce human deaths and suffering (see \cite[]{mitigation_measures_for_pandemic_influence_in_italy}). This motivation includes the spread of diseases in animal populations (see \cite[]{dynamic_model_of_bovine_tb_spread_and_control_in_great_britain}) as many human diseases are zootonic\footnote{Originate in animal populations before jumping to human populations.}. Being able to compute accurate models for these processes allows for both qualitative and quantitative analysis to be performed, with the results being used to inform public health policies.
+  \par The study of modelling such processes is motivated from a public health stand point, with two main problems: predicting the future progress of the epidemic; or, evaluating the true effects of introducing different mitigation strategies. Being able to accurately complete either of these tasks can help control spread of infectious diseases and thus reduce human deaths and suffering (see \cite[]{mitigation_measures_for_pandemic_influence_in_italy}). This motivation includes the spread of diseases in animal populations (see \cite[]{dynamic_model_of_bovine_tb_spread_and_control_in_great_britain}) as many human diseases are zootonic\footnote{Originate in animal populations before jumping to human populations.}. Being able to compute accurate models for these processes allows for both qualitative and quantitative analysis to be performed, with the results being used to inform public health policies.
 
   \begin{box_definition}[Reproduction Number]
     The basic reproduction number $R_0$ is the expected number of people each infected individual will pass a disease onto under uncontrolled conditions. The effective reproduction number $R_t$ is the mean number of people each infected individual will pass a disease onto at a given time $t$. There may be policies in place at time $t$ which will affect $R_t$ but $R_0$ will remain constant. When $R_t<1$ then the size of the infected population is decreasing at time-point $t$, when $R_t=1$ the size of the infected population is stable and when $R_t>1$ the size of the infected population is increasing.
@@ -187,7 +187,7 @@
 
   \par Although the quantity of data available has increased, much of the data is still of poor quality. As mentioned there is always a delay in the data but further; the data is often incomplete due to undetected or misdiagnosed cases/deaths.
 
-\subsection{Compartmental Model}
+\subsection{Compartmental Model}\label{sec_compartmental_models}
 
   \par Models for epidemic processes began with \cite[]{application_of_the_theory_of_probabilities_to_the_study_of_a_prior_pathometry_part_i,application_of_the_theory_of_probabilities_to_the_study_of_a_prior_pathometry_part_ii} and the first recognisable compartmental model for epidemic processes is the Kermack-McKendrick model presented in \cite[]{contribution_to_the_mathematical_theory_of_epidemics} which considers a closed population.
 
@@ -231,7 +231,7 @@
 
   \par where $\beta$ is the average number of people infected by the a single infected individual in a single time-period and $\gamma$ is the probability an individual is removed. Initial conditions imposed on this system is that $S(0)\geq0,I(0)\geq0,R(0)\geq0$ and $S(0)+I(0)+R(0)=N$. Note that if $I(t)=0$ at any point in time $t$ then no new infections will occur after time-point $t$. Moreover, if $I(0)=0$ then no infections will ever occur, which is distinctly uninteresting.
 
-  \par In the standard model, $\beta$ and $\gamma$ are non-negative constants with $\beta\in\mathbb{R}^{\geq0},\gamma\in(0,1]$\footnote{$\gamma$ must be non-zero otherwise no-one ever transitions to the removed population and it is impossible for the epidemic to die out.}. Note that $\frac{dS}{dt}+\frac{dI}{dt}+\frac{dR}{dt}=0$ which ensures the total population size is constant and since each differential equation only depends on the current values of $S(t),I(t)$ and $R(t)$, the standard SIR model is Markovian.
+  \par In the standard model, $\beta$ and $\gamma$ are non-negative constants with $\beta\in\mathbb{R}^{\geq0},\gamma\in(0,1]$\footnote{$\gamma$ must be non-zero otherwise no-one ever transitions to the removed population and it is impossible for the epidemic to die out.}. Note that $\frac{dS}{dt}+\frac{dI}{dt}+\frac{dR}{dt}=0$ which ensures the total population size is constant and since each differential equation only depends on the current values of $S(t),I(t)$ and $R(t)$, the standard SIR model is Markovian (as all are compartmental models).
 
   \begin{figure}[H]
     \centering\includegraphics[width=.9\textwidth]{example_sir_model.png}
@@ -650,19 +650,41 @@
     (I_{t_{i+1}}|\mathcal{F}_{t_i})\sim\mathcal{N}\left(I(t_i)+\left\{\beta S(t_i)I(t_i)-\gamma I(t_i)\right\}\Delta t_i,\ (\alpha I(t_i))^2(t_{i+1}-t_i)\right)
   \end{equation}
 
-  This means that the expected result of (\ref{eqn_approximate_numerical_stochastic_I}) is identical to the guaranteed result of (\ref{eqn_sir_differential_equations_I}). This is an important result as it shows (\ref{eqn_sir_stochastic_differential_equations}) describes the same scenarios as (\ref{eqn_sir_differential_equations}) but with stochastic variation. This means much of the analysis performed on the standard deterministic SIR model in \textit{Section \ref{sec_standard_sir_model}} holds for the expected results of the stochastic SIR model discussed hear.
+  \par This means that the expected result of (\ref{eqn_approximate_numerical_stochastic_I}) is identical to the guaranteed result of (\ref{eqn_sir_differential_equations_I}). This is an important result as it shows (\ref{eqn_sir_stochastic_differential_equations}) describes the same scenarios as (\ref{eqn_sir_differential_equations}) but with stochastic variation. This means much of the analysis performed on the standard deterministic SIR model in \textit{Section \ref{sec_standard_sir_model}} holds for the expected results of the stochastic SIR model discussed hear.
 
 \subsection{Beyond Compartmental Models}
 
-  \par Agent based models
-  \par Network based models
-  \par Internet based models
+  \par The compartmental models discussed in \textit{Section \ref{sec_other_compartmental_models}} are powerful models when the only population-level data is availble. This data is typically readily available for epidemics; although the accuracy of the data will depend on the reliability and pervasiveness of the testing strategy being used, especially for diseases where infectious people are asymptomatic. In the modern world we now have access to large amounts of individual-level data which concern human behaviours and interactions, namely mobility and personal network data, which are likely useful in modelling an epidemic. It is not obvious how this data could be incorporated in a compartmental model, so we look to other models.
+
+\subsection*{Agent Based Models}
+  % \par Agent based models
+  % TODO
+  % https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=6113095
+  % https://www.rips-irsp.com/articles/10.5334/irsp.115/galley/61/download/#:~:text=Limitations%20and%20Drawbacks%20of%20Agent%2DBased%20Models&text=As%20we%20mentioned%20already%20in,practical%20and%20the%20theoretical%20level.
+  \par Agent-Based models seek to capture the unique behaviour of each individuals in a population (referred to as ``agents'') by separetly parameterising each individual and specifying a set of rules which define the behaviours of agents. For epidemics, agent-based models  typically have three main components: a model of agent movements; a model of agent-agent interactions; and, a model of the disease which provides a probability of a interaction resulting in an infection (accounting for demographics etc.)
+
+  . There are a number of sources for movement data, one of the most widely used is mobile phone data call/text logs as each event is linked with a cell tower which provides an approximate geographical location. This approach works best in urban areas which cell towers serve smaller areas. The modelling of agent-agent interactions is
+
+  In epidemics, typical agent features include: age, sex, biometrics, medical history, socio-economic status, home address, daily schedule, education level etc.
+
+  \cite[]{agent_based_model_of_epidemic_spread} use cell phone data in an agent-based model to model the 2009 H1N1 outbreak in Mexico and assess the effectiveness of the governments travel restriction policy.
+
+\subsection*{Network Based Models}
+  % \par Network based models
+  % \par Internet based models
 
 \subsection{Bayesian Modelling of Epidemic Processes}
+
 
   \par We have some data (e.g. ....). Now make inferences
 
   \par A common difficulty in modelling Epidemic Processes is the delay between a public health policy being implemented and the affects of it being seen. % TODO
+
+
+  % TODO genealise the below 2 paragraphs
+  \par Collecting the data required to effectively fit a stochastic SIR model is particulary difficult as, for most disease, only a single epidemic is experienced. This means we often only have a single realisation of the epidemic process and thus calculating variances is very difficult. However, if a disease is experience (effectively) independetly by multiple populations/countries then the data from each of these populations can be considered as an independent realisation of the model once the population sizes have been normalised. If different populations take notably different mitigation strategies then the analysis becomes substanially harder.
+
+  \par A similar approach can be taken for seasonal diseases, such as The Flu, where similar mitigations are taken each year. After normalising for population growth, the data from each year can be considered as an independent realisation of the process.
 
 \newpage
 \section{Approximate Bayesian Computation}\label{sec_ABC}
@@ -1945,6 +1967,10 @@
 
 \newpage
 \section{ABC and Epidemic Events}\label{sec_abc_and_epidemic_events}
+
+  \par In this section I pull the theory and methodology discussed in \textit{Sections \ref{sc_bayesian_modelling_and_epidemic_processes}-\ref{sec_summary_stats}} together and implement ABC methods to fit SIR models. I will first address which of the discussed ABC methods is the most suitable and shall then focus on summary statistic selection. For the choice of summary statistics we of course want to find, for computational efficency, those which minimise dimensionality while also minimising loss in the fit. Additionally, we want to use summary statistics which are interpretable due to he use of these models by non-experts. % TODO rewrite
+
+  \par A common difficulty in modelling epidemic events is the lack of available data. Morever, most epidemics are only experienced once making it very difficult to account for random variabiltiy. % TODO
 
   \begin{enumerate}
     \item Use standard SIR model, SIR model with distribution for $\beta,\gamma$.
