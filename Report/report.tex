@@ -1,6 +1,6 @@
 \documentclass[11pt,a4paper]{article}
 
-\usepackage{amsmath,amsthm,amsfonts,bbm,caption,chngcntr,environ,fancyhdr,float,graphicx,hyperref,mdframed,natbib,tikz}
+\usepackage{amsmath,amsthm,amsfonts,bbm,caption,chngcntr,environ,fancyhdr,float,graphicx,hyperref,mdframed,natbib,subcaption,tikz}
 \usepackage[vlined,linesnumbered]{algorithm2e}
 \usepackage[hang,flushmargin,perpage]{footmisc}
 \usepackage[margin=2.5cm,paperwidth=8.3in,paperheight=11.7in]{geometry}
@@ -22,7 +22,6 @@
 
 % space between paragraphs
 \setlength{\parskip}{.3\baselineskip}
-
 \setcitestyle{square}
 
 \newcommand{\algorithmfootnote}[2][\footnotesize]{%
@@ -34,8 +33,10 @@
   }%
 }
 
-% Footnote numbering style
+% numbering style
+\renewcommand\thesubfigure{\roman{subfigure}}
 \renewcommand{\thefootnote}{[\arabic{footnote}]}
+
 \newcommand*{\indexed}{\mathbbm{1}}
 \newcommand*{\prob}{\mathbb{P}}
 \newcommand*{\expect}{\mathbb{E}}
@@ -55,6 +56,7 @@
 \newmdtheoremenv{box_theorem}{Theorem}[section]
 
 \counterwithin{figure}{section}
+\counterwithin{table}{section}
 
 % \captionsetup{justification=raggedright,singlelinecheck=false}
 \captionsetup[figure]{font=small}
@@ -854,7 +856,7 @@
 
   \par In practice, when implementing ABC methods we typically scale up the values returned by the kernel such that $K_\varepsilon(0)=1$. This is straightforward to do for well-known kernels as it only requires the removal of the normalising term. As the relative weights given to each value are maintained this does not affect the asymptotic behaviour of the algorithms, but will increase the acceptance rate. This also has the desirable effect that every time an exact match is found it will definitely be accepted.
 
-  \begin{table}
+  \begin{table}[H]
     \everymath={\displaystyle}
     \centering
     \begin{tabular}{|l|l|}
@@ -876,7 +878,7 @@
 
 \subsubsection*{Distance Measures}\label{sec_distance_measures}
 
-  \begin{table}
+  \begin{table}[H]
     \everymath={\displaystyle}
     \centering
     \begin{tabular}{|l|l|}
@@ -1104,7 +1106,7 @@
 
   \par The algorithm can be made more adaptable by having it actively update the perturbation kernel to maintain a target acceptance rate. In the case of an additive gaussian noise kernel, increasing the variance should lead to a decrease in acceptance rate as it is more likely that large steps will be taken. The acceptance rate can also be managed by adaptively setting the bandwidth on the acceptance kernel used in calculating the Metropolis acceptance ratio.
 
-  \par The acceptance rate of an MCMC methods controls the rate of convergence, with both too high and too low values leading to slow convergence. An ideal acceptance rate will how a good level of mixing, so that the parameter space is explored efficiently. It was shown in \cite[]{weak_convergence_and_optimal_scaling_of_RWM_algorithms} that the asympotitcally optimal acceptance rate for a Metropolis-Hasting sampler is 0.234, as the number of dimensions tends to infinity, when the target distribution is Gaussian. This result does rely on each dimension being independent identically distribution gaussian distributions, which is not always reasonable. Study into some more general in-homogeneous target distributions have also shown 0.234 to be the asymptotically optimal acceptance rate (See \cite[]{optimal_scaling_for_various_metropolis_hastings_algorithms}) but a general result has yet to be found. This research does motivate the use of adaptive MCMC methods which target an acceptance rate of 23.4\%.
+  \par The acceptance rate of an MCMC methods controls the rate of convergence, with both too high and too low values leading to slow convergence. An ideal acceptance rate will affect how a good level of mixing, so that the parameter space is explored efficiently. It was shown in \cite[]{weak_convergence_and_optimal_scaling_of_RWM_algorithms} that the asympotitcally optimal acceptance rate for a Metropolis-Hasting sampler is 0.234, as the number of dimensions tends to infinity, when the target distribution is Gaussian. This result does rely on each dimension being independent identically distribution gaussian distributions, which is not always reasonable. Study into some more general in-homogeneous target distributions have also shown 0.234 to be the asymptotically optimal acceptance rate (See \cite[]{optimal_scaling_for_various_metropolis_hastings_algorithms}) but a general result has yet to be found. This research does motivate the use of adaptive MCMC methods which target an acceptance rate of 23.4\%.
 
   % TODO figure of label switching
 
@@ -1223,7 +1225,7 @@
 
   \[ B_{1,2}(x_{obs})=\frac{\prob(M_1|x_{obs})}{\prob(M_2|x_{obs})} \]
 
-  \begin{box_algorithm}[ABC Model Selection ``Rejection Sampling'']\label{alg_abc_mc}
+  \begin{box_algorithm}[ABC Model Choice ``Rejection Sampling'']\label{alg_abc_mc}
     Adapted from \cite[]{abc_likelihood_free_methods_for_model_choice_in_gibbs_random_fields}.
     \begin{algorithm}[H]
       \SetKwIF{With}{}{Else}{with probability}{}{}{otherwise}{}
@@ -1971,46 +1973,241 @@
 \newpage
 \section{ABC and Epidemic Events}\label{sec_abc_and_epidemic_events}
 
-  \par In this section I pull the theory and methodology discussed in \textit{Sections \ref{sc_bayesian_modelling_and_epidemic_processes}-\ref{sec_summary_stats}} together and implement ABC methods to fit SIR models. I will first address which of the discussed ABC methods is the most suitable and shall then focus on summary statistic selection. For the choice of summary statistics we of course want to find, for computational efficiency, those which minimise dimensionality while also minimising loss in the fit. Additionally, we want to use summary statistics which are interpretable due to he use of these models by non-experts. % TODO rewrite
+  \par In this section I compare the ABC methods discussed in \textit{Section \ref{sec_ABC}} by applying them to toy examples of the compartmental models discussed in \textit{Section \ref{sec_bayesian_modelling_and_epidemic_processes}}; Assess the summary statistic selection methods discussed in \textit{Section \ref{sec_summary_stats}} when applied to compartmental models, including how the dimensionality of summary statistics affects performance of the ABC methods. I close this section by applying the methods to data from ...[Some Real World Event]... % TODO
+  and when models with greater degrees of freedom as used.
 
-  \par A common difficulty in modelling epidemic events is the lack of available data. Moreover, most epidemics are only experienced once making it very difficult to account for random variability. % TODO
-
-
-\par Summary statistic methods should perform well in all scenarios where ABC performs well as they are just extensions of ABC.
-
-  \begin{enumerate}
-    \item Identify best ABC method.
-    \item Use standard SIR model, SIR model with distribution for $\beta,\gamma$.
-    \item Choose loads of hand-crafted summary statistics.
-    \item Brute force best set by calculating MSE for each set of SSs
-    \item Use approximate sufficiency; minimising entropy; and two-step ME to choose best set of hand-crafted (Compare with leave-one-out cross validation).
-    \item Plot dimensionality of summary stats against MSE (use ME to choose best at each dimensionality)
-    \item Use Semi-Auto to generate summary stats (compare to best subsets from previous).
-    \item Stick in some covid data (e.g. active cases of first wave from Italy). Note that we are ignoring changes in lock down.
-    \item SIR model with stepped $\beta,\gamma$ wrt time.
-  \end{enumerate}
+  % \par A common difficulty in modelling epidemic events is the lack of available data. Moreover, most epidemics are only experienced once making it very difficult to account for random variability. % TODO
 
   % TODO do this https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=6498254
 
-  \begin{table}
+\subsection{Comparison of ABC Methods}\label{sec_comparison_of_abc_methods}
+
+  \par To compare the ABC methods discussed in \textit{Section \ref{sec_ABC}} I begin with a toy example of the standard SIR model. This is to justify that these methods are effective at fitting such models and to create a benchmark from which to compare the summary statistic selection methods. More specifically, the ABC methods are used to fit an SIR model to data generated by an SIR model with parameters $\beta=1,\ \gamma=0.5$ and constant population size $N=100,000$. A realisation of this SIR model is given in \textit{Figure \ref{fig_example_standard_sir_model}}. This specification of the model was chosen arbitrarily, but it does have some desirable features such as the full epidemic being completed in less than 30 time-periods and that not all of the population becomes infected.
+
+  \par I perform two experiments to assess the performance of the algorithms: The first supplies the algorithms with the full 30-day time-series; and, the second is a leave-one out cross-validation (LOO-CV) where each algorithm is run thirty times each time with a different day's data missing. This cross-validation allows for an assessment of the general performance of each algorithm by training on incomplete data and then assessing the predictive performance of the algorithm for the missing data point. As the cross-validation assess the algorithms under several scenarios it is practically impossible to tune the hyper-parameters of the algorithms to maximise performance, and rather one should aim for generalised hyper-parameter configurations.
+
+  \par It is very difficult to set up these experiments to make a fair comparison between the algorithms. In practice the limiting factor when implementing these algorithms is time meaning a proper assessment should set a time-limit for each algorithm. However, the model I am fitting on is relatively simple and in practice this time-limit would likely be several days, meaning any half-decent algorithm will produce an accurate result by the cutoff-time. Rather, I cut each algorithm after 5,000 simulations\footnote{5,000 was chosen as pilot experiments showed that it allowed all algorithms to perform well, in a relatively short period of time (minutes rather than hours), without any algorithm converging completely. The quick runtimes of each algorithm allows for multiple runs of each experiment to be made and the variability between each to be assessed.} (except for ABC-Rejection Sampling will performs 50,000 and is still by far the quickest algorithm). This means my experiments focus on assessing the algorithms ability to extract information from each simulation, rather than on the asymptotic behaviour of each algorithm.
+
+\subsubsection*{Experiment Specification}
+
+  \par I assess five different ABC-methods: ``Best Samples'' ABC-Rejection Sampling, \textit{Algorithm \ref{alg_abc_rejection_best}}; ABC-Importance Sampling, \textit{Algorithm \ref{alg_abc_importance_sampling}}; ABC-MCMC, \textit{Algorithm \ref{alg_abc_mcmc}}; ABC-SMC, \textit{Algorithm \ref{alg_abc_smc}}; and, an adaptive version of ABC-SMC, specified below.
+
+  \par Each ABC method has different hyper-parameters which need to be specified, many of which are unique and some are shared. Priors, summary statistics, and distance measures are required by all the methods and I specify each of these the same for each method. An acceptance kernel is required by all methods except ``Best Samples'' ABC-Rejection Sampling.
+
+  \par The specification of a set of priors is required for all the ABC methods. Relatively uninformative priors\footnote{Note that $\beta$ can be any non-negative value and $\gamma$ can only take values in the interval $[0,1]$.} were chosen for both model parameters, with $\mathcal{U}[0,2.5]$ being specified for $\beta$ and $\mathcal{U}[0,0.8]$ for $\gamma$. These priors were chosen in part because their means are not equal to the true value of the parameters they represent. If this was not case then, in the case where the methods perform poorly and the generated posterior is very close to the prior, a model with posterior means would have low error despite no learning having occurred.
+
+  \par The identity function $s(x)=x$ was used as the summary statistic for each algorithm due to it being sufficient and thus meaning the algorithms would converge on the true posterior. The use of the identity function is not necessarily ideal as it means the distance measure has to compare 90 data-points, as the same distance measure is used by all algorithms the issues should be shared. However, the choice of distance measure will affect ABC-IS and ABC-SMC more as distances are used to weight accepted parameter sets.
+
+  \par The Euclidean distance of the logarithm of each value (\ref{log_euclidean_distance}) was used as the distance measure. Logarithms were taken due to the nature of the values in the SIR model. If raw values are compared, rather than logarithms, then much greater emphasis would be placed on fitting to the greatest values (The susceptible population in the early time-steps and the removed population in the later time-steps) which is not ideal as it means a loser fit is required for the lower values, such as the infectious population size.
+
+  \begin{equation}\label{log_euclidean_distance}
+    \|x-y\|=\sqrt{\sum_{i=1}^n\big(\ln(x_i)-\ln(y_i)\big)^2}\text{ where }n=|x|=|y|
+  \end{equation}
+
+  \par I only assess the ``Best Samples'' version of ABC-Rejection Sampling as it reduces the effect that user choices have and allows for a more generally assessment of the algorithms performance. Moreover, I specified the algorithm to generate 50,000 simulations and to accepted the closest 500 (1\%). For the other algorithms I specified a Gaussian acceptance kernel and roughly tuned their bandwidths to achieve recommended acceptance rates. An acceptance rate of 22\%-25\% was targeted for ABC-MCMC (As justified in \textit{Section \ref{sec_abc_mcmc}}). For ABC-SMC a sample size of 100 and 20 bandwidth steps were used. The bandwidths were evenly spaced on a $\log_10$ scale so that they tightened by a given percentage each step, creating a consistent tightening of the acceptance space each step.
+
+  \par ABC-MCMC and ABC-SMC require the specification of perturbance kernels. These were set to be additive gaussian noise with variance 0.1 for both parameters. Pilot experiments showed that this value of the variance produced good mixing and the desired acceptance rates, although little difference is seen when using values of a similar order of magnitude.
+
+  \par In \textit{Section \ref{sec_abc_smc}} an adaptive version of ABC-SMC is discussed which requires the fewest hyper-parameter specifications (Hereby known as ``Adaptive ABC-SMC''). This method automatically sets the perturbance kernel variance to be twice the dimension-wise variance of the previously accepted set of particles and the acceptance kernel bandwidth is automatically set such that only the first $\alpha\%$ of the previously accepted set of particles would have been accepted, were $\alpha\in[0,100]$ is defined by the user. For ease-of-implementation, I defined the acceptance kernel to be the uniform kernel and $\alpha=90$ as this means the acceptance kernel bandwidth is just the $90^{th}$ percentile of the distance values of particles accepted in the previous step.
+
+\subsubsection*{Results - Experiment One}
+
+  \begin{figure}[H]
+    \centering\includegraphics[width=.7\textwidth]{abc_rejection_accepted.png}
+    \caption{The 1\% best generated samples which were accepted by ABC-Rejection Sampling (crosses) when given the full time-series and using the identity function as the summary statistic. Includes the observed data (solid line) and the data from a model fitted with the posterior mean values for each parameter (dashed line).}
+    \label{fig_abc_rejection_accepted}
+  \end{figure}
+
+  \begin{table}[H]
     \centering
-    \begin{tabular}{|l|l|}
+    \begin{tabular}{|l|r|r|}
       \hline
-      \textbf{Algorithm}&\textbf{LOO-CS Score}\\\hline\hline
-      ``Best Samples'' ABC-Rejection Sampling&184,063\\\hline
-      ABC-MCMC&90,713\\\hline
-      ABC-SMC&19,300\\\hline
-      Adaptive ABC-SMC&13,160\\\hline
+      \textbf{Algorithm}&\textbf{RSSE}&\textbf{Time (s)}\\\hline\hline
+      ``Best Samples'' ABC-Rejection Sampling&3,721&5\\\hline
+      ABC-Importance Sampling&3,541&11\\\hline
+      ABC-MCMC&3,021&37\\\hline
+      ABC-SMC&2,393&342\\\hline
+      Adaptive ABC-SMC&2,563&1,451\\\hline
+    \end{tabular}\\
+    \bigskip
+    \begin{tabular}{|l|r|c|c|c|r|}
+      \hline
+      \textbf{Algorithm}&\textbf{95\% CI $R_0$}&\textbf{95\% CI $\beta$}&\textbf{95\% CI $\gamma$}\\\hline\hline
+      ``Best Samples'' ABC-Rejection Sampling&[1.763,2.481]&[0.133,1.098]&[0.000,0.621]\\\hline
+      ABC-Importance Sampling&[1.803,2.318]&[0.410,1.102]&[0.206,0.654]\\\hline
+      ABC-MCMC&[1.612,2.927]&[0.871,1.194]&[0.290,0.736]\\\hline
+      ABC-SMC&[1.723,2.318]&[0.921,1.089]&[0.411,0.632]\\\hline
+      Adaptive ABC-SMC&[1.852,2.235]&[0.947,1.057]&[0.422,0.572]\\\hline
     \end{tabular}
-    \caption{Leave-One-Out Cross-Validation Scores for different ABC algorithms when applied to the SIR model described in \textit{Figure \ref{fig_example_standard_sir_model}}. Each algorithm performed approximately 10,000 simulations, had rough tuning to achieve appropriate acceptance rates and used the identity function as the summary statistic.}
+    \caption{The Residual Sum of Squares Error (RSSE), 95\% confidence interval for $R_0,\beta,\gamma$ and the execution time of different ABC methods when given the full time-series and using the identity function as the summary statistic. Values are the mean of 50 independent runs of each algorithm.}
     \label{table_abc_methods_on_sir_model}
   \end{table}
 
   \begin{figure}[H]
+    \centering
+    \makebox[\textwidth][c]{
+      \begin{subfigure}{.45\paperwidth}
+        \centering
+        \includegraphics[width=\textwidth]{abc_rejection_joint_posterior_sir.PNG}
+        \caption{"Best Samples" Rejection Sampling}
+        \label{fig_joint_distribution_full_time_series_rejection}
+      \end{subfigure}
+      \begin{subfigure}{.45\paperwidth}
+        \centering
+        \includegraphics[width=\textwidth]{abc_mcmc_joint_posterior_sir.PNG}
+        \caption{ABC-MCMC}
+        \label{fig_joint_distribution_full_time_series_mcmc}
+      \end{subfigure}
+    }
+    \makebox[\textwidth][c]{
+      \begin{subfigure}{.45\paperwidth}
+        \centering
+        \includegraphics[width=\textwidth]{abc_smc_joint_posterior_sir.PNG}
+        \caption{ABC-SMC}
+        \label{fig_joint_distribution_full_time_series_smc}
+      \end{subfigure}
+      \begin{subfigure}{.45\paperwidth}
+        \centering
+        \includegraphics[width=\textwidth]{abc_adaptive_smc_joint_posterior_sir.PNG}
+        \caption{Adaptive ABC-SMC}
+        \label{fig_joint_distribution_full_time_series_adaptive_smc}
+      \end{subfigure}
+    }
+    \caption{Joint and marginal posterior distributions of $\beta$ and $\gamma$ parameters generated by different ABC-methods when provided with the full time-series of data.}
+    \label{fig_joint_distribution_full_time_series}
+  \end{figure}
+
+\subsubsection*{Results - Experiment Two}
+
+  \begin{table}[H]
+    \centering
+    \begin{tabular}{|l|l|}
+      \hline
+      \textbf{Algorithm}&\textbf{LOO-CV Score}\\\hline\hline
+      ``Best Samples'' ABC-Rejection Sampling&6,135\\\hline
+      ABC-Importance Sampling&5,001\\\hline
+      ABC-MCMC&3,023\\\hline
+      ABC-SMC&643\\\hline
+      Adaptive ABC-SMC&439\\\hline
+    \end{tabular}
+    \caption{Leave-One-Out Cross-Validation Scores for different ABC algorithms when applied to the SIR model described in \textit{Figure \ref{fig_example_standard_sir_model}}. Each algorithm performed approximately 10,000 simulations each iteration, had rough tuning to achieve appropriate acceptance rates and used the identity function as the summary statistic.}
+    \label{table_abc_methods_on_sir_model_loo_cv}
+  \end{table}
+
+  \begin{figure}[H]
     \centering\includegraphics[width=.7\textwidth]{Semi_Auto_ABC_SMC_full_data_CI.png}
-    \caption{95\% Confidence Intervals for model fitted to the SIR model described in \textit{Figure \ref{fig_example_standard_sir_model}} using adaptive ABC-SMC with ~10,000 simulations and the identity function as the summary statistic. Confidence Interval for $R_0$ is [1.871,2.170].}
+    \caption{95\% Confidence Intervals for model fitted to the SIR model described in \textit{Figure \ref{fig_example_standard_sir_model}} using adaptive ABC-SMC with ~10,000 simulations and the identity function as the summary statistic. 95\% confidence interval for $R_0$ is [1.784,2.266].}
     \label{fig_abc_smc_sir_identity_95_ci}
   \end{figure}
+
+\subsection{Comparison of Summary Statistic Methods}\label{sec_comparison_of_ss_methods}
+
+  \par HIV paper suggests using peak infection value and date.
+
+  \begin{table}[H]
+    \centering
+    \begin{tabular}{|l|l|l|}
+      \hline
+      \textbf{Algorithm}&\textbf{Statistics}&\textbf{ABC-SMC MSE}\\
+      \hline \hline
+      Control&Identity Function&121,777\\\hline
+      Joyce-Marjoram&[Final Susceptible Population]&101,730,336\\\hline
+      Minimum Entropy&[Mean Infectious Population,&\\
+      &Mean Removed Population]&1,131,712\\\hline
+      2-Step ME&[Peak Infectious Population Size,&228,150\\
+      &Mean Infectious Population,&\\
+      &Mean Removed Population]&\\\hline
+      Semi-Automatic ABC&N/A&643,255\\\hline
+    \end{tabular}
+    \caption{Mean square error when using Adaptive ABC-SMC to fit the SIR model described in \textit{Figure \ref{fig_example_standard_sir_model}} with the the recommended summary statistics from each algorithm.}
+    \label{table_summary_selection_methods_on_sir_model}
+  \end{table}
+
+  \begin{figure}[H]
+    \centering
+    \makebox[\textwidth][c]{
+      \begin{subfigure}{.45\paperwidth}
+        \centering
+        \includegraphics[width=\textwidth]{two_step_ME_ABC_SMC_full_data_CI.PNG}
+        \caption{Two-Step Minimum Entropy. 95\% confidence interval for $R_0$ is [1.957,2.073].}
+        \label{fig_summary_statistic_selected_by_two_step_me}
+      \end{subfigure}
+      \begin{subfigure}{.45\paperwidth}
+        \centering
+        \includegraphics[width=\textwidth]{Semi_Auto_ABC_SMC_full_data_CI.PNG}
+        \caption{Semi-Automatic ABC. 95\% confidence interval for $R_0$ is [1.754,2.132].}
+        \label{fig_summary_statistic_selected_by_semi_auto}
+      \end{subfigure}
+    }
+    \caption{95\% CI when running adaptive ABC-SMC using summary statistics generated by two-step minimum entropy and semi-automatic ABC respectively.}
+    \label{fig_compare_summary_statistic_selections}
+  \end{figure}
+
+\subsection{The Effect of Dimensionality}\label{sec_effect_of_dimensionality}
+
+  Plot dimensionality of summary stats against MSE (use ME to choose best at each dimensionality)
+
+  \begin{table}[H]
+    \centering
+    \begin{tabular}{|l|l|l|l|}
+      \hline
+      \textbf{Dimensions}&\textbf{Best Stats}&\textbf{Estimated Entropy}&\textbf{ABC-SMC MSE}\\\hline
+      1&[Mean Susceptible Population]&-9.48&2,272,479\\\hline
+      2&[Mean Infectious Population,&-10.74&1,131,712\\
+      &Mean Removed Population]&&\\\hline
+      3&[Final Removed Population,&-10.69&1,540,652\\
+      &Mean Infectious Population,&&\\
+      &Mean Removed Population]&&\\\hline
+      4&[Net Weekly Change in Removed Population]&-10.70&756,888\\\hline
+      90&Identity Function&-10.70&756,888\\\hline
+    \end{tabular}
+    \caption{The best summary statistics at each dimensionality according to the minimum entropy algorithm, along with their estimated entropy values and mean square error.}
+    \label{table_dimensionality_of_summary_statistics}
+  \end{table}
+
+\subsection{Projection}\label{sec_projection}
+
+  \begin{figure}[H]
+    \centering
+    \makebox[\textwidth][c]{
+      \begin{subfigure}{.45\paperwidth}
+        \centering
+        \includegraphics[width=1\textwidth]{Semi_Auto_ABC_SMC_10_days_CI.png}
+        \caption{First 10 days of data given. 95\% CI for $R_0$ is [1.583,2.767.]}
+        \label{fig_semi_auto_10_days}
+      \end{subfigure}
+      \begin{subfigure}{.45\paperwidth}
+        \centering
+        \includegraphics[width=1\textwidth]{Semi_Auto_ABC_SMC_20_days_CI.png}
+        \caption{First 20 days of data given. 95\% CI for $R_0$ is [1.742,2.456].}
+        \label{fig_semi_auto_20_days}
+      \end{subfigure}
+    }
+    \makebox[\textwidth][c]{
+      \begin{subfigure}{.45\paperwidth}
+        \centering
+        \includegraphics[width=1\textwidth]{Semi_Auto_ABC_SMC_10_days_joint_posterior.png}
+        \caption{Posterior when first 10 days of data given. 95\% CI for $\beta$ is \text{[0.842,1.160]} and for $\gamma$ is \text{[0.305,0.705]}}
+        \label{fig_semi_auto_10_days_posterior}
+      \end{subfigure}
+      \begin{subfigure}{.45\paperwidth}
+        \centering
+        \includegraphics[width=1\textwidth]{Semi_Auto_ABC_SMC_20_days_joint_posterior.png}
+        \caption{Posterior when first 20 days of data given. 95\% CI for $\beta$ is \text{[0.891,1.164]} and for $\gamma$ is \text{[0.340,0.603]}}
+        \label{fig_semi_auto_20_days_posterior}
+      \end{subfigure}
+    }
+    \caption{95\% CI when running adaptive ABC-SMC using summary statistics generated by semi-automatic ABC with only the first 10 or 20 days of data available. Accompanied by the generated posteriors.}
+    \label{fig_semi_auto_restricted_data}
+  \end{figure}
+
+\subsection{Real Data}\label{sec_real_data}
+
+  %https://www.medrxiv.org/content/10.1101/2020.04.26.20081042v1.full.pdf
+
+\subsection{More Complex Models}\label{sec_more_complex_models}
+
+  \par Summary statistic methods should perform well in all scenarios where ABC performs well as they are just extensions of ABC.
 
 \newpage
 \section{Conclusion}
