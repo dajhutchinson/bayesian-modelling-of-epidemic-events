@@ -44,9 +44,12 @@ def calculate_scaling_factor(distances,acceptance_kernel,alpha) -> float:
     I assume the acceptance kernel is symmetric and distances are positive.
     """
     if (acceptance_kernel is uniform_kernel):
-        distances.sort()
-        lim_distance=distances[int(np.ceil(alpha*len(distances)))]
-        return lim_distance
+        distances.sort(key=lambda x:x[1])
+        u=0
+        for (w,d) in distances:
+            u+=w
+            if (u>=alpha): return d
+        return distances[-1][1]
     else:
         raise TypeError("`adaptive_abc_smc` is only properly implemented for the acceptance kernel to be `uniform_kernel`. Please choose this.")
 
@@ -189,7 +192,7 @@ def __sampling_stage_best_samples(NUM_RUNS:int,SAMPLE_SIZE:int,PRIORS:["stats.Di
         summarised_norm_val=l1_norm(norm_vals) # l1_norm can be replaced by any other norm
 
         for j in range(max(0,SAMPLE_SIZE-i-1,SAMPLE_SIZE)):
-
+            # truncated insertion sort
             if (SAMPLES[j]==None) or (SAMPLES[j][0]>summarised_norm_val):
                 if (j>0): SAMPLES[j-1]=SAMPLES[j]
                 SAMPLES[j]=(summarised_norm_val,(theta_t,y_t,s_t))
@@ -510,11 +513,8 @@ def abc_smc(n_obs:int,y_obs:[[float]],
             if (printing): print("({:,}/{:,} - {:,}) - {:,}/{:,} (eps={:.3f})".format(t,num_steps,i,len(NEW_THETAS),sample_size,scaling_factors[t]),end="\r")
 
             # sample from THETA
-            u=stats.uniform(0,1).rvs(1)[0]
-            theta_t=None
-            for (weight,theta_i) in THETAS:
-                u-=weight
-                if (u<=0): theta_t=theta_i; break
+            new_i=np.random.choice([i for i in range(len(THETAS))],size=1,p=[weight for (weight,_) in THETAS])[0]
+            theta_t=THETAS[new_i][1]
 
             # perturb sample
             theta_temp=[k(theta_i) for (k,theta_i) in zip(perturbance_kernels,theta_t)]
@@ -574,7 +574,7 @@ def abc_smc(n_obs:int,y_obs:[[float]],
 
         plt.show()
 
-    return model_hat,param_values
+    return model_hat,param_values,weights
 
 """
     ADAPTIVE ABC
@@ -636,7 +636,7 @@ def adaptive_abc_smc(n_obs:int,y_obs:[[float]],
         # accept-reject
         norm_vals=[distance_measure(s_temp_i,s_obs_i) for (s_temp_i,s_obs_i) in zip(s_temp,s_obs)]
         if (acceptance_kernel(l1_norm(norm_vals),scaling_factor)):
-            distances.append(l1_norm(norm_vals))
+            distances.append((1/sample_size,l1_norm(norm_vals)))
             THETAS.append((1/sample_size,theta_temp))
         if(printing): print("({:,}) - {:,}/{:,}".format(i,len(THETAS),sample_size),end="\r")
     if (printing): print()
@@ -662,11 +662,8 @@ def adaptive_abc_smc(n_obs:int,y_obs:[[float]],
             if (printing): print("({:,}/{:,} - {:,}) - {:,}/{:,} (eps={:,.3f}>{:,.3f})".format(t,max_steps,i,len(NEW_THETAS),sample_size,scaling_factor,terminal_scaling_factor),end="\r",flush=True)
 
             # sample from THETA
-            u=stats.uniform(0,1).rvs(1)[0]
-            theta_t=None
-            for (weight,theta_i) in THETAS:
-                u-=weight
-                if (u<=0): theta_t=theta_i; break
+            new_i=np.random.choice([i for i in range(len(THETAS))],size=1,p=[weight for (weight,_) in THETAS])[0]
+            theta_t=THETAS[new_i][1]
 
             # perturb sample
             theta_temp=[k(theta_i) for (k,theta_i) in zip(perturbance_kernels,theta_t)]
@@ -680,17 +677,18 @@ def adaptive_abc_smc(n_obs:int,y_obs:[[float]],
             # accept-reject
             norm_vals=[distance_measure(s_temp_i,s_obs_i) for (s_temp_i,s_obs_i) in zip(s_temp,s_obs)]
             if (acceptance_kernel(l1_norm(norm_vals),scaling_factor)):
-                distances.append(l1_norm(norm_vals))
                 weight_numerator=sum([p.pdf(theta) for (p,theta) in zip(priors,theta_temp)])
                 weight_denominator=0
                 for (weight,theta) in THETAS:
                     weight_denominator+=sum([weight*p(theta_i,theta_temp_i) for (p,theta_i,theta_temp_i) in zip(perturbance_kernel_probability,theta,theta_temp)]) # probability theta_temp was sampled
                 weight=weight_numerator/weight_denominator
                 NEW_THETAS.append((weight,theta_temp))
+                distances.append((weight,l1_norm(norm_vals)))
 
         total_simulations+=i
         weight_sum=sum([w for (w,_) in NEW_THETAS])
         THETAS=[(w/weight_sum,theta) for (w,theta) in NEW_THETAS]
+        distances=[(w/weight_sum,d) for (w,d) in distances]
         if (printing): print()
         t+=1
 

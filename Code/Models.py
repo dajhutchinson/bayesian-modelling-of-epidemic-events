@@ -21,6 +21,8 @@ class Model():
         self.noise=float # variance of additive gaussian noise (default=0)
         self.param_labels=None # names for each parameter (used for plotting so optional)
 
+        self.x_obs=[int] # x values (typically time periods of actual parameter of model)
+
     def update_params(self,new_params:[float]):
         """
         DESCRIPTION
@@ -449,10 +451,10 @@ class SIRModel(Model):
         else: observations=[]
 
         for t in range(1,max(x_flat)+1):
-            new_infections=int(((last_obs[0]/self.population_size)*last_obs[1])*self.beta)
+            new_infections=((last_obs[0]/self.population_size)*last_obs[1])*self.beta
             new_infections=min(new_infections,last_obs[0])
 
-            new_removed   =int(self.gamma*last_obs[1])
+            new_removed   =self.gamma*last_obs[1]
 
             d_S=-new_infections
             d_I=new_infections-new_removed
@@ -487,6 +489,265 @@ class SIRModel(Model):
         printing_str+="Initially Infected={:,.1f}\n".format(self.initially_infected)
         printing_str+="Beta={:.3f}\n".format(self.beta)
         printing_str+="Gamma={:.3f}\n".format(self.gamma)
+        printing_str+="R_0={:.3f}".format(self.beta/self.gamma)
+
+        return printing_str
+
+class IRModel(SIRModel):
+
+    def __init__(self,params:(int,float,float,float),n_obs:int,x_obs:[int]):
+        """
+        DESCRIPTION
+        Classical SIR model
+
+        params ((int,int,float,float)) - (population_size,initial_infectied_population_size,beta,gamma)
+        n_obs (int) - number of time-periods to run model for
+        x_obs ([int]) - days on which to make observations
+        """
+
+        if (params[0]<params[1]): raise ValueError("Number of initially infected individuals cannot be greater than the population size.")
+
+        # all models have the following
+        self.n_params=4
+        self.population_size=params[0]
+        self.initially_infected=params[1]
+        self.beta=params[2]
+        self.gamma=params[3]
+        self.params=params # parameter values
+
+        self.param_labels=["Susceptible","Infectious","Removed"]
+
+        self.n_obs=n_obs # number of observations made by `observe`
+        self.dim_obs=2 # dimension of each observation
+
+        self.noise=0 # variance of additive gaussian noise (default=0)
+
+        self.x_obs=x_obs
+        self.observations=self._calc(x_obs)
+
+    def update_params(self,new_params:[float]):
+        """
+        DESCRIPTION
+        update the parameters of the model. the observations for `observe` need to be recalculated
+
+        PARAMETERS
+        new_paramas ([float]) - new parameter values
+        """
+        if (len(new_params)!=self.n_params): raise ValueError("Incorrect number of parameters passed. len(params)!=n_params.")
+
+        self.population_size=new_params[0]
+        self.initially_infected=new_params[1]
+        self.beta=new_params[2]
+        self.gamma=new_params[3]
+
+        self.observations=self._calc(self.x_obs)
+
+    def observe(self,inc_noise=True) -> [[float]]:
+        """
+        DESCRIPTION
+        generate a sequence of `n_obs` observations from the model, each of dimension `dim_obs`.
+        The same sequence is returned each time this function is called.
+        sequence is ordered by `x_obs` so is best for `x_obs` to provide a useful ordering.
+
+        PARAMETERS
+        None
+
+        RETURNS
+        [[float]] - sequence of observations
+        """
+        return self.observations
+
+    def _calc(self,x_obs:[int]) -> [(int,int,int)]:
+        """
+        DESCRIPTION
+        calculate the time-series of observations from the specified SIR model (using ODEs)
+
+        PARAMS
+        x_obs ([int]) - Days on which to make observations
+
+        RETURNS
+        [(int,int,int)] - time-series with each data-point being (S,I,R)
+        """
+        last_obs=(self.population_size-self.initially_infected,self.initially_infected,0)
+        x_flat=[x[0] for x in x_obs]
+
+        if 0 in x_flat: observations=[last_obs[1:]] # [(S,I,R)]
+        else: observations=[]
+
+        for t in range(1,max(x_flat)+1):
+            new_infections=((last_obs[0]/self.population_size)*last_obs[1])*self.beta
+            new_infections=min(new_infections,last_obs[0])
+
+            new_removed   =self.gamma*last_obs[1]
+
+            d_S=-new_infections
+            d_I=new_infections-new_removed
+            d_R=new_removed
+
+            new_obs=(max(last_obs[0]+d_S,0),last_obs[1]+d_I,min(last_obs[2]+d_R,self.population_size))
+            if (t in x_flat): observations.append(new_obs[1:])
+
+            last_obs=new_obs
+
+        return observations
+
+    def copy(self,new_params:[float]) -> "Model":
+        """
+        DESCRIPTION
+        create a copy of the model with new parameter values
+
+        PARAMETERS
+        new_params ([float]) - new parameter values
+
+        RETURNS
+        Model - New copy, with stated parameter values
+        """
+        if (type(new_params)!=list): raise TypeError("`new_params` shoud be a list (not {})".format(type(new_params)))
+        if (len(new_params)!=self.n_params): raise TypeError("`new_params` shoud of length `n_params` ({})".format(self.n_params))
+
+        new_model=IRModel(new_params,self.n_obs,self.x_obs)
+        return new_model
+
+    def __str__(self) -> str:
+        printing_str="Population Size={:,.1f}\n".format(self.population_size)
+        printing_str+="Initially Infected={:,.1f}\n".format(self.initially_infected)
+        printing_str+="Beta={:.3f}\n".format(self.beta)
+        printing_str+="Gamma={:.3f}\n".format(self.gamma)
+        printing_str+="R_0={:.3f}".format(self.beta/self.gamma)
+
+        return printing_str
+
+class SIRModelWithReportingRate(SIRModel):
+
+    def __init__(self,params:(int,float,float,float,float),n_obs:int,x_obs:[int]):
+        """
+        DESCRIPTION
+        Classical SIR model
+
+        params ((int,int,float,float)) - (population_size,initial_infectied_population_size,beta,gamma)
+        n_obs (int) - number of time-periods to run model for
+        x_obs ([int]) - days on which to make observations
+        """
+
+        if (params[0]<params[1]): raise ValueError("Number of initially infected individuals cannot be greater than the population size.")
+
+        # all models have the following
+        self.n_params=5
+        self.population_size=params[0]
+        self.initially_infected=params[1]
+        self.beta=params[2]
+        self.gamma=params[3]
+        self.p=params[4] # reporting rate
+        self.params=params # parameter values
+
+        self.param_labels=["Susceptible","Infectious","Removed"]
+
+        self.n_obs=n_obs # number of observations made by `observe`
+        self.dim_obs=3 # dimension of each observation
+
+        self.noise=0 # variance of additive gaussian noise (default=0)
+
+        self.x_obs=x_obs
+        self.observations=self._calc(x_obs)
+
+    def update_params(self,new_params:[float]):
+        """
+        DESCRIPTION
+        update the parameters of the model. the observations for `observe` need to be recalculated
+
+        PARAMETERS
+        new_paramas ([float]) - new parameter values
+        """
+        if (len(new_params)!=self.n_params): raise ValueError("Incorrect number of parameters passed. len(params)!=n_params.")
+
+        self.population_size=new_params[0]
+        self.initially_infected=new_params[1]
+        self.beta=new_params[2]
+        self.gamma=new_params[3]
+
+        self.observations=self._calc(self.x_obs)
+
+    def observe(self,inc_noise=True) -> [[float]]:
+        """
+        DESCRIPTION
+        generate a sequence of `n_obs` observations from the model, each of dimension `dim_obs`.
+        The same sequence is returned each time this function is called.
+        sequence is ordered by `x_obs` so is best for `x_obs` to provide a useful ordering.
+
+        PARAMETERS
+        None
+
+        RETURNS
+        [[float]] - sequence of observations
+        """
+        return self.observations
+
+    def _calc(self,x_obs:[int]) -> [(int,int,int)]:
+        """
+        DESCRIPTION
+        calculate the time-series of observations from the specified SIR model (using ODEs)
+
+        PARAMS
+        x_obs ([int]) - Days on which to make observations
+
+        RETURNS
+        [(int,int,int)] - time-series with each data-point being (S,I,R)
+        """
+        last_obs=(self.population_size-self.initially_infected,self.initially_infected*self.p,self.initially_infected*(1-self.p),0)
+        x_flat=[x[0] for x in x_obs]
+
+        if 0 in x_flat: observations=[[last_obs[0],last_obs[1],last_obs[3]]] # [(S,I,R)]
+        else: observations=[]
+
+        for t in range(1,max(x_flat)+1):
+            new_infections=((last_obs[0]/self.population_size)*(last_obs[1]+last_obs[2]))*self.beta
+            new_infections=min(new_infections,last_obs[0])
+
+            new_reported_infections=new_infections*self.p
+            new_unreported_infections=new_infections*(1-self.p)
+
+            new_removed_reported=self.gamma*last_obs[1]
+            new_removed_unreported=self.gamma*last_obs[2]
+
+            d_S=-new_infections
+            d_reported=new_reported_infections-new_removed_reported
+            d_unreported=new_unreported_infections-new_removed_unreported
+            d_R=new_removed_reported+new_removed_unreported
+
+            new_obs=(max(last_obs[0]+d_S,0),
+                last_obs[1]+d_reported,
+                last_obs[2]+d_unreported,
+                min(last_obs[3]+d_R,self.population_size))
+
+            if (t in x_flat): observations.append([new_obs[0],new_obs[1],new_obs[3]])
+
+            last_obs=new_obs
+
+        return observations
+
+    def copy(self,new_params:[float]) -> "Model":
+        """
+        DESCRIPTION
+        create a copy of the model with new parameter values
+
+        PARAMETERS
+        new_params ([float]) - new parameter values
+
+        RETURNS
+        Model - New copy, with stated parameter values
+        """
+        if (type(new_params)!=list): raise TypeError("`new_params` shoud be a list (not {})".format(type(new_params)))
+        if (len(new_params)!=self.n_params): raise TypeError("`new_params` shoud of length `n_params` ({})".format(self.n_params))
+
+        new_model=SIRModelWithReportingRate(new_params,self.n_obs,self.x_obs)
+        return new_model
+
+    def __str__(self) -> str:
+        printing_str="Population Size={:,.1f}\n".format(self.population_size)
+        printing_str+="Initially Infected={:,.1f}\n".format(self.initially_infected)
+        printing_str+="Beta={:.3f}\n".format(self.beta)
+        printing_str+="Gamma={:.3f}\n".format(self.gamma)
+        printing_str+="p={:.3f}\n".format(self.p)
         printing_str+="R_0={:.3f}".format(self.beta/self.gamma)
 
         return printing_str
@@ -775,3 +1036,291 @@ class GaussianMixtureModel_two(Model):
         printing_str+="X={:.3f}*X_1+{:.3f}*X_2".format(self.weight_1,self.weight_2)
 
         return printing_str
+
+class FranceRonaData(Model):
+
+    def __init__(self):
+        """
+        DESCRIPTION
+        Covid-19 data for france between Jan 24 2020 & March 31 2020
+        (Jan 24th = Date of first confirmed infections)
+        """
+
+        # all models have the following
+        self.n_params=0 # number of parameters
+        self.params=[] # parameter values
+
+        self.n_obs=68 # number of observations made by `observe`
+        self.dim_obs=3 # dimension of each observation
+
+        self.x_obs=list([[i] for i in range(68)])
+
+        self.noise=0 # variance of additive gaussian noise (default=0)
+        self.param_labels=None # names for each parameter (used for plotting so optional)
+
+    def update_params(self,new_params:[float]):
+        """
+        DESCRIPTION
+        update the parameters of the model. the observations for `observe` need to be recalculated
+        Source = https://www.medrxiv.org/content/10.1101/2020.04.26.20081042v1.full.pdf
+
+        PARAMETERS
+        new_paramas ([float]) - new parameter values
+        """
+        self.params=[]
+
+    def observe(self,inc_noise=False) -> [[float]]:
+        """
+        DESCRIPTION
+        generate a sequence of `n_obs` observations from the model, each of dimension `dim_obs`.
+        The same sequence is returned each time this function is called.
+        sequence is ordered by `x_obs` so is best for `x_obs` to provide a useful ordering.
+
+        PARAMETERS
+        None
+
+        RETURNS
+        [[float]] - sequence of observations
+        """
+        french_population=65273511 # 65,273,511
+        infected_data=[2,3,3,3,4,5,5,5,6,6,6,6,6,6,6,11,
+                       11,11,11,9,9,9,7,7,7,7,7,7,7,7,7,7,2,
+                       5,25,44,86,116,176,188,269,359,632,926,1095,1178,1739,2221,2221,3570,
+                       4366,4396,6473,7492,8883,10616,12150,13708,13144,16796,17923,20002,22511,25269,29561,30366,33599,39161]
+        recovered_data=[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                        0,0,0,2,2,2,4,4,4,4,4,4,4,4,4,4,11,
+                        11,11,11,12,12,12,12,12,12,12,12,12,12,12,12,12,12,
+                        12,12,12,12,12,12,12,12,2200,2200,3281,3900,4948,5700,5700,7202,7927,9444]
+        death_data=[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                    0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,
+                    2,2,2,2,2,3,4,4,6,9,11,19,19,33,48,48,79,
+                    91,91,148,148,148,243,450,562,674,860,1100,1331,1696,1995,2314,2606,3020,3517]
+        removed_data=[sum(x) for x in zip(recovered_data,death_data)]
+        susceptible_data=[french_population-infected_data[i]-removed_data[i] for i in range(len(infected_data))]
+
+        return list(zip(susceptible_data,infected_data,removed_data))
+
+    def copy(self,new_params:[float]) -> "Model":
+        """
+        DESCRIPTION
+        create a copy of the model with new parameter values
+
+        PARAMETERS
+        new_params ([float]) - new parameter values
+
+        RETURNS
+        Model - New copy, with stated parameter values
+        """
+        return FranceRonaData
+
+class FranceRonaData_IR(Model):
+
+    def __init__(self):
+        """
+        DESCRIPTION
+        Covid-19 data for france between Jan 24 2020 & March 31 2020
+        (Jan 24th = Date of first confirmed infections)
+        """
+
+        # all models have the following
+        self.n_params=0 # number of parameters
+        self.params=[] # parameter values
+
+        self.n_obs=68 # number of observations made by `observe`
+        self.dim_obs=2 # dimension of each observation
+
+        self.x_obs=list([[i] for i in range(68)])
+
+        self.noise=0 # variance of additive gaussian noise (default=0)
+        self.param_labels=None # names for each parameter (used for plotting so optional)
+
+    def update_params(self,new_params:[float]):
+        """
+        DESCRIPTION
+        update the parameters of the model. the observations for `observe` need to be recalculated
+        Source = https://www.medrxiv.org/content/10.1101/2020.04.26.20081042v1.full.pdf
+
+        PARAMETERS
+        new_paramas ([float]) - new parameter values
+        """
+        self.params=[]
+
+    def observe(self,inc_noise=False) -> [[float]]:
+        """
+        DESCRIPTION
+        generate a sequence of `n_obs` observations from the model, each of dimension `dim_obs`.
+        The same sequence is returned each time this function is called.
+        sequence is ordered by `x_obs` so is best for `x_obs` to provide a useful ordering.
+
+        PARAMETERS
+        None
+
+        RETURNS
+        [[float]] - sequence of observations
+        """
+        french_population=65273511 # 65,273,511
+        infected_data=[2,3,3,3,4,5,5,5,6,6,6,6,6,6,6,11,
+                       11,11,11,9,9,9,7,7,7,7,7,7,7,7,7,7,2,
+                       5,25,44,86,116,176,188,269,359,632,926,1095,1178,1739,2221,2221,3570,
+                       4366,4396,6473,7492,8883,10616,12150,13708,13144,16796,17923,20002,22511,25269,29561,30366,33599,39161]
+        recovered_data=[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                        0,0,0,2,2,2,4,4,4,4,4,4,4,4,4,4,11,
+                        11,11,11,12,12,12,12,12,12,12,12,12,12,12,12,12,12,
+                        12,12,12,12,12,12,12,12,2200,2200,3281,3900,4948,5700,5700,7202,7927,9444]
+        death_data=[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                    0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,
+                    2,2,2,2,2,3,4,4,6,9,11,19,19,33,48,48,79,
+                    91,91,148,148,148,243,450,562,674,860,1100,1331,1696,1995,2314,2606,3020,3517]
+        removed_data=[sum(x) for x in zip(recovered_data,death_data)]
+        susceptible_data=[french_population-infected_data[i]-removed_data[i] for i in range(len(infected_data))]
+
+        return list(zip(infected_data,removed_data))
+
+    def copy(self,new_params:[float]) -> "Model":
+        """
+        DESCRIPTION
+        create a copy of the model with new parameter values
+
+        PARAMETERS
+        new_params ([float]) - new parameter values
+
+        RETURNS
+        Model - New copy, with stated parameter values
+        """
+        return FranceRonaData
+
+class SenegalRonaData(Model):
+
+    def __init__(self):
+        """
+        DESCRIPTION
+        Covid-19 data for Senegal between march 02 2020 & March 31 2020
+        (Jan 24th = Date of first confirmed infections)
+        """
+
+        # all models have the following
+        self.n_params=0 # number of parameters
+        self.params=[] # parameter values
+
+        self.n_obs=30 # number of observations made by `observe`
+        self.dim_obs=3 # dimension of each observation
+
+        self.x_obs=list([[i] for i in range(30)])
+
+        self.noise=0 # variance of additive gaussian noise (default=0)
+        self.param_labels=None # names for each parameter (used for plotting so optional)
+
+    def update_params(self,new_params:[float]):
+        """
+        DESCRIPTION
+        update the parameters of the model. the observations for `observe` need to be recalculated
+        Source = https://www.medrxiv.org/content/10.1101/2020.04.26.20081042v1.full.pdf
+
+        PARAMETERS
+        new_paramas ([float]) - new parameter values
+        """
+        self.params=[]
+
+    def observe(self,inc_noise=False) -> [[float]]:
+        """
+        DESCRIPTION
+        generate a sequence of `n_obs` observations from the model, each of dimension `dim_obs`.
+        The same sequence is returned each time this function is called.
+        sequence is ordered by `x_obs` so is best for `x_obs` to provide a useful ordering.
+
+        PARAMETERS
+        None
+
+        RETURNS
+        [[float]] - sequence of observations
+        """
+        population=16743927 # 16,743,927
+        infected_data=[1,2,3,4,4,4,4,4,4,5,10,21,24,26,27,31,36, 38, 47, 56, 67, 79, 86, 99, 105, 119, 130, 142, 162, 175]
+        recovered_data=[0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 5, 5, 5, 5, 8, 8, 9, 9, 11, 18, 27, 28, 40]
+        death_data=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]
+        active_data=[i-r-d for (i,r,d) in zip(infected_data,recovered_data,death_data)]
+        removed_data=[sum(x) for x in zip(recovered_data,death_data)]
+        susceptible_data=[population-i for i in infected_data]
+
+        return list(zip(susceptible_data,active_data,removed_data))
+
+    def copy(self,new_params:[float]) -> "Model":
+        """
+        DESCRIPTION
+        create a copy of the model with new parameter values
+
+        PARAMETERS
+        new_params ([float]) - new parameter values
+
+        RETURNS
+        Model - New copy, with stated parameter values
+        """
+        return FranceRonaData
+
+class SenegalRonaData_IR(Model):
+
+    def __init__(self):
+        """
+        DESCRIPTION
+        Covid-19 data for Senegal between march 02 2020 & March 31 2020
+        (Jan 24th = Date of first confirmed infections)
+        """
+
+        # all models have the following
+        self.n_params=0 # number of parameters
+        self.params=[] # parameter values
+
+        self.n_obs=30 # number of observations made by `observe`
+        self.dim_obs=2 # dimension of each observation
+
+        self.x_obs=list([[i] for i in range(30)])
+
+        self.noise=0 # variance of additive gaussian noise (default=0)
+        self.param_labels=None # names for each parameter (used for plotting so optional)
+
+    def update_params(self,new_params:[float]):
+        """
+        DESCRIPTION
+        update the parameters of the model. the observations for `observe` need to be recalculated
+        Source = https://www.medrxiv.org/content/10.1101/2020.04.26.20081042v1.full.pdf
+
+        PARAMETERS
+        new_paramas ([float]) - new parameter values
+        """
+        self.params=[]
+
+    def observe(self,inc_noise=False) -> [[float]]:
+        """
+        DESCRIPTION
+        generate a sequence of `n_obs` observations from the model, each of dimension `dim_obs`.
+        The same sequence is returned each time this function is called.
+        sequence is ordered by `x_obs` so is best for `x_obs` to provide a useful ordering.
+
+        PARAMETERS
+        None
+
+        RETURNS
+        [[float]] - sequence of observations
+        """
+        population=16743927 # 16,743,927
+        infected_data=[1,2,3,4,4,4,4,4,4,5,10,21,24,26,27,31,36, 38, 47, 56, 67, 79, 86, 99, 105, 119, 130, 142, 162, 175]
+        recovered_data=[0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 5, 5, 5, 5, 8, 8, 9, 9, 11, 18, 27, 28, 40]
+        death_data=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]
+        active_data=[i-r-d for (i,r,d) in zip(infected_data,recovered_data,death_data)]
+        removed_data=[sum(x) for x in zip(recovered_data,death_data)]
+        susceptible_data=[population-i for i in infected_data]
+
+        return list(zip(active_data,removed_data))
+
+    def copy(self,new_params:[float]) -> "Model":
+        """
+        DESCRIPTION
+        create a copy of the model with new parameter values
+
+        PARAMETERS
+        new_params ([float]) - new parameter values
+
+        RETURNS
+        Model - New copy, with stated parameter values
+        """
+        return FranceRonaData

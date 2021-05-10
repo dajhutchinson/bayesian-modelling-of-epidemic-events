@@ -1974,8 +1974,7 @@
 \newpage
 \section{ABC and Epidemic Events}\label{sec_abc_and_epidemic_events}
 
-  \par In this section I compare the ABC methods discussed in \textit{Section \ref{sec_ABC}} by applying them to toy examples of the compartmental models discussed in \textit{Section \ref{sec_bayesian_modelling_and_epidemic_processes}}; Assess the summary statistic selection methods discussed in \textit{Section \ref{sec_summary_stats}} when applied to compartmental models, including how the dimensionality of summary statistics affects performance of the ABC methods. I close this section by applying the methods to data from ...[Some Real World Event]... % TODO
-  and when models with greater degrees of freedom as used.
+  \par In this section I compare the ABC methods discussed in \textit{Section \ref{sec_ABC}} by applying them to toy examples of the compartmental models discussed in \textit{Section \ref{sec_bayesian_modelling_and_epidemic_processes}}; Assess the summary statistic selection methods discussed in \textit{Section \ref{sec_summary_stats}} when applied to compartmental models, including how the dimensionality of summary statistics affects performance of the ABC methods. I close this section by applying the methods to Covid-19 data from France between $5^{th}$ March and $31^{st}$ March 2020 and when models with greater degrees of freedom as used.
 
   % \par A common difficulty in modelling epidemic events is the lack of available data. Moreover, most epidemics are only experienced once making it very difficult to account for random variability. % TODO
 
@@ -1989,7 +1988,7 @@
 
   \par It is very difficult to set up these experiments to make a fair comparison between the algorithms. In practice the limiting factor when implementing these algorithms is time meaning a proper assessment should set a time-limit for each algorithm. However, the model I am fitting on is relatively simple and in practice this time-limit would likely be several days, meaning any half-decent algorithm will produce an accurate result by the cutoff-time. Rather, I cut each algorithm after 5,000 simulations\footnote{5,000 was chosen as pilot experiments showed that it allowed all algorithms to perform well, in a relatively short period of time (minutes rather than hours), without any algorithm converging completely. The quick runtimes of each algorithm allows for multiple runs of each experiment to be made and the variability between each to be assessed.} (except for ABC-Rejection Sampling will performs 50,000 and is still by far the quickest algorithm). This means my experiments focus on assessing the algorithms ability to extract information from each simulation, rather than on the asymptotic behaviour of each algorithm.
 
-\subsubsection*{Experiment Specification}
+\subsubsection*{Experiment Methodology}
 
   \par I assess five different ABC-methods: ``Best Samples'' ABC-Rejection Sampling, \textit{Algorithm \ref{alg_abc_rejection_best}}; ABC-Importance Sampling, \textit{Algorithm \ref{alg_abc_importance_sampling}}; ABC-MCMC, \textit{Algorithm \ref{alg_abc_mcmc}}; ABC-SMC, \textit{Algorithm \ref{alg_abc_smc}}; and, an adaptive version of ABC-SMC, specified below.
 
@@ -2010,6 +2009,8 @@
   \par ABC-MCMC and ABC-SMC require the specification of perturbance kernels. These were set to be additive gaussian noise with variance 0.1 for both parameters. Pilot experiments showed that this value of the variance produced good mixing and the desired acceptance rates, although little difference is seen when using values of a similar order of magnitude.
 
   \par In \textit{Section \ref{sec_abc_smc}} an adaptive version of ABC-SMC is discussed which requires the fewest hyper-parameter specifications (Hereby known as ``Adaptive ABC-SMC''). This method automatically sets the perturbance kernel variance to be twice the dimension-wise variance of the previously accepted set of particles and the acceptance kernel bandwidth is automatically set such that only the first $\alpha\%$ of the previously accepted set of particles would have been accepted, were $\alpha\in[0,100]$ is defined by the user. For ease-of-implementation, I defined the acceptance kernel to be the uniform kernel and $\alpha=90$ as this means the acceptance kernel bandwidth is just the $90^{th}$ percentile of the distance values of particles accepted in the previous step.
+
+\subsubsection*{Results - Experiment One}
 
   \begin{table}[H]
     % \centering
@@ -2032,7 +2033,7 @@
       ABC-SMC&[1.723,2.318]&[0.921,1.089]&[0.411,0.632]\\\hline
       Adaptive ABC-SMC&[1.852,2.235]&[0.947,1.057]&[0.422,0.572]\\\hline
     \end{tabular}
-    \caption{The Residual Sum of Squares Error (RSSE); 95\% confidence intervals for $R_0,\beta$ \& $\gamma$; and, the execution time of different ABC methods when given the full time-series and using the identity function as the summary statistic. Values are the mean of 50 independent runs of each algorithm. True values: $R_0^*=2,\ \beta^*=1,\ \gamma^*=0.5$.}
+    \caption{The Residual Sum of Squares Error (RSSE) of the natural logarithm of values; 95\% confidence intervals for $R_0,\beta$ \& $\gamma$; and, the execution time of different ABC methods when given the full time-series and using the identity function as the summary statistic. Values are the mean of 50 independent runs of each algorithm. True values: $R_0^*=2,\ \beta^*=1,\ \gamma^*=0.5$.}
     \label{table_abc_methods_on_sir_model}
   \end{table}
 
@@ -2070,13 +2071,17 @@
     \label{fig_joint_distribution_full_time_series}
   \end{figure}
 
-\subsubsection*{Results - Experiment One}
-
   The first experiment ran each algorithm 50 times on the full time-series data, with the configurations described above. \textit{Table \ref{table_abc_methods_on_sir_model}} provides a summary of these results and \textit{Figure \ref{fig_joint_distribution_full_time_series}} provides the marginal and joint posteriors returned by each algorithm.
 
-  \par It is apparent from the distributions in \textit{Figure \ref{fig_joint_distribution_full_time_series}} that all algorithms have achieved a significant level of learning as the priors (black) and estimated posteriors (blue/orange) are highly dissimilar. This is clear when you observe the plots of the joint distribution as the limits of the plot include the whole prior space but the vast majority of each plot is white, indicating effectively no posterior mass is placed in those regions. Moreover, each algorithm has estimated a posterior which significant posterior mass around the true parameter values.
+  \par It is apparent from the distributions in \textit{Figure \ref{fig_joint_distribution_full_time_series}} that all methods have achieved a significant level of learning as the priors (black) and estimated posteriors (blue/orange) are highly dissimilar. This is clear when you observe the plots of the joint distribution as the limits of the plot include the whole prior space but the vast majority of each plot is white, indicating effectively no posterior mass is placed in those regions. Moreover, each algorithm has estimated a posterior which significant posterior mass around the true parameter values.
 
-  \par The best fitting model is produced by the ABC-SMC algorithm (RSSE=2,393) with the Adaptive ABC-SMC producing only a slightly worse fit (RSSE=2,563). This is highly encouraging for the Adaptive ABC-SMC algorithm as it requires significantly less tuning then all the other algorithms, except for ``Best Samples'' ABC-Rejection Sampling which does not perform nearly as well (RSSE=3,721). However, the Adaptive ABC-SMC algorithm took on average 4.24 times as long to be executed than the ABC-SMC algorithm. This is unsurprising as many of the first iterations of Adaptive ABC-SMC have almost a 100\% acceptance rate whilst the acceptance kernel bandwidth is still large. This high acceptance rate is inefficient as significant computation time occurs at the end of each step of the Adaptive ABC-SMC algorithm in order to calculate perturbance kernel variances and acceptance kernel bandwidths, meaning the average computation time per simulation is notably greater early on in the algorithms run.
+  \begin{figure}[H]
+    \centering\includegraphics[width=.7\textwidth]{Semi_Auto_ABC_SMC_full_data_CI.png}
+    \caption{95\% Confidence Intervals for model fitted to the SIR model described in \textit{Figure \ref{fig_example_standard_sir_model}} using adaptive ABC-SMC with ~5,000 simulations and the identity function as the summary statistic. 95\% confidence interval for $R_0$ is [1.784,2.266].}
+    \label{fig_abc_smc_sir_identity_95_ci}
+  \end{figure}
+
+  \par The best fitting model is produced by the ABC-SMC algorithm (RSSE=2,393) with the Adaptive ABC-SMC producing only a slightly worse fit (RSSE=2,563, See \textit{Figure \ref{fig_abc_smc_sir_identity_95_ci}}) . This is highly encouraging for the Adaptive ABC-SMC algorithm as it requires significantly less tuning then all the other algorithms, except for ``Best Samples'' ABC-Rejection Sampling which does not perform nearly as well (RSSE=3,721). However, the Adaptive ABC-SMC algorithm took on average 4.24 times as long to be executed than the ABC-SMC algorithm. This is unsurprising as many of the first iterations of Adaptive ABC-SMC have almost a 100\% acceptance rate whilst the acceptance kernel bandwidth is still large. This high acceptance rate is inefficient as significant computation time occurs at the end of each step of the Adaptive ABC-SMC algorithm in order to calculate perturbance kernel variances and acceptance kernel bandwidths, meaning the average computation time per simulation is notably greater early on in the algorithms run.
 
   \par By inspecting \textit{Table \ref{table_abc_methods_on_sir_model}} we can note that all the algorithms produce 95\% confidence intervals which include the true value of both model parameters. The confidence intervals produced for $\beta$ are notably tighter than those produced for $\gamma$ in all cases except for ``Best Samples'' ABC-Rejection Sampling. This is surprising as the magnitude of $\beta$ is greater than that of $\gamma$ so we would expect small changes in $\gamma$ to have a greater affect on the resulting model fit. This is likely a result of the peak of infections occurring in the later half of the time-series (day 17 of 30) and thus there being more days in which infections are increasing.
 
@@ -2087,6 +2092,8 @@
   \end{figure}
 
   \par The ``Best Samples'' ABC-Rejection Sampling algorithm is the only one to produce a bi-modal posterior. The majority of the estimated posterior mass is placed around the true values of the parameters, but a non-neglible amount is also placed around $(\beta,\gamma)=(0,0)$. This pair of parameter values is the unique case where no infections ever occur. \textit{Figure \ref{fig_abc_rejection_accepted}} plots all the simulated values which were accepted by a particular run of the ``Best Samples'' ABC-Rejection Sampling algorithm, along with the observed data (solid line) and the data generated by a model fitted with posterior means (dashed line). In \textit{Figure \ref{fig_abc_rejection_accepted}} we can clearly see these special cases where $(\beta,\gamma)\simeq(0,0)$ as their simulated values never leave the horizontal axes. This plot motivates the ability to set the acceptance rate of the ``Best Samples'' flavour of ABC-Rejection Sampling after all samples have been generated as we clearly see that these special cases will have distinctly greater distance values that the other accepted samples and thus would have just snuck into the top 1\% of samples. We can justify tightening the acceptance criteria to exclude these simulations as they are demonstrably incorrect.
+
+\subsubsection*{Results - Experiment Two}
 
   \begin{table}[H]
     \centering
@@ -2102,14 +2109,6 @@
     \caption{Leave-One-Out Cross-Validation Scores for different ABC algorithms when applied to the SIR model described in \textit{Figure \ref{fig_example_standard_sir_model}}. Each algorithm performed approximately 5,000 simulations each iteration, had rough tuning to achieve appropriate acceptance rates and used the identity function as the summary statistic.}
     \label{table_abc_methods_on_sir_model_loo_cv}
   \end{table}
-
-  \begin{figure}[H]
-    \centering\includegraphics[width=.7\textwidth]{Semi_Auto_ABC_SMC_full_data_CI.png}
-    \caption{95\% Confidence Intervals for model fitted to the SIR model described in \textit{Figure \ref{fig_example_standard_sir_model}} using adaptive ABC-SMC with ~10,000 simulations and the identity function as the summary statistic. 95\% confidence interval for $R_0$ is [1.784,2.266].}
-    \label{fig_abc_smc_sir_identity_95_ci}
-  \end{figure}
-
-\subsubsection*{Results - Experiment Two}
 
   The second experiment assessed the general performance of the ABC methods when applied to standard SIR models by performing a leave-one-out cross-validation of each algorithm.
 
@@ -2214,7 +2213,7 @@
     \label{fig_semi_auto_restricted_data}
   \end{figure}
 
-\subsection{Real Data}\label{sec_real_data}
+\subsection{Real Data: France Covid-19}\label{sec_real_data}
 
   %https://www.medrxiv.org/content/10.1101/2020.04.26.20081042v1.full.pdf
 
