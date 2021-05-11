@@ -1,6 +1,6 @@
 \documentclass[11pt,a4paper]{article}
 
-\usepackage{amsmath,amsthm,amsfonts,bbm,chngcntr,environ,fancyhdr,float,graphicx,hyperref,mdframed,natbib,subcaption,tikz}
+\usepackage{amsmath,amsthm,amsfonts,bbm,chngcntr,enumitem,environ,fancyhdr,float,framed,graphicx,hyperref,mdframed,multicol,natbib,subcaption,tikz}
 \usepackage[vlined,linesnumbered]{algorithm2e}
 \usepackage[font=footnotesize]{caption}
 \usepackage[hang,flushmargin,perpage]{footmisc}
@@ -1998,9 +1998,9 @@
 
   \par The identity function $s(x)=x$ was used as the summary statistic for each algorithm due to it being sufficient and thus meaning the algorithms would converge on the true posterior. The use of the identity function is not necessarily ideal as it means the distance measure has to compare 90 data-points, as the same distance measure is used by all algorithms the issues should be shared. However, the choice of distance measure will affect ABC-IS and ABC-SMC more as distances are used to weight accepted parameter sets.
 
-  \par The Euclidean distance of the logarithm of each value (\ref{log_euclidean_distance}) was used as the distance measure. Logarithms were taken due to the nature of the values in the SIR model. If raw values are compared, rather than logarithms, then much greater emphasis would be placed on fitting to the greatest values (The susceptible population in the early time-steps and the removed population in the later time-steps) which is not ideal as it means a loser fit is required for the lower values, such as the infectious population size.
+  \par The Euclidean distance of the logarithm of each value (\ref{eqn_log_euclidean_distance}) was used as the distance measure. Logarithms were taken due to the nature of the values in the SIR model. If raw values are compared, rather than logarithms, then much greater emphasis would be placed on fitting to the greatest values (The susceptible population in the early time-steps and the removed population in the later time-steps) which is not ideal as it means a loser fit is required for the lower values, such as the infectious population size.
 
-  \begin{equation}\label{log_euclidean_distance}
+  \begin{equation}\label{eqn_log_euclidean_distance}
     \|x-y\|=\sqrt{\sum_{i=1}^n\big(\ln(x_i)-\ln(y_i)\big)^2}\text{ where }n=|x|=|y|
   \end{equation}
 
@@ -2110,30 +2110,103 @@
     \label{table_abc_methods_on_sir_model_loo_cv}
   \end{table}
 
-  The second experiment assessed the general performance of the ABC methods when applied to standard SIR models by performing a leave-one-out cross-validation of each algorithm.
+  \par The second experiment assessed the general performance of the ABC methods when applied to standard SIR models by performing a leave-one-out cross-validation of each algorithm. A leave-one-out cross-validation was performed on each algorithm when applied to the SIR model depicted in \textit{Figure \ref{fig_example_standard_sir_model}}, with each algorithm configured as described at the start of this section. The score of each algorithm is given in \textit{Table \ref{table_abc_methods_on_sir_model_loo_cv}}.
+
+  \par The Adaptive of ABC-SMC achieves the lowest LOO-CV score, suggesting it performs the best in general scenarios. This is unsurprising as each iteration of the cross-validation sees a different piece of data missing and thus the optimal configuration of the hyper-parameters will be different each time. As Adaptive ABC-SMC automatically updates the majority of its hyper-parameters it should perform well in this test, and does.
+
+  \par The difference in scores between each algorithm in \textit{Table \ref{table_abc_methods_on_sir_model_loo_cv}} than in \textit{Table \ref{table_abc_methods_on_sir_model}}, when the full time-series was supplied to each algorithm. This demonstrates the effect that tuning of parameters has on the performance of each algorithm.
+
+  \par A closer inspection of the results from the cross-validation showed that the majority (40-60\%) of the total error from each algorithm occurred when one of the data-points from days 14-18 was removed. This is due to these days coincide with the peak-infectious population size which is a key point in the lifespan of an epidemic and is the point at which more information is available about parameter $\beta$ than $\gamma$.
 
 \subsection{Comparison of Summary Statistic Methods}\label{sec_comparison_of_ss_methods}
 
-  \par HIV paper suggests using peak infection value and date.
+  \par \textit{Section \ref{sec_summary_stats}} presented four methods for automating the process of choosing summary statistics for ABC-methods: Approximately Sufficient Subset (ASS); Minimum Entropy (ME); Two-Step Minimum Entropy (2-ME); and, Semi-Automatic ABC (SA-ABC). Here I assessed these algorithms by running 50 instances of each algorithm; Running the Adaptive ABC-SMC algorithm, for 5,000 simulations, using the most recommended set of summary statistics from each algorithm; and then calculating the mean-square error produced by a model fitted with the estimated posterior mean of each parameter.
 
   \begin{table}[H]
     \centering
+    \begin{framed}
+      {\small
+        \begin{multicols}{2}
+          \begin{enumerate}[label=(S\arabic*)]
+            \item *Peak size of infectious population (1).\label{table_list_of_summary_statistics_peak_size}
+            \item Date of peak infectious population (1).\label{table_list_of_summary_statistics_peak_date}
+            \item *Final size of susceptible population (1).\label{table_list_of_summary_statistics_final_sus}
+            \item *Final size of infectious population (1).
+            \item *Final size of removed population (1).
+            \item *Mean size of susceptible population (1).
+            \item *Mean size of infectious population (1).\label{table_list_of_summary_statistics_mean_inf}
+            \item *Mean size of removed population (1).\label{table_list_of_summary_statistics_mean_rem}
+            \item *Maximum day-on-day increase in infectious population (1).
+            \item *Maximum day-on-day increase in removed population (1).
+            \item *Population sizes on days 1,\dots,30 as different statistics (3).\label{table_list_of_summary_statistics_daily}
+            \item *Net weekly change in susceptible population (4).
+            \item *Net weekly change in infectious population (4).
+            \item *Net weekly change in removed population (4).
+            \item *Net daily change in susceptible population (29).
+            \item *Net daily change in infectious population (29).
+            \item *Net daily change in removed population (29).
+            \item *Cummulative sum of daily susceptible population (29).
+            \item *Cummulative sum of daily infectious population (29).
+            \item *Cummulative sum of daily removed population (29).
+            \item Uniform random variable in [10,22] (1).\label{table_list_of_summary_statistics_random}
+            \item Constant mapping to 16 $s(x)=16$ (1).\label{table_list_of_summary_statistics_constant}
+          \end{enumerate}
+        \end{multicols}
+      }
+    \end{framed}
+    \caption{Comprehensive set of 99 summary statistics supplied to the ASS, ME and 2-ME algorithms. An asterisk (*) denotes that a summary statistic of the natural logarithm of this value was supplied as well. In brackets is the dimensionality of each summary statistic when applied to the SIR-model depicted in \textit{Figure \ref{fig_example_standard_sir_model}} which runs for 30 time-periods.}
+    \label{table_list_of_summary_statistics}
+  \end{table}
+
+  \par Three of the algorithms presented in \textit{Section \ref{sec_summary_stats}} (ASS,ME and 2-ME) choose an optimal set of summary statistics from a larger set. \textit{Table \ref{table_list_of_summary_statistics}} provides the set of summary statistics supplied to these algorithms. (\ref{table_list_of_summary_statistics_peak_size},\ref{table_list_of_summary_statistics_peak_date}) are taken from \cite[]{hiv_with_contact_tracing} which found the peak size of the infectious population and the date on which this peak occurred to be the best performing summary statistics when applied to data regarding HIV in Cuba\footnote{It is noteworthy that they were working with yearly data, so this result may be less applicable to data collected at shorter intervals.}. (\ref{table_list_of_summary_statistics_random},\ref{table_list_of_summary_statistics_constant}) are totally uninformative and were supplied to test whether the algorithms would ever choose such summary statistics. These two summary statistics were specified to both have an expected value of 16 so that they coincide with (\ref{table_list_of_summary_statistics_peak_date}) for the true model.
+
+  \par All four algorithms were configured to use the log-Euclidean distance (\ref{eqn_log_euclidean_distance}). The ASS algorithm was configured to generate 100,000 simulations and to use a Gaussian acceptance kernel with bandwidth .5. These simulations and kernel were used to determine which sets of parameters to accept for each set of summary statistics, and these sets were then supplied to \textit{Algorithm \ref{alg_evaluate_proposed_statistic}} in order to determine whether to accept the newly proposed summary statistic.
+
+  \par Algorithm ME was configured to generate 100,000 simulations from which the best 1,000 were chosen (using ``Best Samples'' ABC-Rejection Sampling) and entropy estimated from. Algorithm 2-ME was configured to run ME, as just described, to identify the initial set of summary statistics $S_{ME}$ and to retain the best 100 simulations $\hat\Theta_{ME}$ according to $S_{ME}$. 100,000 fresh simulations were then generated and the 1,000 best simulations $\Theta_{acc}$ were identified for each set of summary statistics (using ``Best Samples'' ABC-Rejection Sampling) and the MRSSE was calculated between $\Theta_{acc}$ and $\hat\Theta_{ME}$. For time-tractability both algorithms were restricted to only considering subsets of summary statistics up to size four, this still involved the consideration of 92,170 different subsets\footnote{(\ref{table_list_of_summary_statistics_daily}) were removed from the set of possible summary statistics for these two algorithms as it represents 60 unique summary statistics and thus would bring the total number of sets up to size four to 3,926,175.}.
+
+  \par The pilot posterior $f_{\theta}$ for SA-ABC was generated by ``Best Samples'' ABC-Rejection Sampling using the identity function and retaining the best 1,000 of a set of 100,000 simulations. 5,000 sets of parameters were then generated from the pilot posterior $f_\theta$ and used in the regression to calculate the summary statistics. As the SIR model has two parameters SA-ABC generates a summary statistic with two dimensions.
+
+  \par To compare the performance of each algorithm I ran each algorithm 50 times and identified the most commonly returned set of statistics. Adaptive ABC-SMC\footnote{Adaptive ABC-SMC was used as it performed best in the general setting in \textit{Section \ref{sec_comparison_of_abc_methods}}. Adaptive ABC-SMC was configured as described in \textit{Section \ref{sec_comparison_of_abc_methods}} so that the results from \textit{Table \ref{table_abc_methods_on_sir_model}} can be used as a benchmark.}. was then run 50 times with each set of statistics and the average MSE was calculated between models fitted with the estimated posterior means and the true model. I chose to only calculate the MSE for the most commonly returned set of statistics, rather than for each set of returned statistics and taking the mean, as each the tested methods only takes a few minutes to run and thus it is reasonable to run each algorithm many times. Moreover, for each algorithm there was a set of statistics which was chosen significantly more often than any other.
+
+\subsubsection*{Results}
+
+  \begin{table}[H]
+    % \centering
+    \begin{tabular}{|l|l|l|l|}
+      \hline
+      \textbf{Algorithm}&\textbf{Returned Statistics}&\textbf{Dimensions}&\textbf{\% Runs Returned}\\
+      \hline \hline
+      Control&Identity Function&90&N/A\\\hline
+      Approximately Sufficient&[Log-Final Susceptible Population (\ref{table_list_of_summary_statistics_final_sus}*)]&1&44\%\\
+       Subset&&&\\\hline
+      Minimum Entropy&[Log-Mean Infectious Population (\ref{table_list_of_summary_statistics_mean_inf}*),&2&30\%\\
+      &Log-Mean Removed Population (\ref{table_list_of_summary_statistics_mean_rem}*)]&&\\\hline
+      2-Step ME&[Log-Peak Infectious Population Size (\ref{table_list_of_summary_statistics_peak_size}*),&3&34\%\\
+      &Log-Mean Infectious Population (\ref{table_list_of_summary_statistics_mean_inf}*),&&\\
+      &Log-Mean Removed Population (\ref{table_list_of_summary_statistics_mean_rem}*)]&&\\\hline
+      Semi-Automatic ABC&N/A&2&N/A\\\hline
+    \end{tabular}\\
+    \bigskip
     \begin{tabular}{|l|l|l|}
       \hline
-      \textbf{Algorithm}&\textbf{Statistics}&\textbf{ABC-SMC MSE}\\
+      \textbf{Algorithm}&\textbf{ABC-SMC MSE}&\textbf{Time (s)}\\
       \hline \hline
-      Control&Identity Function&121,777\\\hline
-      Joyce-Marjoram&[Final Susceptible Population]&101,730,336\\\hline
-      Minimum Entropy&[Mean Infectious Population,&\\
-      &Mean Removed Population]&1,131,712\\\hline
-      2-Step ME&[Peak Infectious Population Size,&228,150\\
-      &Mean Infectious Population,&\\
-      &Mean Removed Population]&\\\hline
-      Semi-Automatic ABC&N/A&643,255\\\hline
-    \end{tabular}
-    \caption{Mean square error when using Adaptive ABC-SMC to fit the SIR model described in \textit{Figure \ref{fig_example_standard_sir_model}} with the the recommended summary statistics from each algorithm.}
+      \textit{Control}&121,777&N/A\\\hline
+      Approximately Sufficient Subset&101,730,336&25\\\hline
+      Minimum Entropy&1,131,712&150\\\hline
+      2-Step ME&228,150&302\\\hline
+      Semi-Automatic ABC&643,255&102\\\hline
+    \end{tabular}\\
+
+    \caption{The most commonly returned set of summary statistics returned by each algorithm and the mean square error when using Adaptive ABC-SMC to fit the SIR model described in \textit{Figure \ref{fig_example_standard_sir_model}} with said set of statistics. Additionally, the dimensionality of each summary statistic when applied to the SIR-model depicted in \textit{Figure \ref{fig_example_standard_sir_model}}; the percentage of instances in which this set of statistics was returned; and, the mean runtime of each selection algorithm are given. All values are the means over 50 instances of each selection algorithm. Note that in all cases the natural logarithm version of a summary statistic was chosen, rather than its raw value.}
     \label{table_summary_selection_methods_on_sir_model}
   \end{table}
+
+  \par \textit{Table \ref{table_summary_selection_methods_on_sir_model}} provides the summary of the results of running each selection algorithm 50 times and then running Adaptive ABC-SMC with the most commonly returned set of statistics. None of the returned set of statistics performs as well as the identity function, although it would be very surprising if this was the case. Both 2-ME and SA-ABC returned sets of summary statistics which produced MSE of the same order of magnitude as the identity function despite only having 3 and 2 dimensions, respectively, compared to the 90 of the identity function. The ASS algorithm performs very poorly, this is likely due to difficulties in implementation which mean it heavily favours low dimension summary statistics. ME produces a well performing set of summary statistics, but it is notably slower and produces a greater MSE than SA-ABC. It is noteworthy that 2-ME returns a set of summary statistics which is a superset of those returned by ME. This indicates that the second step of 2-ME does draw more nuance than ME, the motivation behind adding the second step.
+
+  \par These results demonstrate that their are methods for selecting summary statistics which produce summary statistics which perform similarly to the identity function despite having significantly fewer dimensions. Moreover, if these algorithms were supplied with more simulations then we can expect for the difference in performance between the identity function and generated summary statistics to decrease. This is more relevant to SA-ABC as each extra simulation means its regression step is more informed, while 2-ME can only ever return a set of statistics from a predefined set and thus more simulations would only make its returned results more consistent.
+
+  \par None of the algorithms returned the same set of summary statistics a majority of the time. An inspection of the distribution of returned sets shows that the sets given in \textit{Table \ref{table_summary_selection_methods_on_sir_model}} were all accepted as least 3 times more often than the next most commonly returned sets. If the algorithms were given more simulations then this ratio should increase as the estimated values (i.e. entropy) will tend towards their true value, by the law of large numbers.
 
   \begin{figure}[H]
     \centering
@@ -2155,6 +2228,10 @@
     \label{fig_compare_summary_statistic_selections}
   \end{figure}
 
+  \textit{Figure \ref{fig_compare_summary_statistic_selections}} provides plots of the 95\% confidence intervals for each population size produced by ABC-SMC when using the summary statistics returned by 2-ME (\ref{fig_summary_statistic_selected_by_two_step_me}) and SA-ABC (\ref{fig_summary_statistic_selected_by_semi_auto}). (See \textit{Figure \ref{fig_abc_smc_sir_identity_95_ci}} for the results when the identity function is used). A notable difference between the two plots its their confidence around the peak of the infection, with 2-ME having much more concentrated certainty around the true peak than SA-ABC. This is due to the set of statistics returned by 2-ME including the logarithm of the peak number of infections. Moreover, \textit{Figure \ref{fig_summary_statistic_selected_by_semi_auto}} perfectly fits the infectious population until the peak is reached at which point it typically expected the peak to occur later than it actually does.
+
+  \par This difference in the resulting fit of the two sets of summary statistics suggests that different selection algorithms should be used for different inference problems. With SA-ABC being best suited for general problems regarding the full time-series, whilst 2-ME is better when you have a specific problem (e.g. will hospitals be over-run when the peak of infections occurs) as you can supply it summary statistics which it is reasonable to expect to perform well for this problem (e.g. (\ref{table_list_of_summary_statistics_peak_size},\ref{table_list_of_summary_statistics_peak_date}) for problems regarding peak infections).
+
 \subsection{The Effect of Dimensionality}\label{sec_effect_of_dimensionality}
 
   Plot dimensionality of summary stats against MSE (use ME to choose best at each dimensionality)
@@ -2167,11 +2244,11 @@
       1&[Mean Susceptible Population]&-9.48&2,272,479\\\hline
       2&[Mean Infectious Population,&-10.74&1,131,712\\
       &Mean Removed Population]&&\\\hline
-      3&[Final Removed Population,&-10.69&1,540,652\\
+      3&[Final Removed Population,&-10.59&1,540,652\\
       &Mean Infectious Population,&&\\
       &Mean Removed Population]&&\\\hline
-      4&[Net Weekly Change in Removed Population]&-10.70&756,888\\\hline
-      90&Identity Function&-10.70&756,888\\\hline
+      4&[Net Weekly Change in Removed Population]&-10.60&756,888\\\hline
+      90&Identity Function&-11.70&756,888\\\hline
     \end{tabular}
     \caption{The best summary statistics at each dimensionality according to the minimum entropy algorithm, along with their estimated entropy values and mean square error.}
     \label{table_dimensionality_of_summary_statistics}
@@ -2217,12 +2294,91 @@
 
   %https://www.medrxiv.org/content/10.1101/2020.04.26.20081042v1.full.pdf
 
+\subsection{Real Data: Senegal Covid-19}\label{sec_real_data}
+
+  %https://www.medrxiv.org/content/10.1101/2020.04.26.20081042v1.full.pdf
+
+  \par Priors $\pi_{0,\beta}\sim\mathcal{U}(0,0.5),\ \pi_0{0,\gamma}\sim\mathcal{U}(.01,.1)$
+
+  \par Rejection Sampling = 500,000 simulations and keep best 500. (5 minutes)
+  \par Adaptive ABC-SMC = 5000 simulations, $\alpha=.9$ (26 minutes)
+  \par Semi-Auto = 500,000 simulations, keep 100, generate 5,000 (dim=2)
+  \par ME = 10,000 simulations per set, keep 100, max-size=4. Chose=[final\_removed\_ss,net\_weekly\_infections\_ss] (dim=5)
+  \par 2-ME = Same as ME
+
+  \begin{figure}[H]
+    \centering
+    \makebox[\textwidth][c]{
+      \begin{subfigure}{.45\paperwidth}
+        \centering
+        \includegraphics[width=\textwidth]{senegal_abc_rejection_identity_ci.PNG}
+        \caption{"Best Samples" ABC-Rejection Sampling. 95\% CI for $R_0=[5.996,7.172]$. RSSE=316.}
+        \label{fig_senegal_identity_ci_rejection_ci}
+      \end{subfigure}
+      \begin{subfigure}{.45\paperwidth}
+        \centering
+        % TODO redo vertical axes on confidence interval plots
+        \includegraphics[width=\textwidth]{senegal_adapt_abc_smc_identity_ci.PNG}
+        \caption{Adaptive ABC-SMC. 95\% CI for [3.160,8.107]. RSSE=376.}
+        \label{fig_senegal_identity_ci_adapt_abc_smc}
+      \end{subfigure}
+    }
+    \caption{95\% confidence intervals for infectious (blue) and removed (red) populations for Covid-19 in Senegal between March 2nd 2020 and March 31st 2020 using ``Best Samples'' ABC-Rejection Sampling and Adaptive ABC-SMC respectively. Both methods use the Log-Euclidean distance as their distance measures and the identity function of the infectious and removed populations as their summary statistic. The size of the susceptible population is not considered.}
+    \label{fig_senegal_identity_ci}
+  \end{figure}
+
+  \begin{figure}[H]
+    \centering
+    \makebox[\textwidth][c]{
+      \begin{subfigure}{.45\paperwidth}
+        \centering
+        \includegraphics[width=\textwidth]{senegal_me_adapt_abc_smc_posterior.PNG}
+        \caption{Joint and marginal posteriors for $\beta$ and $\gamma$.}
+        \label{fig_senegal_me_posterior}
+      \end{subfigure}
+      \begin{subfigure}{.45\paperwidth}
+        \centering
+        % TODO redo vertical axes on confidence interval plots
+        \includegraphics[width=\textwidth]{senegal_me_adapt_abc_smc_ci.PNG}
+        \caption{95\% confidence intervals for population sizes. RSSE=324.}
+        \label{fig_senegal_me_ci}
+      \end{subfigure}
+    }
+    \caption{Estimated posteriors for SIR model parameters and resulting 95\% confidence intervals for the sizes of the infectious (blue) and removed (red) populations for Covid-19 in Senegal between March 2nd 2020 and March 31st 2020 when using Adaptive ABC-SMC with summary statistics generated by Minimum Entropy. 95\% CI for $R_0=[4.103,7.566],\ \beta=[0.185,0.211],\ \gamma=[0.049,0.012]$.}
+    \label{fig_senegal_me}
+  \end{figure}
+
+  \begin{figure}[H]
+    \centering
+    \makebox[\textwidth][c]{
+      \begin{subfigure}{.45\paperwidth}
+        \centering
+        \includegraphics[width=\textwidth]{senegal_semi_auto_adapt_abc_smc_posterior.PNG}
+        \caption{Joint and marginal posteriors for $\beta$ and $\gamma$.}
+        \label{fig_senegal_semi_auto_posterior}
+      \end{subfigure}
+      \begin{subfigure}{.45\paperwidth}
+        \centering
+        % TODO redo vertical axes on confidence interval plots
+        \includegraphics[width=\textwidth]{senegal_semi_auto_adapt_abc_smc_ci.PNG}
+        \caption{95\% confidence intervals for population sizes. RSSE=240.}
+        \label{fig_senegal_semi_auto_ci}
+      \end{subfigure}
+    }
+    \caption{Estimated posteriors for SIR model parameters and resulting 95\% confidence intervals for the sizes of the infectious (blue) and removed (red) populations for Covid-19 in Senegal between March 2nd 2020 and March 31st 2020 when using Adaptive ABC-SMC with summary statistics generated by Semi-Automatic ABC. 95\% CI for $R_0=[2.547,11.937],\ \beta=[0.163,0.270],\ \gamma=[0.013,0.107]$.}
+    \label{}
+  \end{figure}
+
+
 \subsection{More Complex Models}\label{sec_more_complex_models}
 
   \par Summary statistic methods should perform well in all scenarios where ABC performs well as they are just extensions of ABC.
 
 \newpage
 \section{Conclusion}
+
+  \par Selection methods work
+  \par Different methods better suited to different problems (2-ME for specific problems and SA-ABC for more general)
 
 \subsection{Future Areas of Research}
 
