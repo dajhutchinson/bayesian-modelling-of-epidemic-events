@@ -1772,17 +1772,17 @@
   % TODO talk about multi-variate more?
   % \par Degenerate distributions\footnote{Distributions where the outcome is always the same known event (e.g. flipping a two-headed coin).} have the lowest entropy value, 0, whilst uniform distributions have the highest 1.
 
-  \begin{box_definition}[$k^{th}$-Nearest Neighbour Estimator of Entropy, \cite{nearest_neighbour_estimates_of_entropy}]\label{def_knn_neighbour}
+  \begin{box_definition}[$k^{th}$-Nearest Neighbour Estimator of Entropy, \cite{nearest_neighbour_estimates_of_entropy}]\label{def_knn_entropy}
     Consider a distribution $X$ with $\rho$ different parameters and a set of parameter values $\Theta$ which were accepted during some ABC-method, with $n=|\Theta|$. \cite{nearest_neighbour_estimates_of_entropy} define the $k^{th}$-nearest neighbour estimator of entropy as
     \[ \hat{H}=\ln\left(\frac{\pi^{\rho/2}}{\Gamma\left(1+\frac\rho2\right)}\right)-\frac{\Gamma'(k)}{\Gamma(k)}+\ln(n)+\frac\rho{n}\sum_{i=1}^n\ln D_{i,k} \]
     where $D_{i,k}$ is the Euclidean distance between the $i^{th}$ accepted parameter set and its $k^{th}$ nearest neighbour and $\Gamma(\cdot)$ is the gamma function.
   \end{box_definition}
 
-  \par In the context of summary statistic selection we want to calculate the entropy of the posterior distribution of model parameters given summary statistic values. We only ever have an approximation of this distribution and thus can only estimate its entropy. For computational efficiency it is common to discretise the approximated distribution. There are many techniques for estimating the entropy of a distribution from samples, see \cite[]{non_parameteric_entropy_estimation} for an overview. Due to most models of interest in Bayesian modelling having multiple parameters and thus the posterior being multivariate, Nunes \& Balding suggest using the asymptoticly $k^{th}$-Nearest Neighbour estimator of entropy \cite{nearest_neighbour_estimates_of_entropy} (\textbf{Definition \ref{def_knn_neighbour}}).
+  \par In the context of summary statistic selection we want to calculate the entropy of the posterior distribution of model parameters given summary statistic values. We only ever have an approximation of this distribution and thus can only estimate its entropy. For computational efficiency it is common to discretise the approximated distribution. There are many techniques for estimating the entropy of a distribution from samples, see \cite[]{non_parameteric_entropy_estimation} for an overview. Due to most models of interest in Bayesian modelling having multiple parameters and thus the posterior being multivariate, Nunes \& Balding suggest using the asymptoticly $k^{th}$-Nearest Neighbour estimator of entropy \cite{nearest_neighbour_estimates_of_entropy} (\textbf{Definition \ref{def_knn_entropy}}).
 
-  \par When implementing \textbf{Definition \ref{def_knn_neighbour}} determining the $k^{th}$ nearest neighbour in an efficient manner is not trivial. A truncated insertion sort is a straightforward approach but has time complexity $O(kn)$ so does not scale efficiently for large values of $k$. \cite[]{nearest_neighbour_estimates_of_entropy} recommend using $k=4$ as their experiments found that greater values of $k$ did not decrease the root-mean square error RMSE significantly, and so were not worth the increased computational complexity.
+  \par When implementing \textbf{Definition \ref{def_knn_entropy}} determining the $k^{th}$ nearest neighbour in an efficient manner is not trivial. A truncated insertion sort is a straightforward approach but has time complexity $O(kn)$ so does not scale efficiently for large values of $k$. \cite[]{nearest_neighbour_estimates_of_entropy} recommend using $k=4$ as their experiments found that greater values of $k$ did not decrease the root-mean square error RMSE significantly, and so were not worth the increased computational complexity.
 
-  \par Using the ``Best Samples'' version of the ABC-Rejection Sampling algorithm to acquire the approximate posterior used in \textbf{Definition \ref{def_knn_neighbour}} is advisable as it does not require the specification of an acceptance kernel and thus the same configuration can be used for all sets of summary statistics. Also, as the number we specify the number of simulations this step should have the same run-time each time it is called, regardless of the set of statistics being analysed, assuming that the summary statistics take trivial time to calculate.
+  \par Using the ``Best Samples'' version of the ABC-Rejection Sampling algorithm to acquire the approximate posterior used in \textbf{Definition \ref{def_knn_entropy}} is advisable as it does not require the specification of an acceptance kernel and thus the same configuration can be used for all sets of summary statistics. Also, as the number we specify the number of simulations this step should have the same run-time each time it is called, regardless of the set of statistics being analysed, assuming that the summary statistics take trivial time to calculate.
 
   \begin{box_algorithm}[Minimum Entropy Summary Statistic Selection]\label{alg_minimum_entropy_summary_statistic_selection}
     Adapted from \cite[]{on_optimal_selection_of_summary_stats_for_ABC}.
@@ -2120,7 +2120,7 @@
 
 \subsection{Comparison of Summary Statistic Methods}\label{sec_comparison_of_ss_methods}
 
-  \par \textit{Section \ref{sec_summary_stats}} presented four methods for automating the process of choosing summary statistics for ABC-methods: Approximately Sufficient Subset (ASS); Minimum Entropy (ME); Two-Step Minimum Entropy (2-ME); and, Semi-Automatic ABC (SA-ABC). Here I assessed these algorithms by running 50 instances of each algorithm; Running the Adaptive ABC-SMC algorithm, for 5,000 simulations, using the most recommended set of summary statistics from each algorithm; and then calculating the mean-square error produced by a model fitted with the estimated posterior mean of each parameter.
+  \par \textit{Section \ref{sec_summary_stats}} presented four methods for automating the process of choosing summary statistics for ABC-methods: Approximately Sufficient Subset (ASS); Minimum Entropy (ME); Two-Step Minimum Entropy (2-ME); and, Semi-Automatic ABC (SA-ABC). Here I assessed these algorithms by running 50 instances of each algorithm; Running the Adaptive ABC-SMC algorithm, for 5,000 simulations with target acceptance rate $\alpha=90\%$, using the most recommended set of summary statistics from each algorithm; and then calculating the mean-square error produced by a model fitted with the estimated posterior mean of each parameter.
 
   \begin{table}[H]
     \centering
@@ -2131,17 +2131,17 @@
             \item *Peak size of infectious population (1).\label{table_list_of_summary_statistics_peak_size}
             \item Date of peak infectious population (1).\label{table_list_of_summary_statistics_peak_date}
             \item *Final size of susceptible population (1).\label{table_list_of_summary_statistics_final_sus}
-            \item *Final size of infectious population (1).
-            \item *Final size of removed population (1).
-            \item *Mean size of susceptible population (1).
+            \item *Final size of infectious population (1).\label{table_list_of_summary_statistics_final_inf}
+            \item *Final size of removed population (1).\label{table_list_of_summary_statistics_final_rem}
+            \item *Mean size of susceptible population (1).\label{table_list_of_summary_statistics_mean_sus}
             \item *Mean size of infectious population (1).\label{table_list_of_summary_statistics_mean_inf}
             \item *Mean size of removed population (1).\label{table_list_of_summary_statistics_mean_rem}
             \item *Maximum day-on-day increase in infectious population (1).
             \item *Maximum day-on-day increase in removed population (1).
             \item *Population sizes on days 1,\dots,30 as different statistics (3).\label{table_list_of_summary_statistics_daily}
-            \item *Net weekly change in susceptible population (4).
-            \item *Net weekly change in infectious population (4).
-            \item *Net weekly change in removed population (4).
+            \item *Net weekly change in susceptible population (4).\label{table_list_of_summary_statistics_weekly_sus}
+            \item *Net weekly change in infectious population (4).\label{table_list_of_summary_statistics_weekly_inf}
+            \item *Net weekly change in removed population (4).\label{table_list_of_summary_statistics_weekly_rem}
             \item *Net daily change in susceptible population (29).
             \item *Net daily change in infectious population (29).
             \item *Net daily change in removed population (29).
@@ -2158,11 +2158,11 @@
     \label{table_list_of_summary_statistics}
   \end{table}
 
-  \par Three of the algorithms presented in \textit{Section \ref{sec_summary_stats}} (ASS,ME and 2-ME) choose an optimal set of summary statistics from a larger set. \textit{Table \ref{table_list_of_summary_statistics}} provides the set of summary statistics supplied to these algorithms. (\ref{table_list_of_summary_statistics_peak_size},\ref{table_list_of_summary_statistics_peak_date}) are taken from \cite[]{hiv_with_contact_tracing} which found the peak size of the infectious population and the date on which this peak occurred to be the best performing summary statistics when applied to data regarding HIV in Cuba\footnote{It is noteworthy that they were working with yearly data, so this result may be less applicable to data collected at shorter intervals.}. (\ref{table_list_of_summary_statistics_random},\ref{table_list_of_summary_statistics_constant}) are totally uninformative and were supplied to test whether the algorithms would ever choose such summary statistics. These two summary statistics were specified to both have an expected value of 16 so that they coincide with (\ref{table_list_of_summary_statistics_peak_date}) for the true model.
+  \par Three of the algorithms presented in \textit{Section \ref{sec_summary_stats}} (ASS,ME and 2-ME) choose an optimal set of summary statistics from a larger set. \textit{Table \ref{table_list_of_summary_statistics}} provides the set of summary statistics supplied to these algorithms. (\ref{table_list_of_summary_statistics_peak_size},\ref{table_list_of_summary_statistics_peak_date}) are taken from \cite[]{hiv_with_contact_tracing} which found the peak size of the infectious population and the date on which this peak occurred to be the best performing summary statistics when applied to data regarding HIV in Cuba\footnote{It is noteworthy that they were working with yearly data, so this result may be less applicable to data collected at shorter intervals.}. (\ref{table_list_of_summary_statistics_random},\ref{table_list_of_summary_statistics_constant}) are totally uninformative and were supplied to test whether the algorithms would ever choose such summary statistics. These two summary statistics were specified to both have an expected value of 16 so that they coincide with \ref{table_list_of_summary_statistics_peak_date} for the true model.
 
   \par All four algorithms were configured to use the log-Euclidean distance (\ref{eqn_log_euclidean_distance}). The ASS algorithm was configured to generate 100,000 simulations and to use a Gaussian acceptance kernel with bandwidth .5. These simulations and kernel were used to determine which sets of parameters to accept for each set of summary statistics, and these sets were then supplied to \textit{Algorithm \ref{alg_evaluate_proposed_statistic}} in order to determine whether to accept the newly proposed summary statistic.
 
-  \par Algorithm ME was configured to generate 100,000 simulations from which the best 1,000 were chosen (using ``Best Samples'' ABC-Rejection Sampling) and entropy estimated from. Algorithm 2-ME was configured to run ME, as just described, to identify the initial set of summary statistics $S_{ME}$ and to retain the best 100 simulations $\hat\Theta_{ME}$ according to $S_{ME}$. 100,000 fresh simulations were then generated and the 1,000 best simulations $\Theta_{acc}$ were identified for each set of summary statistics (using ``Best Samples'' ABC-Rejection Sampling) and the MRSSE was calculated between $\Theta_{acc}$ and $\hat\Theta_{ME}$. For time-tractability both algorithms were restricted to only considering subsets of summary statistics up to size four, this still involved the consideration of 92,170 different subsets\footnote{(\ref{table_list_of_summary_statistics_daily}) were removed from the set of possible summary statistics for these two algorithms as it represents 60 unique summary statistics and thus would bring the total number of sets up to size four to 3,926,175.}.
+  \par Algorithm ME was configured to generate 100,000 simulations from which the best 1,000 were chosen (using ``Best Samples'' ABC-Rejection Sampling) and entropy estimated from. Algorithm 2-ME was configured to run ME, as just described, to identify the initial set of summary statistics $S_{ME}$ and to retain the best 100 simulations $\hat\Theta_{ME}$ according to $S_{ME}$. 100,000 fresh simulations were then generated and the 1,000 best simulations $\Theta_{acc}$ were identified for each set of summary statistics (using ``Best Samples'' ABC-Rejection Sampling) and the MRSSE was calculated between $\Theta_{acc}$ and $\hat\Theta_{ME}$. For time-tractability both algorithms were restricted to only considering subsets of summary statistics up to size four, this still involved the consideration of 92,170 different subsets\footnote{\ref{table_list_of_summary_statistics_daily} were removed from the set of possible summary statistics for these two algorithms as it represents 60 unique summary statistics and thus would bring the total number of sets up to size four to 3,926,175.}. It is shown in \textit{Section \ref{sec_effect_of_dimensionality}} than considering higher dimensional summary statistics would have been futile anyway.
 
   \par The pilot posterior $f_{\theta}$ for SA-ABC was generated by ``Best Samples'' ABC-Rejection Sampling using the identity function and retaining the best 1,000 of a set of 100,000 simulations. 5,000 sets of parameters were then generated from the pilot posterior $f_\theta$ and used in the regression to calculate the summary statistics. As the SIR model has two parameters SA-ABC generates a summary statistic with two dimensions.
 
@@ -2172,31 +2172,36 @@
 
   \begin{table}[H]
     % \centering
-    \begin{tabular}{|l|l|l|l|}
-      \hline
-      \textbf{Algorithm}&\textbf{Returned Statistics}&\textbf{Dimensions}&\textbf{\% Runs Returned}\\
-      \hline \hline
-      Control&Identity Function&90&N/A\\\hline
-      Approximately Sufficient&[Log-Final Susceptible Population (\ref{table_list_of_summary_statistics_final_sus}*)]&1&44\%\\
-       Subset&&&\\\hline
-      Minimum Entropy&[Log-Mean Infectious Population (\ref{table_list_of_summary_statistics_mean_inf}*),&2&30\%\\
-      &Log-Mean Removed Population (\ref{table_list_of_summary_statistics_mean_rem}*)]&&\\\hline
-      2-Step ME&[Log-Peak Infectious Population Size (\ref{table_list_of_summary_statistics_peak_size}*),&3&34\%\\
-      &Log-Mean Infectious Population (\ref{table_list_of_summary_statistics_mean_inf}*),&&\\
-      &Log-Mean Removed Population (\ref{table_list_of_summary_statistics_mean_rem}*)]&&\\\hline
-      Semi-Automatic ABC&N/A&2&N/A\\\hline
-    \end{tabular}\\
-    \bigskip
-    \begin{tabular}{|l|l|l|}
-      \hline
-      \textbf{Algorithm}&\textbf{ABC-SMC MSE}&\textbf{Time (s)}\\
-      \hline \hline
-      \textit{Control}&121,777&N/A\\\hline
-      Approximately Sufficient Subset&101,730,336&25\\\hline
-      Minimum Entropy&1,131,712&150\\\hline
-      2-Step ME&228,150&302\\\hline
-      Semi-Automatic ABC&643,255&102\\\hline
-    \end{tabular}\\
+    \makebox[\textwidth][l]{
+      {\small
+      \begin{tabular}{|l|l|l|l|}
+        \hline
+        \textbf{Algorithm}&\textbf{Returned Statistics}&\textbf{Dimensions}&\textbf{\% Runs Returned}\\
+        \hline \hline
+        \textit{Control}&Identity Function&90&N/A\\\hline
+        Approximately Sufficient&[Log-Final Susceptible Population \ref{table_list_of_summary_statistics_final_sus}*]&1&44\%\\
+         Subset&&&\\\hline
+        Minimum Entropy&[Log-Mean Infectious Population \ref{table_list_of_summary_statistics_mean_inf}*,&2&30\%\\
+        &Log-Mean Removed Population \ref{table_list_of_summary_statistics_mean_rem}*]&&\\\hline
+        2-Step ME&[Log-Peak Infectious Population Size \ref{table_list_of_summary_statistics_peak_size}*,&3&34\%\\
+        &Log-Mean Infectious Population \ref{table_list_of_summary_statistics_mean_inf}*,&&\\
+        &Log-Mean Removed Population \ref{table_list_of_summary_statistics_mean_rem}*]&&\\\hline
+        Semi-Automatic ABC&N/A&2&N/A\\\hline
+      \end{tabular}}
+    }
+    \makebox[\textwidth][l]{
+      {\small
+      \begin{tabular}{|l|l|l|}
+        \hline
+        \textbf{Algorithm}&\textbf{ABC-SMC MSE}&\textbf{Time (s)}\\
+        \hline \hline
+        \textit{Control}&121,777&N/A\\\hline
+        Approximately Sufficient Subset&101,730,336&25\\\hline
+        Minimum Entropy&1,131,712&150\\\hline
+        2-Step ME&228,150&302\\\hline
+        Semi-Automatic ABC&643,255&102\\\hline
+      \end{tabular}}
+    }
 
     \caption{The most commonly returned set of summary statistics returned by each algorithm and the mean square error when using Adaptive ABC-SMC to fit the SIR model described in \textit{Figure \ref{fig_example_standard_sir_model}} with said set of statistics. Additionally, the dimensionality of each summary statistic when applied to the SIR-model depicted in \textit{Figure \ref{fig_example_standard_sir_model}}; the percentage of instances in which this set of statistics was returned; and, the mean runtime of each selection algorithm are given. All values are the means over 50 instances of each selection algorithm. Note that in all cases the natural logarithm version of a summary statistic was chosen, rather than its raw value.}
     \label{table_summary_selection_methods_on_sir_model}
@@ -2206,7 +2211,7 @@
 
   \par These results demonstrate that their are methods for selecting summary statistics which produce summary statistics which perform similarly to the identity function despite having significantly fewer dimensions. Moreover, if these algorithms were supplied with more simulations then we can expect for the difference in performance between the identity function and generated summary statistics to decrease. This is more relevant to SA-ABC as each extra simulation means its regression step is more informed, while 2-ME can only ever return a set of statistics from a predefined set and thus more simulations would only make its returned results more consistent.
 
-  \par None of the algorithms returned the same set of summary statistics a majority of the time. An inspection of the distribution of returned sets shows that the sets given in \textit{Table \ref{table_summary_selection_methods_on_sir_model}} were all accepted as least 3 times more often than the next most commonly returned sets. If the algorithms were given more simulations then this ratio should increase as the estimated values (i.e. entropy) will tend towards their true value, by the law of large numbers.
+  \par None of the algorithms returned the same set of summary statistics a majority of the time. An inspection of the distribution of returned sets shows that the sets given in \textit{Table \ref{table_summary_selection_methods_on_sir_model}} were all accepted as least 3 times more often than the next most commonly returned sets. If the algorithms were given more simulations then this ratio should increase as the estimated values (i.e. entropy) will tend towards their true value, by the law of large numbers. Further, none of the algorithms returned any sets which included either of the totally uninformative summary statistics \ref{table_list_of_summary_statistics_random},\ref{table_list_of_summary_statistics_constant}.
 
   \begin{figure}[H]
     \centering
@@ -2234,27 +2239,81 @@
 
 \subsection{The Effect of Dimensionality}\label{sec_effect_of_dimensionality}
 
-  Plot dimensionality of summary stats against MSE (use ME to choose best at each dimensionality)
+  \par The Minimum Entropy methods for summary statistics are easily adjustable such that the dimensions of the returned summary statistics is within a certain bound. This means these methods can be used to determine the best performing summary statistics at different degrees of dimensionality, and thus discern how great an affect the dimensionality of a summary statistic affects its performance. Ideally this will identify a point at which dimensionality is highly minimised but a good level of performance is still achieved. As discussed in \textit{Section \ref{sec_summary_stats}} lower dimensional summary statistics are desirable as they typically decrease the time taken to analyse each simulation in an ABC method and thus increase the number of simulations which can be assessed in a given time-frame, leading to more exact results. Here I evaluated how dimensionality of summary statistics affects the ability of ABC methods to fit the SIR model depicted in \textit{Figure \ref{fig_example_standard_sir_model}}.
 
   \begin{table}[H]
     \centering
-    \begin{tabular}{|l|l|l|l|}
-      \hline
-      \textbf{Dimensions}&\textbf{Best Stats}&\textbf{Estimated Entropy}&\textbf{ABC-SMC MSE}\\\hline
-      1&[Mean Susceptible Population]&-9.48&2,272,479\\\hline
-      2&[Mean Infectious Population,&-10.74&1,131,712\\
-      &Mean Removed Population]&&\\\hline
-      3&[Final Removed Population,&-10.59&1,540,652\\
-      &Mean Infectious Population,&&\\
-      &Mean Removed Population]&&\\\hline
-      4&[Net Weekly Change in Removed Population]&-10.60&756,888\\\hline
-      90&Identity Function&-11.70&756,888\\\hline
-    \end{tabular}
-    \caption{The best summary statistics at each dimensionality according to the minimum entropy algorithm, along with their estimated entropy values and mean square error.}
+    \makebox[\textwidth][c]{
+      {\small
+        \begin{tabular}{|l|l|l|l|}
+          \hline
+          \textbf{Dimensions}&\textbf{Best Statistics}&\textbf{Estimated Entropy}&\textbf{ABC-SMC MSE}\\\hline
+          1&[Log-Mean Susceptible Population \ref{table_list_of_summary_statistics_mean_sus}*]&-9.48&2,272,479\\\hline
+          2&[Log-Mean Infectious Population \ref{table_list_of_summary_statistics_mean_inf}*,&-10.74&1,131,712\\
+          &Log-Mean Removed Population \ref{table_list_of_summary_statistics_mean_rem}*]&&\\\hline
+          3&[Log-Final Removed Population \ref{table_list_of_summary_statistics_final_rem}*,&-10.59&228,150\\
+          &Log-Mean Infectious Population \ref{table_list_of_summary_statistics_mean_inf}*,&&\\
+          &Log-Mean Removed Population \ref{table_list_of_summary_statistics_mean_rem}*]&&\\\hline
+          4&[Log-Net Weekly Change in Removed Population \ref{table_list_of_summary_statistics_weekly_rem}*]&-10.60&207,124\\\hline
+          5&[Log-Net Weekly Change in Removed Population \ref{table_list_of_summary_statistics_weekly_rem}*,&&\\
+          &Log-Final Susceptible Population \ref{table_list_of_summary_statistics_final_sus}*]&-10.54&198,888\\\hline
+          90&Identity Function&-11.70&121,777\\\hline
+        \end{tabular}
+      }
+    }
+    \caption{The set of summary statistics which produce the lowest estimated entropy value at different levels of dimensionality; Along with the MSE of a an SIR model fitted with the estimated posterior mean from the Adaptive ABC-SMC algorithm targeting the model in \textit{Figure \ref{fig_example_standard_sir_model}}, when using said set of summary statistics. Adaptive ABC-SMC was configured to run for 5,000 simulations, with a sample size of 100, using the log-Euclidean distance measure and a target acceptance rate of 90\%. Entropy was estimated using the $4^{th}$-Nearest Neighbour Estimator of Entropy with the 1,000 parameter sets, from a superset of 1,000,000 parameter sets, which minimise log-Euclidean distance. The stated dimensionality of each summary statistic is with respect to an SIR model over 30 time-periods.}
     \label{table_dimensionality_of_summary_statistics}
   \end{table}
 
+  \par To determine the best set of summary statistics at each level of dimensionality I estimated the entropy of each subset of the set of statistics given in \textit{Table \ref{table_list_of_summary_statistics}} using the $k^{th}$-Nearest Neighbour Estimator of Entropy formula (\textit{Definition \ref{def_knn_entropy}}). Specifically, I set $k=4$ and use ``Best Samples'' ABC-Rejection Sampling, with the log-Euclidean distance, on the SIR model in \textit{Figure \ref{fig_example_standard_sir_model}} to generate 1,000,000 simulations and identify the best 1,000 sets of parameters for each subset of statistics, which was then used to estimate the entropy. \textit{Table \ref{table_dimensionality_of_summary_statistics}} provides the set of summary statistics which minimised estimated entropy at each level of dimensionality, along with the MSE of a an SIR model fitted with the estimated posterior mean from the Adaptive ABC-SMC algorithm targeting the model in \textit{Figure \ref{fig_example_standard_sir_model}}, when using said set of summary statistics. Adaptive ABC-SMC was configured to run for 5,000 simulations, with a sample size of 100, using the log-Euclidean distance measure and a target acceptance rate of 90\%.
+
+  \begin{figure}[H]
+    \centering\includegraphics[width=.7\textwidth]{mse_by_dimensionality.PNG}
+    \caption{Plot of MSE against dimensionality from \textit{Table \ref{table_dimensionality_of_summary_statistics}}.}
+    \label{fig_mse_by_dimensionality}
+  \end{figure}
+
+  \par \textit{Table \ref{table_dimensionality_of_summary_statistics}} shows that the MSE of fitted models reduces as the dimensionality of the summary statistics increases. This is to be expected as each extra dimension should extract at least some new information. However, the MSE values do plateau for summary statistics with 3, or more, dimensions. This is made clear in \textit{Figure \ref{fig_mse_by_dimensionality}} which plots these MSE values against the dimensionality of the used summary statistics. This result shows that even though increasing dimensionality of summary statistics does improve model fit, the level of improvement quickly diminishes after a certain level of dimensionality. Further, we can conclude that although the identity function is likely the only sufficient summary statistic for the SIR model, there are plenty of lower-dimensional summary statistics which perform approximately as well.
+
 \subsection{Projection}\label{sec_projection}
+
+  \par A common area of interest regarding epidemic events is projecting the future evolution of the disease. Here I assess how the automated methods I have presented so far perform in this field. This is done by only providing the first 10 and the first 20 days of the epidemic to the SA-ABC algorithm in order to generate summary statistics, and then running Adaptive ABC-SMC with said summary statistics.
+
+  \par The same priors as have been throughout \textit{Section \ref{sec_abc_and_epidemic_events}} for $\beta$ and $\gamma$ were defined. SA-ABC was initialised as described in \textit{Section \ref{sec_comparison_of_ss_methods}}, except with now considering more simulations. The pilot posterior $f_{\theta}$ is generated by ``Best Samples'' ABC-Rejection Sampling using the identity function and retaining the best 5,000 of a set of 500,000 simulations. 5,000 sets of parameters were then generated from the pilot posterior $f_\theta$ and used in the regression to calculate the summary statistics. Adaptive ABC-SMC was configured to run for 5,000 simulations, with a sample size of 100, using the log-Euclidean distance measure and a target acceptance rate of 90\%. For a comparison, I also ran the same configuration of Adaptive ABC-SMC using the identity function as the summary statistic.
+
+  \begin{figure}[H]
+    \centering
+    \makebox[\textwidth][c]{
+      \begin{subfigure}{.45\paperwidth}
+        \centering
+        \includegraphics[width=1\textwidth]{Identity_ABC_SMC_10_days_CI.png}
+        \caption{First 10 days of data given. 95\% CI for $R_0=[1.686,2.419]$.}
+        \label{fig_identity_10_days}
+      \end{subfigure}
+      \begin{subfigure}{.45\paperwidth}
+        \centering
+        \includegraphics[width=1\textwidth]{Identity_ABC_SMC_20_days_CI.png}
+        \caption{First 20 days of data given. 95\% CI for $R_0=[1.632,2.655]$.}
+        \label{fig_identity_20_days}
+      \end{subfigure}
+    }
+    \makebox[\textwidth][c]{
+      \begin{subfigure}{.45\paperwidth}
+        \centering
+        \includegraphics[width=1\textwidth]{Identity_ABC_SMC_10_days_joint_posterior.png}
+        \caption{Posterior when first 10 days of data given. 95\% CI for $\beta=[0.942,1.060],\ \gamma=[0.405,0.605]$}
+        \label{fig_identity_10_days_posterior}
+      \end{subfigure}
+      \begin{subfigure}{.45\paperwidth}
+        \centering
+        \includegraphics[width=1\textwidth]{Identity_ABC_SMC_20_days_joint_posterior.png}
+        \caption{Posterior when first 20 days of data given. 95\% CI for $\beta=[0.891,1.164],\ \gamma=[0.340,0.703]$}
+        \label{fig_identity_20_days_posterior}
+      \end{subfigure}
+    }
+    \caption{Estimated posteriors and 95\% CI for population size for SIR Model fitted using the posterior means generated by Adaptive ABC-SMC using the identity function as a summary statistic, with only the first 10 or 20 days of data available.}
+    \label{fig_identity_restricted_data}
+  \end{figure}
 
   \begin{figure}[H]
     \centering
@@ -2262,13 +2321,13 @@
       \begin{subfigure}{.45\paperwidth}
         \centering
         \includegraphics[width=1\textwidth]{Semi_Auto_ABC_SMC_10_days_CI.png}
-        \caption{First 10 days of data given. 95\% CI for $R_0$ is [1.583,2.767.]}
+        \caption{First 10 days of data given. 95\% CI for $R_0=[1.583,2.767]$.}
         \label{fig_semi_auto_10_days}
       \end{subfigure}
       \begin{subfigure}{.45\paperwidth}
         \centering
         \includegraphics[width=1\textwidth]{Semi_Auto_ABC_SMC_20_days_CI.png}
-        \caption{First 20 days of data given. 95\% CI for $R_0$ is [1.742,2.456].}
+        \caption{First 20 days of data given. 95\% CI for $R_0=[1.742,2.456]$.}
         \label{fig_semi_auto_20_days}
       \end{subfigure}
     }
@@ -2276,25 +2335,28 @@
       \begin{subfigure}{.45\paperwidth}
         \centering
         \includegraphics[width=1\textwidth]{Semi_Auto_ABC_SMC_10_days_joint_posterior.png}
-        \caption{Posterior when first 10 days of data given. 95\% CI for $\beta$ is \text{[0.842,1.160]} and for $\gamma$ is \text{[0.305,0.705]}}
+        \caption{Posterior when first 10 days of data given. 95\% CI for $\beta=[0.842,1.160].\ \gamma=[0.305,0.705]$.}
         \label{fig_semi_auto_10_days_posterior}
       \end{subfigure}
       \begin{subfigure}{.45\paperwidth}
         \centering
         \includegraphics[width=1\textwidth]{Semi_Auto_ABC_SMC_20_days_joint_posterior.png}
-        \caption{Posterior when first 20 days of data given. 95\% CI for $\beta$ is \text{[0.891,1.164]} and for $\gamma$ is \text{[0.340,0.603]}}
+        \caption{Posterior when first 20 days of data given. 95\% CI for $\beta=[0.891,1.164],\ \gamma=[0.340,0.603]$}
         \label{fig_semi_auto_20_days_posterior}
       \end{subfigure}
     }
-    \caption{95\% CI when running adaptive ABC-SMC using summary statistics generated by semi-automatic ABC with only the first 10 or 20 days of data available. Accompanied by the estimated marginal and joint posteriors for the model parameters.}
+    \caption{Estimated posteriors and 95\% CI for population size for SIR Model fitted using the posterior means generated by Adaptive ABC-SMC and the summary statistics generated by SA-ABC, with only the first 10 or 20 days of data available.}
     \label{fig_semi_auto_restricted_data}
   \end{figure}
 
-\subsection{Real Data: France Covid-19}\label{sec_real_data}
+  \par \textit{Figure \ref{fig_identity_restricted_data}} shows the estimated posteriors generated by the described Adaptive ABC-SMC method when supplied with the identity function as the summary statistic, with either the first 10 days or the first 20 days of the time-series being supplied. Additionally, the figure includes the 95\% projection for the evolution of the population sizes calculated using the estimated posterior. \textit{Figure \ref{fig_semi_auto_restricted_data}} shows the same, but when the summary statistics have been automatically generated by SA-ABC. These figures all show the same predicted pattern for the disease (i.e. the same day for peak infections and that the disease will fully die out in the 30 days) and the mean model is very accurate, however the confidence intervals for the population sizes are wide. Increasing the number of simulations Adaptive ABC-SMC can perform would narrow these intervals.
 
-  %https://www.medrxiv.org/content/10.1101/2020.04.26.20081042v1.full.pdf
+  \par The posterior generated using the identity function and 10 days of data (\textit{Figure \ref{fig_identity_10_days}}) is notably more concentrated than when 20 days of data (\textit{Figure \ref{fig_identity_20_days}}) is supplied. This is true for both model parameters.
 
-\subsection{Real Data: Senegal Covid-19}\label{sec_real_data}
+
+  As the first 10 days of data covers a period where the size of the infectious population constantly increases in size, it is understandable that greater inferences can be made about parameter $\beta$ than $\gamma$. % TODO not quite true as I and R are basically the same in this period.
+
+\subsection{Real Data: Senegal Covid-19}\label{sec_real_data_senegal}
 
   %https://www.medrxiv.org/content/10.1101/2020.04.26.20081042v1.full.pdf
 
@@ -2304,7 +2366,7 @@
   \par Adaptive ABC-SMC = 5000 simulations, $\alpha=.9$ (26 minutes)
   \par Semi-Auto = 500,000 simulations, keep 100, generate 5,000 (dim=2)
   \par ME = 10,000 simulations per set, keep 100, max-size=4. Chose=[final\_removed\_ss,net\_weekly\_infections\_ss] (dim=5)
-  \par 2-ME = Same as ME
+  \par 2-ME = Same as ME. Chose=[net\_weekly\_infections\_ss,mean\_infectious\_ss,mean\_removed\_ss] (dim=6)
 
   \begin{figure}[H]
     \centering
@@ -2317,13 +2379,13 @@
       \end{subfigure}
       \begin{subfigure}{.45\paperwidth}
         \centering
-        % TODO redo vertical axes on confidence interval plots
+
         \includegraphics[width=\textwidth]{senegal_adapt_abc_smc_identity_ci.PNG}
-        \caption{Adaptive ABC-SMC. 95\% CI for [3.160,8.107]. RSSE=376.}
+        \caption{Adaptive ABC-SMC. 95\% CI for $R_0=$[3.160,8.107]. RSSE=376.}
         \label{fig_senegal_identity_ci_adapt_abc_smc}
       \end{subfigure}
     }
-    \caption{95\% confidence intervals for infectious (blue) and removed (red) populations for Covid-19 in Senegal between March 2nd 2020 and March 31st 2020 using ``Best Samples'' ABC-Rejection Sampling and Adaptive ABC-SMC respectively. Both methods use the Log-Euclidean distance as their distance measures and the identity function of the infectious and removed populations as their summary statistic. The size of the susceptible population is not considered.}
+    \caption{95\% confidence intervals for infectious (blue) and removed (red) populations for Covid-19 in Senegal between March $2^{nd}$ 2020 and March $31^{st}$ 2020 using ``Best Samples'' ABC-Rejection Sampling and Adaptive ABC-SMC respectively. Both methods use the Log-Euclidean distance as their distance measures and the identity function of the infectious and removed populations as their summary statistic. The size of the susceptible population is not considered.}
     \label{fig_senegal_identity_ci}
   \end{figure}
 
@@ -2338,14 +2400,35 @@
       \end{subfigure}
       \begin{subfigure}{.45\paperwidth}
         \centering
-        % TODO redo vertical axes on confidence interval plots
+
         \includegraphics[width=\textwidth]{senegal_me_adapt_abc_smc_ci.PNG}
         \caption{95\% confidence intervals for population sizes. RSSE=324.}
         \label{fig_senegal_me_ci}
       \end{subfigure}
     }
-    \caption{Estimated posteriors for SIR model parameters and resulting 95\% confidence intervals for the sizes of the infectious (blue) and removed (red) populations for Covid-19 in Senegal between March 2nd 2020 and March 31st 2020 when using Adaptive ABC-SMC with summary statistics generated by Minimum Entropy. 95\% CI for $R_0=[4.103,7.566],\ \beta=[0.185,0.211],\ \gamma=[0.049,0.012]$.}
+    \caption{Estimated posteriors for SIR model parameters and resulting 95\% confidence intervals for the sizes of the infectious (blue) and removed (red) populations for Covid-19 in Senegal between March $2^{nd}$ 2020 and March $31^{st}$ 2020 when using Adaptive ABC-SMC with summary statistics generated by Minimum Entropy. 95\% CI for $R_0=[4.103,7.566],\ \beta=[0.185,0.211],\ \gamma=[0.049,0.012]$.}
     \label{fig_senegal_me}
+  \end{figure}
+
+  \begin{figure}[H]
+    \centering
+    \makebox[\textwidth][c]{
+      \begin{subfigure}{.45\paperwidth}
+        \centering
+        \includegraphics[width=\textwidth]{senegal_2_me_adapt_abc_smc_posterior.PNG}
+        \caption{Joint and marginal posteriors for $\beta$ and $\gamma$.}
+        \label{fig_senegal_2_me_posterior}
+      \end{subfigure}
+      \begin{subfigure}{.45\paperwidth}
+        \centering
+
+        \includegraphics[width=\textwidth]{senegal_2_me_adapt_abc_smc_ci.PNG}
+        \caption{95\% confidence intervals for population sizes. RSSE=240.}
+        \label{fig_senegal_2_me_ci}
+      \end{subfigure}
+    }
+    \caption{Estimated posteriors for SIR model parameters and resulting 95\% confidence intervals for the sizes of the infectious (blue) and removed (red) populations for Covid-19 in Senegal between March $2^{nd}$ 2020 and March $31^{st}$ 2020 when using Adaptive ABC-SMC with summary statistics generated by Two-Step Minimum Entropy algorithm. 95\% CI for $R_0=[3.242,21.665],\ \beta=[0.203,0.240],\ \gamma=[0.011,0.066]$.}
+    \label{fig_senegal_2_me}
   \end{figure}
 
   \begin{figure}[H]
@@ -2359,16 +2442,109 @@
       \end{subfigure}
       \begin{subfigure}{.45\paperwidth}
         \centering
-        % TODO redo vertical axes on confidence interval plots
+
         \includegraphics[width=\textwidth]{senegal_semi_auto_adapt_abc_smc_ci.PNG}
         \caption{95\% confidence intervals for population sizes. RSSE=240.}
         \label{fig_senegal_semi_auto_ci}
       \end{subfigure}
     }
-    \caption{Estimated posteriors for SIR model parameters and resulting 95\% confidence intervals for the sizes of the infectious (blue) and removed (red) populations for Covid-19 in Senegal between March 2nd 2020 and March 31st 2020 when using Adaptive ABC-SMC with summary statistics generated by Semi-Automatic ABC. 95\% CI for $R_0=[2.547,11.937],\ \beta=[0.163,0.270],\ \gamma=[0.013,0.107]$.}
-    \label{}
+    \caption{Estimated posteriors for SIR model parameters and resulting 95\% confidence intervals for the sizes of the infectious (blue) and removed (red) populations for Covid-19 in Senegal between March $2^{nd}$ 2020 and March $31^{st}$ 2020 when using Adaptive ABC-SMC with summary statistics generated by Semi-Automatic ABC. 95\% CI for $R_0=[2.547,11.937],\ \beta=[0.163,0.270],\ \gamma=[0.013,0.107]$.}
+    \label{fig_senegal_semi_auto}
   \end{figure}
 
+\subsection{Real Data: France Covid-19}\label{sec_real_data_france}
+
+  %https://www.medrxiv.org/content/10.1101/2020.04.26.20081042v1.full.pdf
+
+  \par The 30 days leading up to lockdown 17th feb-17th March.
+  \par Rejection Sampling = 500,000 simulations and keep best 500. (5 minutes)
+  \par Adaptive ABC-SMC = 5000 simulations, $\alpha=.9$ (26 minutes)
+  \par Semi-Auto = 500,000 simulations, keep 100, generate 5,000 (dim=2)
+  \par ME = 10,000 simulations per set, keep 100, max-size=4. Chose=[final\_removed\_ss,mean\_infectious\_ss,mean\_removed\_ss] (dim=3)
+  \par 2-ME = Same as ME. Chose=[]
+
+  \begin{figure}[H]
+    \centering
+    \makebox[\textwidth][c]{
+      \begin{subfigure}{.45\paperwidth}
+        \centering
+        \includegraphics[width=\textwidth]{france_abc_rejection_identity_ci.png}
+        \caption{"Best Samples" ABC-Rejection Sampling. 95\% CI for $R_0=[15.937,25.627]$. RSSE=1,267.}
+        \label{fig_france_identity_ci_rejection_ci}
+      \end{subfigure}
+      \begin{subfigure}{.45\paperwidth}
+        \centering
+
+        \includegraphics[width=\textwidth]{france_adapt_abc_smc_identity_ci.PNG}
+        \caption{Adaptive ABC-SMC. 95\% CI for $R_0=[3.990,18.976]$. RSSE=10,395.}
+        \label{fig_france_identity_ci_adapt_abc_smc}
+      \end{subfigure}
+    }
+    \caption{95\% confidence intervals for infectious (blue) and removed (red) populations for Covid-19 in France between February $17^{th}$ 2020 and March $17^{th}$ 2020 using ``Best Samples'' ABC-Rejection Sampling and Adaptive ABC-SMC respectively. Both methods use the Log-Euclidean distance as their distance measures and the identity function of the infectious and removed populations as their summary statistic. The size of the susceptible population is not considered.}
+    \label{fig_france_identity_ci}
+  \end{figure}
+
+  \begin{figure}[H]
+    \centering
+    \makebox[\textwidth][c]{
+      \begin{subfigure}{.45\paperwidth}
+        \centering
+        \includegraphics[width=\textwidth]{france_me_adapt_abc_smc_posterior.PNG} % TODO
+        \caption{Joint and marginal posteriors for $\beta$ and $\gamma$.}
+        \label{fig_france_me_posterior}
+      \end{subfigure}
+      \begin{subfigure}{.45\paperwidth}
+        \centering
+        \includegraphics[width=\textwidth]{france_me_adapt_abc_smc_ci.PNG} % TODO
+        \caption{95\% confidence intervals for population sizes. RSSE=1,440.}
+        \label{fig_france_me_ci}
+      \end{subfigure}
+    }
+    \caption{Estimated posteriors for SIR model parameters and resulting 95\% confidence intervals for the sizes of the infectious (blue) and removed (red) populations for Covid-19 in France between February $17^{th}$ 2020 and March $17^{th}$ 2020 when using Adaptive ABC-SMC with summary statistics generated by Minimum Entropy. 95\% CI for $R_0=[7.532,21.216],\ \beta=[0.186,0.255],\ \gamma=[0.011,0.034]$.}
+    \label{fig_france_me}
+  \end{figure}
+
+  \begin{figure}[H]
+    \centering
+    \makebox[\textwidth][c]{
+      \begin{subfigure}{.45\paperwidth}
+        \centering
+        \includegraphics[width=\textwidth]{france_2_me_adapt_abc_smc_posterior.PNG}
+        \caption{Joint and marginal posteriors for $\beta$ and $\gamma$.}
+        \label{fig_france_2_me_posterior}
+      \end{subfigure}
+      \begin{subfigure}{.45\paperwidth}
+        \centering
+
+        \includegraphics[width=\textwidth]{france_2_me_adapt_abc_smc_ci.PNG}
+        \caption{95\% confidence intervals for population sizes. RSSE=.}
+        \label{fig_france_2_me_ci}
+      \end{subfigure}
+    }
+    \caption{Estimated posteriors for SIR model parameters and resulting 95\% confidence intervals for the sizes of the infectious (blue) and removed (red) populations for Covid-19 in France between February $17^{th}$ 2020 and March $17^{th}$ 2020 when using Adaptive ABC-SMC with summary statistics generated by Two-Step Minimum Entropy algorithm. 95\% CI for $R_0=[],\ \beta=[],\ \gamma=[]$.}
+    \label{fig_france_2_me}
+  \end{figure}
+
+  \begin{figure}[H]
+    \centering
+    \makebox[\textwidth][c]{
+      \begin{subfigure}{.45\paperwidth}
+        \centering
+        \includegraphics[width=\textwidth]{france_semi_auto_adapt_abc_smc_posterior.PNG}
+        \caption{Joint and marginal posteriors for $\beta$ and $\gamma$.}
+        \label{fig_france_semi_auto_posterior}
+      \end{subfigure}
+      \begin{subfigure}{.45\paperwidth}
+        \centering
+
+        \includegraphics[width=\textwidth]{france_semi_auto_adapt_abc_smc_ci.PNG}
+        \caption{95\% confidence intervals for population sizes. RSSE=1,131.}
+        \label{fig_france_semi_auto_ci}
+      \end{subfigure}
+    }
+    \caption{Estimated posteriors for SIR model parameters and resulting 95\% confidence intervals for the sizes of the infectious (blue) and removed (red) populations for Covid-19 in France between February $17^{th}$ 2020 and March $17^{th}$ 2020 when using Adaptive ABC-SMC with summary statistics generated by Semi-Automatic ABC. 95\% CI for $R_0=[3.469,9.009],\ \beta=[0.281,0.374],\ \gamma=[0.028,0.108]$.}
+    \label{fig_france_semi_auto}
+  \end{figure}
 
 \subsection{More Complex Models}\label{sec_more_complex_models}
 
