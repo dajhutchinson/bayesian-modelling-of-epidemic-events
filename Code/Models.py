@@ -693,7 +693,7 @@ class SIRModelWithReportingRate(SIRModel):
         RETURNS
         [(int,int,int)] - time-series with each data-point being (S,I,R)
         """
-        last_obs=(self.population_size-self.initially_infected,self.initially_infected*self.p,self.initially_infected*(1-self.p),0)
+        last_obs=(self.population_size-self.initially_infected,self.initially_infected*self.p,self.initially_infected*(1-self.p),0,0)
         x_flat=[x[0] for x in x_obs]
 
         if 0 in x_flat: observations=[[last_obs[0],last_obs[1],last_obs[3]]] # [(S,I,R)]
@@ -710,14 +710,16 @@ class SIRModelWithReportingRate(SIRModel):
             new_removed_unreported=self.gamma*last_obs[2]
 
             d_S=-new_infections
-            d_reported=new_reported_infections-new_removed_reported
-            d_unreported=new_unreported_infections-new_removed_unreported
-            d_R=new_removed_reported+new_removed_unreported
+            d_reported_I=new_reported_infections-new_removed_reported
+            d_unreported_I=new_unreported_infections-new_removed_unreported
+            d_reported_R=new_removed_reported
+            d_unreported_R=new_removed_unreported
 
             new_obs=(max(last_obs[0]+d_S,0),
-                last_obs[1]+d_reported,
-                last_obs[2]+d_unreported,
-                min(last_obs[3]+d_R,self.population_size))
+                last_obs[1]+d_reported_I,
+                last_obs[2]+d_unreported_I,
+                d_reported_R,
+                d_unreported_R)
 
             if (t in x_flat): observations.append([new_obs[0],new_obs[1],new_obs[3]])
 

@@ -970,8 +970,9 @@ def minimum_entropy(summary_stats:["function"],n_obs:int,y_obs:[[float]],fitting
 
     sampling_details={"sampling_method":"best","num_runs":n_samples,"sample_size":n_accept}
 
-    for perm in perms:
+    for (j,perm) in enumerate(perms):
         if (printing): print("Permutation = ",perm,sep="")
+        else: print("({}/{})".format(j,len(perms)),end="\r")
         ss=[summary_stats[i] for i in perm]
         _,accepted_theta=abc_rejcection(n_obs,y_obs,fitting_model,priors,sampling_details,summary_stats=ss,show_plots=False,printing=printing)
 
@@ -1009,14 +1010,17 @@ def two_d_rsse(obs,target,ln=False) -> float:
 
     return total_error
 
-def two_step_minimum_entropy(summary_stats:["function"],n_obs:int,y_obs:[[float]],fitting_model:Model,priors:["stats.Distribution"],n_samples=1000,n_accept=100,n_keep=10,k=4,printing=False) -> [int]:
+def two_step_minimum_entropy(summary_stats:["function"],n_obs:int,y_obs:[[float]],fitting_model:Model,priors:["stats.Distribution"],min_subset_size=1,max_subset_size=None,n_samples=1000,n_accept=100,n_keep=10,k=4,printing=False) -> [int]:
     """
     OPTIONAL PARAMETERS
     n_keep (int) - number of (best) accepted samples to keep from the set of stats which minimise entropy (`best_stats`) and use for evaluating second stage (default=10)
 
     """
+    n_stats=len(summary_stats)
+    max_subset_size=max_subset_size if (max_subset_size) else n_stats
+
     # find summary stats which minimise entropy
-    me_stats_id,accepted_theta=minimum_entropy(summary_stats,n_obs,y_obs,fitting_model,priors,max_subset_size=3,n_samples=n_samples,n_accept=n_accept,k=k,printing=printing)
+    me_stats_id,accepted_theta=minimum_entropy(summary_stats,n_obs,y_obs,fitting_model,priors,min_subset_size=min_subset_size,max_subset_size=max_subset_size,n_samples=n_samples,n_accept=n_accept,k=k,printing=printing)
     me_stats=[summary_stats[i] for i in me_stats_id]
     s_obs=[s(y_obs) for s in me_stats]
     if (printing): print("ME stats found -",me_stats_id,"\n")
@@ -1039,15 +1043,17 @@ def two_step_minimum_entropy(summary_stats:["function"],n_obs:int,y_obs:[[float]
     # all permutations of summary stats
     n_stats=len(summary_stats)
     perms=[]
-    for n in range(1,n_stats+1):
+    for n in range(min_subset_size,max_subset_size+1):
         perms+=[x for x in combinations([i for i in range(n_stats)],n)]
 
     lowest=([],maxsize,[])
 
     # compare subsets of summary stats to
     sampling_details={"sampling_method":"best","num_runs":n_samples,"sample_size":n_accept,"distance_measure":log_l2_norm}
-    for perm in perms:
+
+    for (i,perm) in enumerate(perms):
         if (printing): print("Permutation = ",perm,sep="")
+        else: print("{}/{}           ".format(i,len(perms)),end="\r")
         ss=[summary_stats[i] for i in perm]
         _,accepted_theta=abc_rejcection(n_obs,y_obs,fitting_model,priors,sampling_details,summary_stats=ss,show_plots=False,printing=printing)
 
