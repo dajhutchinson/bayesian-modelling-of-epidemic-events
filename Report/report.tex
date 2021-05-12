@@ -1338,7 +1338,7 @@
 
   % TODO posterior mean are optimal summary statistics
 
-  In this section I motivate the research into summary statistic selection \textit{Section \ref{sec_summary_stats_motivation}} and discuss features to consider when selecting summary statistics \textit{Section \ref{sec_properties_of_summary_statistics}}. I then describe five methods for summary statistic selection methods: three which use hand-crafted summary statistics \textit{Sections \ref{sec_approximate_sufficient_subset}-\ref{sec_two_step_minimum_entropy}}; and two which automatically generate summary statistics \textit{Sections \ref{sec_semi_automatic_abc}-\ref{sec_non_linear_projection}}. These approaches are covered in the chronological order in which they were original proposed. To close the section I use a toy example of an SIR model to compare these methods \textit{Section \ref{sec_summary_statistics_toy}}.
+  In this section I motivate the research into summary statistic selection \textit{Section \ref{sec_summary_stats_motivation}} and discuss features to consider when selecting summary statistics \textit{Section \ref{sec_properties_of_summary_statistics}}. I then describe five methods for summary statistic selection methods: three which use hand-crafted summary statistics \textit{Sections \ref{sec_approximate_sufficient_subset}-\ref{sec_two_step_minimum_entropy}}; and two which automatically generate summary statistics \textit{Sections \ref{sec_semi_automatic_abc}-\ref{sec_non_linear_projection}}. These approaches are covered in the chronological order in which they were original proposed.
 
 % TODO Fisher information matrix.
 
@@ -1962,19 +1962,10 @@
 
   % TODO \par Neural networks are notorious for being slow to train. In their experiments, Wong \textit{et al.} find the running of their DNN approach to take ~20 minutes compared to Fearnhead \& Prangles' semi-automatic approach taking less than a minute. This motivates that neural networks are best used in more complex scenarios, however they will perform well with simple models as the relationships are
 
-\subsubsection{Toy Example}\label{sec_summary_statistics_toy}
-
-  Using identity function may not be ideal as it seeks to minimise total loss and doesn'y prioritise any features of the response. For some problems we want to prioritise features of the outcome (e.g. peak infection date in SIR model).
-
-\subsection{Model Selection}
-
-  \par Theorems which state when a model is misspecified that bayesian inference will put mass on the distributions ``closest to the ground truth'' rely on strong regularity conditions. \cite[]{inconsistency_of_bayesian_inference_for_misspecified_linear_models_and_a_proposal_for_reparing_it}
-  \par Introduce learning rate (SafeBayes) \cite[]{inconsistency_of_bayesian_inference_for_misspecified_linear_models_and_a_proposal_for_reparing_it}
-
 \newpage
 \section{ABC and Epidemic Events}\label{sec_abc_and_epidemic_events}
 
-  \par In this section I compare the ABC methods discussed in \textit{Section \ref{sec_ABC}} by applying them to toy examples of the compartmental models discussed in \textit{Section \ref{sec_bayesian_modelling_and_epidemic_processes}}; Assess the summary statistic selection methods discussed in \textit{Section \ref{sec_summary_stats}} when applied to compartmental models, including how the dimensionality of summary statistics affects performance of the ABC methods. I close this section by applying the methods to SARS-CoV-2 (Covid-19) data from France and Senegal.
+  \par In this section I compare the ABC methods discussed in \textit{Section \ref{sec_ABC}} by applying them to toy examples of the compartmental models discussed in \textit{Section \ref{sec_bayesian_modelling_and_epidemic_processes}} \textit{Section \ref{sec_comparison_of_abc_methods}}; Assess the summary statistic selection methods discussed in \textit{Section \ref{sec_summary_stats}} when applied to compartmental models \textit{Section \ref{sec_comparison_of_ss_methods}}; I use these results to present what affect dimensionality of summary statistics have on the ability of ABC methods to fit models \textit{Section \ref{sec_effect_of_dimensionality}}; Present how these ABC and selection methods perform when tasked with projecting the future course of an epidemic \textit{Section \ref{sec_projection}}; and, I close this section by applying these methods to two sets of real data \textit{Section \ref{sec_case_studies}}.
 
   % \par A common difficulty in modelling epidemic events is the lack of available data. Moreover, most epidemics are only experienced once making it very difficult to account for random variability. % TODO
 
@@ -2144,9 +2135,9 @@
             \item *Net weekly change in removed population (4).\label{table_list_of_summary_statistics_weekly_rem}
             \item *Net daily change in susceptible population (29).
             \item *Net daily change in infectious population (29).
-            \item *Net daily change in removed population (29).
+            \item *Net daily change in removed population (29).\label{table_list_of_summary_statistics_daily_change_removed}
             \item *Cummulative sum of daily susceptible population (29).
-            \item *Cummulative sum of daily infectious population (29).
+            \item *Cummulative sum of daily infectious population (29).\label{table_list_of_summary_statistics_cum_sum_infectious}
             \item *Cummulative sum of daily removed population (29).
             \item Uniform random variable in [10,22] (1).\label{table_list_of_summary_statistics_random}
             \item Constant mapping to 16 $s(x)=16$ (1).\label{table_list_of_summary_statistics_constant}
@@ -2366,18 +2357,20 @@
 
   \par Overall, these results show that it is possible to automate the summary statistic selection process using SA-ABC and still produce well-fitting projections of SIR models. These predictions are better the more data SA-ABC is supplied with, which is unsurprising given it data driven approach.
 
-\subsection{Case Studies}
+\subsection{Case Studies}\label{sec_case_studies}
 
-  Here I present implementations of the ABC and summary statistic selection methods discussed in this project on two sets of real-world data: Covid-19 outbreak in France between $17^{th}$ February 2020 and $17^{th}$ March 2020 (\textit{Section \ref{sec_real_data_france}}); And, the SARS-CoV-2 (Covid-19) outbreak in Senegal between $2^{nd}$ March 2020 and $31^{st}$ March 2020 (\textit{Section \ref{sec_real_data_senegal}}). Both datasets are collected from the Covid-19 data repository maintained by the Center for Systems Science and Engineering (CSSE) at Johns Hopkins University \cite{covid_data_repo}.
+  Here I present two implementations of the ABC and summary statistic selection methods discussed in this project on two sets of real-world data: Covid-19 outbreak in France between $17^{th}$ February 2020 and $17^{th}$ March 2020 (\textit{Section \ref{sec_real_data_france}}); And, the SARS-CoV-2 (Covid-19) outbreak in Senegal between $2^{nd}$ March 2020 and $31^{st}$ March 2020 (\textit{Section \ref{sec_real_data_senegal}}). Both datasets are collected from the Covid-19 data repository maintained by the Center for Systems Science and Engineering (CSSE) at Johns Hopkins University \cite{covid_data_repo}. I use the ABC and summary statistic selection methods to fit standard SIR models to both sets of data.
 
-  \par Both countries were chosen as they published the number of active case and recovered cases each day, rather than the number of new cases and new deaths as the UK has. This makes these datasets readily applicable to the SIR models discussed in this project. The data from Senegal represents the first 30 days since the first confirmed case in the country, a period in which very few restrictions were imposed except for foreign travel bans. The data for France represents the 30 days leading up to the imposition of the first national lockdown, a period in which the government's own models predicted a sufficiently dire future for a lockdown to be deemed necessary.
+  \par Both countries were chosen as they published the number of active case and recovered cases each day, rather than the number of new cases and new deaths as the UK has. This makes these datasets readily applicable to the standard SIR model discussed in this project. When fitting the models, both confirmed deaths and confirmed recoverys are grouped into the Removed compartment of the SIR model. The data from Senegal represents the first 30 days since the first confirmed case in the country, a period in which very few restrictions were imposed except for foreign travel bans. The data for France represents the 30 days leading up to the imposition of the first national lockdown, a period in which the government's own models predicted a sufficiently dire future for a lockdown to be deemed necessary.
 
   \par For all implementations discussed below I used the following uniform priors for $\beta$ and $\gamma$
   \[ \pi_{0,\beta}\sim\mathcal{U}(0,0.5),\ \pi_{0,\gamma}\sim\mathcal{U}(.01,.1) \]
   In pilot tests I specified a less informative prior for $\beta$, $\pi_{0,\beta}\sim\mathcal{U}(0,2)$, and through these tests found that a narrower prior was appropriate as none placed significant posterior mass outside of $[0,0.5]$. This narrower prior significant increased the convergence rate of the methods for $\gamma$ was informed by the assumption that an individual is infectious for at least 10 days after initial infection \cite{inferred_duration_of_infectious_period_of_sars_cov_2}.
 
+  \par The initial number of cases was fixed to the true value for both populations and the susceptible population was set to the national population size, less the initial number of cases.
+
   \par For each dataset I run five implementations
-  \begin{enumerate}[label=\arabic*)]
+  \begin{enumerate}[label=(I\arabic*)]
     \item ``Best Samples'' ABC-Rejection Sampling using the identity function as the summary statistic; \label{real_implementation_1}
     \item Adaptive ABC-SMC using the identity function as the summary statistic;\label{real_implementation_2}
     \item Adaptive ABC-SMC using the summary statistics recommended by the Minimum Entropy (ME) algorithm;\label{real_implementation_3}
@@ -2387,99 +2380,149 @@
 
   \noindent In implementation \ref{real_implementation_1} the ABC-Rejection Sampling method was configured to generate 500,000 simulations and to accepted the best 0.1\% (500) according to the log-Euclidean distance measure. For implementations \ref{real_implementation_2}-\ref{real_implementation_5} Adaptive ABC-SMC was configured to run for 5,000 simulations, with a sample size of 100, using the log-Euclidean distance measure and a target acceptance rate of 90\%. Adaptive ABC-SMC was used for all these implementations as it was shown in \textit{Section \ref{sec_comparison_of_abc_methods}} to perform best in general scenarios and it minimises user influence on these implementations. For implementations \ref{real_implementation_3}-\ref{real_implementation_4} ME and 2-ME were supplied with all summary statistics specified in \textit{Table \ref{table_list_of_summary_statistics}} (except for \ref{table_list_of_summary_statistics_daily} for time-tractability) and were configured to generate 100,000 simulations and to accept the best 100 for each set of summary statistics, up to size 4. For \ref{real_implementation_5} SA-ABC was configured to generated 1,000,000 simulations; keeping the best .1\% (1,000) to generate a set of 5,000 parameters to use for the regression calculations.
 
+  \par For each implementation I produce plots of the 95\% confidence intervals for the sizes of the infectious and removed populations. Along with residual sum of squares error (RSSE)\footnote{Only the sizes of the infectious and removed populations at each time-step are compared, not the susceptible population. The natural logarithms of each value is used in the calculation due to the exponential nature of SIR models.} between the true data and an SIR model fitted with the predicted posterior means for $\beta$ and $\gamma$. I provide the 95\% confidence intervals for the model parameters $\beta$ and $\gamma$, and for $R_0$. \cite[]{estimated_r0_covid_19} estimated a 95\% confidence interval for the $R_0$ of Covid-19 to be [2.81,3.82].
+
+  \par As discussed in \textit{Section \ref{sec_standard_sir_model}}, the standard SIR model does make a number of assumptions which limits its applicability. Namely, it assumes a constant rates of infection $\beta$ and removal $\gamma$, and a constant population. Due to this assumption of constant rates I am only using data before major non pharmaceutical interventions (NPIs) had time to take effect. A worthwhile extension to the SIR model used in this section would be to fit the parameters $\beta$ and $\gamma$ as step functions of time with steps occurring when new NPIs were introduced. As the time-periods being considered are short, only 30 days, the assumption of a constant population is reasonable.
+
+  \par At the start of each time-period being considered the number of active cases is very small (<10) and are geographically concentrated, by the end of the time-periods the number of active cases and the geographic spread of the disease has increase rapidly. It is likely that the spread of the disease will vary between geographical regions. Moreover, at the start of the datasets the majority of the susceptible population is not truely susceptible as they live many-many miles away from any infectious person. By the end of the datasets this is no longer true. This could be accounted for changing the size of the susceptible population with each confirmed case, such that it includes all those who live a region with confirmed cases. I have not implemented this due to the necessary complexity it would entail.
+
+  \par The standard SIR model also assumes that all cases of the disease are detected and recorded accurately. This is unrealistic in most real-world scenarios, especially for novel diseases which are not being actively screened for. Senegal has been praised for its approach to testing. Due to it not confirming its first case until March $2^{nd}$, months after many other countries, it was better prepared and quickly introduced temperature check policies and free 24 hour test results. Under-reporting can be incorporated into the standard SIR model by creating two extra compartments: undetected infections; and, undetected deaths. The natural difficult with this is validating the sizes of these compartments and whether undetected deaths are even possible, as someone who is seriously ill enough to die from a disease is likely showing enough symptoms for them to be diagnosed correctly with said disease. The rate of under-reporting can be approximated by evaluating flucations in the positivity rate over time\footnote{The percentage of tests which return positive results.}. \cite[]{sir_model_underreporting} present an implementation of an SIR model which accounts for under-reporting and apply it to Covid-19 data from California and Florida.
+
 \subsubsection{France Covid-19}\label{sec_real_data_france}
 
   %https://www.medrxiv.org/content/10.1101/2020.04.26.20081042v1.full.pdf
 
-  \par The 30 days leading up to lockdown 17th feb-17th March.
-  \par Rejection Sampling = 500,000 simulations and keep best 500. (5 minutes)
-  \par Adaptive ABC-SMC = 5000 simulations, $\alpha=.9$ (26 minutes)
-  \par Semi-Auto = 500,000 simulations, keep 100, generate 5,000 (dim=2)
-  \par ME = 10,000 simulations per set, keep 100, max-size=4. Chose=[final\_removed\_ss,mean\_infectious\_ss,mean\_removed\_ss] (dim=3)
-  \par 2-ME = Same as ME. Chose=[final\_removed\_ss,net\_daily\_removed\_ss,cum\_sum\_infectious\_ss] (dim=6)
+  \par $17^{th}$ February 2020 up to $17^{th}$ March marks the 30 day period leading upto the imposition of the first national lockdown in France. This is an interesting period to study as although France recorded it's first confirmed case of Covid-19 on the $24^{th}$ January 2020, the total number of active cases have only reached 7 by the $17^{th}$ Feb. Over the next 30 days the total number of active cases increased to 4,396.
+
+  \par Leading up to the national lockdown France did introduce some restrictions on public gatherings. Specifically, banning indoor gatherings of more than 5,000 people ($5^{th}$ March); banning all gatherings of more than 1,000 people ($10^{th}$ March); banning all gatherings of more than 100 people ($14^{th}$ March); Closer of non-essential shops and services ($15^{th}$ March); and, the closer of schools ($16^{th}$ March). The last two restrictions would be believed to have the greatest effect on transmission rates, although some papers have shown the inverse to be true \cite[]{effect_of_school_closures_on_mortality}. Regardless, these restrictions would have little impact on the period of data I am considering.
 
   \begin{figure}[H]
+    % Identity
     \centering
     \makebox[\textwidth][c]{
       \begin{subfigure}{.45\paperwidth}
         \centering
         \includegraphics[width=\textwidth]{france_abc_rejection_identity_ci.png}
-        \caption{"Best Samples" ABC-Rejection Sampling. 95\% CI for $R_0=[15.937,25.627]$. RSSE=1,267.}
+        \caption{\ref{real_implementation_1} "Best Samples" ABC-Rejection Sampling. 95\% CI for $R_0=[15.937,25.627]$. RSSE=1,267.}
         \label{fig_france_identity_ci_rejection_ci}
       \end{subfigure}
       \begin{subfigure}{.45\paperwidth}
         \centering
 
         \includegraphics[width=\textwidth]{france_adapt_abc_smc_identity_ci.PNG}
-        \caption{Adaptive ABC-SMC. 95\% CI for $R_0=[3.990,18.976]$. RSSE=10,395.}
+        \caption{\ref{real_implementation_2} Adaptive ABC-SMC. 95\% CI for $R_0=[3.990,18.976]$. RSSE=10,395.}
         \label{fig_france_identity_ci_adapt_abc_smc}
       \end{subfigure}
     }
-    \caption{95\% confidence intervals for infectious (blue) and removed (red) populations for Covid-19 in France between February $17^{th}$ 2020 and March $17^{th}$ 2020 using ``Best Samples'' ABC-Rejection Sampling and Adaptive ABC-SMC respectively. Both methods use the Log-Euclidean distance as their distance measures and the identity function of the infectious and removed populations as their summary statistic. The size of the susceptible population is not considered.}
+    \caption{95\% confidence intervals for infectious (blue) and removed (red) populations for Covid-19 in France between February $17^{th}$ 2020 and March $17^{th}$ 2020 using ``Best Samples'' ABC-Rejection Sampling \ref{real_implementation_1} and Adaptive ABC-SMC \ref{real_implementation_2}, respectively. Both methods use the Log-Euclidean distance as their distance measures and the identity function of the infectious and removed populations as their summary statistic. The size of the susceptible population is not considered.}
     \label{fig_france_identity_ci}
   \end{figure}
 
+  \par \textit{Figure \ref{fig_france_identity_ci}} plot 95\% confidence intervals for the size of the infectious and removed populations of an SIR model fitted with the estimated posterior produced by ``Best Samples'' ABC-Rejection Sampling \ref{real_implementation_1} and Adaptive ABC-SMC \ref{real_implementation_2} when using the identity function as the, respectively. The plot from \ref{real_implementation_1} (\textit{Figure \ref{fig_france_identity_ci_rejection_ci}}) has a significantly lower RSSE than the plot from \ref{real_implementation_2} (\textit{Figure \ref{fig_france_identity_ci_adapt_abc_smc}}). A visual inspection of the plots tells us that this is due to \ref{real_implementation_2} significantly underestimating the number of cases and overestimating the number of removals. \textit{Figure \ref{fig_france_identity_ci_rejection_ci}} shows a very good fit for both populations, although it begins to over-estimate the size of the removed population at the end of the time-series.
+
+  \par \ref{real_implementation_1} estimated a 95\% confidence interval for $R_0=[15.9,25.6]$ which is significantly greater than that estimated by \cite[]{estimated_r0_covid_19}. This is despite producing a good fit of the true data, suggesting significant underreporting of cases.
+
   \begin{figure}[H]
+    % ME
     \centering
     \makebox[\textwidth][c]{
       \begin{subfigure}{.45\paperwidth}
         \centering
         \includegraphics[width=\textwidth]{france_me_adapt_abc_smc_posterior.PNG}
-        \caption{Joint and marginal posteriors for $\beta$ and $\gamma$.}
+        \caption{\ref{real_implementation_3} Joint and marginal posteriors for $\beta$ and $\gamma$.}
         \label{fig_france_me_posterior}
       \end{subfigure}
       \begin{subfigure}{.45\paperwidth}
         \centering
         \includegraphics[width=\textwidth]{france_me_adapt_abc_smc_ci.PNG}
-        \caption{95\% confidence intervals for population sizes. RSSE=1,440.}
+        \caption{\ref{real_implementation_3} 95\% confidence intervals for population sizes. RSSE=1,440.}
         \label{fig_france_me_ci}
       \end{subfigure}
     }
-    \caption{Estimated posteriors for SIR model parameters and resulting 95\% confidence intervals for the sizes of the infectious (blue) and removed (red) populations for Covid-19 in France between February $17^{th}$ 2020 and March $17^{th}$ 2020 when using Adaptive ABC-SMC with summary statistics generated by Minimum Entropy. 95\% CI for $R_0=[7.532,21.216],\ \beta=[0.186,0.255],\ \gamma=[0.011,0.034]$.}
+    \caption{Estimated posteriors for SIR model parameters and resulting 95\% confidence intervals for the sizes of the infectious (blue) and removed (red) populations for Covid-19 in France between February $17^{th}$ 2020 and March $17^{th}$ 2020 when using Adaptive ABC-SMC with summary statistics generated by Minimum Entropy \ref{real_implementation_3}. 95\% CI for $R_0=[7.532,21.216],\ \beta=[0.186,0.255],\ \gamma=[0.011,0.034]$.}
     \label{fig_france_me}
   \end{figure}
 
+  \noindent\ref{real_implementation_3} recommended the following set of summary statistics:
+  
+  \begin{centering}
+    \begin{framed}
+      \begin{itemize}
+        \item[\ref{table_list_of_summary_statistics_final_rem}*] Log-Final Size of Removed Population.
+        \item[\ref{table_list_of_summary_statistics_mean_inf}*] Log-Mean Size of Infectious Population.
+        \item[\ref{table_list_of_summary_statistics_mean_rem}*] Log-Mean Size of Removed Population.
+      \end{itemize}
+    \end{framed}
+  \end{centering}
+  \noindent Each of these statistics is one dimensional, thus the recommended set of summary statistics has 3 dimensions which is significantly less than the 90 dimensions of the identity function. It is notably that this set of statistics is the set of statistics recommended by ME in \textit{Section \ref{sec_comparison_of_ss_methods}} with statistics \ref{table_list_of_summary_statistics_mean_rem}* included as well.
+
+  \par \textit{Figure \ref{fig_france_me}} plots the estimated posteriors and the 95\% confidence intervals for population sizes from \ref{real_implementation_3} on the France dataset. Both posteriors are very concentrated compared to their supplied priors. \ref{real_implementation_3} produces an RSSE of 1,440 which is highly comparable to, although worse than, that from \ref{real_implementation_1}. A visual inspection of \textit{Figure \ref{fig_france_me_ci}} shows that \ref{real_implementation_3} fits the removed population extremely well, whilst is significantly underpredicts the size of the infectious population.
+
   \begin{figure}[H]
+    % 2-ME
     \centering
     \makebox[\textwidth][c]{
       \begin{subfigure}{.45\paperwidth}
         \centering
         \includegraphics[width=\textwidth]{france_2_me_adapt_abc_smc_posterior.PNG}
-        \caption{Joint and marginal posteriors for $\beta$ and $\gamma$.}
+        \caption{\ref{real_implementation_4} Joint and marginal posteriors for $\beta$ and $\gamma$.}
         \label{fig_france_2_me_posterior}
       \end{subfigure}
       \begin{subfigure}{.45\paperwidth}
         \centering
-
         \includegraphics[width=\textwidth]{france_2_me_adapt_abc_smc_ci.PNG}
-        \caption{95\% confidence intervals for population sizes. RSSE=1,459.}
+        \caption{\ref{real_implementation_4} 95\% confidence intervals for population sizes. RSSE=1,459.}
         \label{fig_france_2_me_ci}
       \end{subfigure}
     }
-    \caption{Estimated posteriors for SIR model parameters and resulting 95\% confidence intervals for the sizes of the infectious (blue) and removed (red) populations for Covid-19 in France between February $17^{th}$ 2020 and March $17^{th}$ 2020 when using Adaptive ABC-SMC with summary statistics generated by Two-Step Minimum Entropy algorithm. 95\% CI for $R_0=[4.062,18.373],\ \beta=[0.263,0.331],\ \gamma=[0.014,0.082]$.}
+    \caption{Estimated posteriors for SIR model parameters and resulting 95\% confidence intervals for the sizes of the infectious (blue) and removed (red) populations for Covid-19 in France between February $17^{th}$ 2020 and March $17^{th}$ 2020 when using Adaptive ABC-SMC with summary statistics generated by Two-Step Minimum Entropy \ref{real_implementation_4}. 95\% CI for $R_0=[4.062,18.373],\ \beta=[0.263,0.331],\ \gamma=[0.014,0.082]$.}
     \label{fig_france_2_me}
   \end{figure}
 
+  \noindent\ref{real_implementation_4} recommended the following set of summary statistics:
+
+  \begin{centering}
+    \begin{framed}
+      \begin{itemize}
+        \item[\ref{table_list_of_summary_statistics_final_rem}*] Log-Final Size of Removed Population.
+        \item[\ref{table_list_of_summary_statistics_daily_change_removed}*] Log-Net daily change in removed population.
+        \item[\ref{table_list_of_summary_statistics_cum_sum_infectious}*] Log-Cummulative sum of daily infectious population.
+      \end{itemize}
+    \end{framed}
+  \end{centering}
+  \noindent Statistic \ref{table_list_of_summary_statistics_daily_change_removed}* has 29 dimensions, meaning the total dimensionality of this recommended set of summary statistics is 31. This is significantly more than the set recommended by \ref{real_implementation_3}, but still less than the identity function.
+
+  \par \textit{Figure \ref{fig_france_2_me}} plots the estimated posteriors and the 95\% confidence intervals for population sizes from \ref{real_implementation_4} on the France dataset. Both marginal posteriors are markedly less concentrated than those from \ref{real_implementation_3} (\textit{Figure \ref{fig_france_me_posterior}}), with the posterior for $\gamma$ showing very little learning to have occured. The fitted model from \ref{real_implementation_4} produces an RSSE of 1,459 which is practically identical to that of the fitted model from \ref{real_implementation_3}. A visual inspection of these confidence intervals shows that a very good fit has been achieved for the infectious population, whilst the removed population is significantly overpredicted. This is the inverse of the results from \ref{real_implementation_3}.
+
   \begin{figure}[H]
+    % SA-ABC
     \centering
     \makebox[\textwidth][c]{
       \begin{subfigure}{.45\paperwidth}
         \centering
         \includegraphics[width=\textwidth]{france_semi_auto_adapt_abc_smc_posterior.PNG}
-        \caption{Joint and marginal posteriors for $\beta$ and $\gamma$.}
+        \caption{\ref{real_implementation_5} Joint and marginal posteriors for $\beta$ and $\gamma$.}
         \label{fig_france_semi_auto_posterior}
       \end{subfigure}
       \begin{subfigure}{.45\paperwidth}
         \centering
 
         \includegraphics[width=\textwidth]{france_semi_auto_adapt_abc_smc_ci.PNG}
-        \caption{95\% confidence intervals for population sizes. RSSE=1,131.}
+        \caption{\ref{real_implementation_5} 95\% confidence intervals for population sizes. RSSE=1,131.}
         \label{fig_france_semi_auto_ci}
       \end{subfigure}
     }
-    \caption{Estimated posteriors for SIR model parameters and resulting 95\% confidence intervals for the sizes of the infectious (blue) and removed (red) populations for Covid-19 in France between February $17^{th}$ 2020 and March $17^{th}$ 2020 when using Adaptive ABC-SMC with summary statistics generated by Semi-Automatic ABC. 95\% CI for $R_0=[3.469,9.009],\ \beta=[0.281,0.374],\ \gamma=[0.028,0.108]$.}
+    \caption{Estimated posteriors for SIR model parameters and resulting 95\% confidence intervals for the sizes of the infectious (blue) and removed (red) populations for Covid-19 in France between February $17^{th}$ 2020 and March $17^{th}$ 2020 when using Adaptive ABC-SMC with summary statistics generated by Semi-Automatic ABC \ref{real_implementation_5}. 95\% CI for $R_0=[3.469,9.009],\ \beta=[0.281,0.374],\ \gamma=[0.028,0.108]$.}
     \label{fig_france_semi_auto}
   \end{figure}
+
+  \par \textit{Figure \ref{fig_france_semi_auto}} plots the estimated posteriors and the 95\% confidence intervals for population sizes from \ref{real_implementation_5} on the France dataset. The estimated posterior is highly comparable to that produced by \ref{real_implementation_4} in both concentration and the part of the parameter space which it occupies. This is an ideal result as the 2-ME algorithm used in \ref{real_implementation_4} recommended a set of summary statistics with 31 dimensions, whilst the SA-ABC algorithm use din \ref{real_implementation_5} generates a summary statistic with only 2 dimensions. The posterior for $\gamma$ is still very similar to its prior, although this is to be expected as the data being fitted is dominated by increased infection rates and only 103 removals have been recorded by the end of the time-series (comapred to 4,396 active cases).
+
+  \par The 95\% confidence interval of $R_0$ from \ref{real_implementation_5} is [3.469,9.009]. This is still signifcantly higher than that of \cite[]{estimated_r0_covid_19} but it is the first implementation to overlap with their prediction. It is likely that given further datapoints, especially those where removals take greater prominence, this method would converge towards the confidence interval estimate of \cite[]{estimated_r0_covid_19}.
+
+  \par The model fitted with the posterior means calculated by \ref{real_implementation_5} has the lowest RSSE (1,131) of any previous method.
+
+  \par Each of the five implentations I have just presented have managed to produce fitted models and confidence intervals which appear to closely match the observed data. This is promising for these models to be applied to real world data sets. Moreover, the best performing method \ref{real_implementation_5} was the one which automated the summary statistic selection process and used summary statistics with only two dimensions. This shows that there do exist low-dimension projections of real-world data which perform very well.
 
 \subsubsection{Senegal Covid-19}\label{sec_real_data_senegal}
 
@@ -2574,10 +2617,6 @@
     \caption{Estimated posteriors for SIR model parameters and resulting 95\% confidence intervals for the sizes of the infectious (blue) and removed (red) populations for Covid-19 in Senegal between March $2^{nd}$ 2020 and March $31^{st}$ 2020 when using Adaptive ABC-SMC with summary statistics generated by Semi-Automatic ABC. 95\% CI for $R_0=[2.547,11.937],\ \beta=[0.163,0.270],\ \gamma=[0.013,0.107]$.}
     \label{fig_senegal_semi_auto}
   \end{figure}
-
-\subsection{More Complex Models}\label{sec_more_complex_models}
-
-  \par Summary statistic methods should perform well in all scenarios where ABC performs well as they are just extensions of ABC.
 
 \newpage
 \section{Conclusion}
