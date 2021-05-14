@@ -76,52 +76,75 @@
 \setcounter{page}{1}
 \pagenumbering{Roman}
 
-\section*{Dedication}\label{sec_dedication}
-% Me, I'm taking this one. And Chris Lovasz whose streams kept me passively entertained during this project.
+\section*{Declaration}\label{sec_declaration}
 % \newpage
 
-\section*{Accompanying Resources}\label{sec_accompanying_resources}
-% % TODO link to github for code and notebooks
-% \newpage
+% \section*{Acknowledgements}\label{sec_accompanying_resources}
+% Me, I'm taking this one. And Chris Lovasz whose streams kept me passively entertained during this project.
 
 \newpage
 \section*{Abstract}\label{sec_abstract}
 
-\newpage
-\tableofcontents
+  \noindent Approximate Bayesian Computation (ABC) methods are a family of likelihood-free methods for estimating the posterior of model parameters. These methods have many features which users need to specify and on whom the success of these methods rest. In this project I explore methods for automating the selection of one of these features: summary statistics. I provide an analysis of what creates a desirable summary statistics and discuss methods to automate their selection. Two types of methods are discussed: those which choose an optimal set of statistics from a larger set of handcrafted statistics; and, those which generate their own summary statistics. I implement these methods and evaluate their ability to fit SIR models to data from the early stages of the SARS-CoV-19 (Covid-19) outbreaks in both France and Senegal, with results showing that these selection methods are able to select summary statistics which are able to produce better fitting models than the nai\"vely optimal identity function.
 
 \newpage
 \pagenumbering{arabic}
 \setcounter{page}{1}
+\tableofcontents
+
+\newpage
 \section{Introduction}\label{sec_introduction}
 
-  \par Modelling epidemics is important as there is relatively little data available, and little experience to use. Experimenting would cost lives.
-  \par Epidemiology is the mathematical study of the spread of infectious diseases
-  \par Bernoulli theorised an epidemic model in 1760 ish. Probs the first
-  \par What is a model? A (simple) mathematical formulation of a process which incorporates parameters of interest and likely some stochastic processes. Models need to be computational tractable (i.e. fairly simple)
-  \par ``All models are wrong, some are useful''.
-  \par What to use models for? check intuition, explanation \& prediction.
-  \par What is ``posterior estimation''?
-  \par The problem - Posterior estimation when likelihood is intractable. ``Likelihood-free'' estimation. (Classical example of determining most recent common ancestor of two DNA strands. Likelihood is intractable due to number of branches growing factorially. (\cite[]{selecting_summary_stats_in_ABC_for_calibration})
+\subsection{Motivation}\label{sec_motivation}
 
-\subsection*{Motivation}\label{sec_motivation}
+  Diseases have plighted human history bring much suffering and death. The ability to accurately model the spread of diseases and the possible effects of different preventative measures can lead to saved lives.
 
-  \par What is bayesian inference
-  \par Bayes Rule? Describe each component \& why is likelihood intractable?
-  \par Why now? More, better data. Greater computational power.
-  \par What can posterior be used for?
-  \par Generative models?
+  \par It was not until Girolamo Fracastoro in the $16^{th}$ century that the idea of diseases being spread by microscopic organisms in the air was first proposed \cite[]{girolamo_fracastoro}. This ``Germ Theory'' for disease has lead to many developments in the study of the spread of disease and its prevention.
 
-\subsection*{Motivating Examples}\label{sec_motivating_examples}
+  \par The first mathematical modelling of epidemic events occurred in the $18^{th}$ century when Daniel Bernoulli \cite[]{smallpox_vaccine_bernoulli} sought to demonstrate the effectiveness of a smallpox vaccine. In his model Bernoulli grouped the population by birth year $x$ and then identified those in each group who were susceptible to smallpox $S(x)$ and those who had already survived small pox and were assumed to be immune $R(x)$. Bernoulli theorised two differential equation \ref{eqn_smallpox_model} for the change in the susceptible population and removed population with age.
 
-  \par DNA mutation (\cite[]{modern_computational_approaches_for_analysing_molecular_genetic_variation_data})
+  \begin{subequations}\label{eqn_smallpox_model}
+    \everymath={\displaystyle}\begin{alignat}{2}
+      \frac{dS}{dx}&=-qS(x)-m(x)S(x)\\
+      \frac{dR}{dX}&=q(1-p)S(x)-m(x)R(x)
+    \end{alignat}
+  \end{subequations}
 
-\subsection*{History}\label{sec_history}
+  \noindent where $q$ is the probability of catching smallpox in a given year, $p$ is the probability of dying form smallpox and $m(x)$ is the probability of dying at age $x$ from anything except smallpox. Parameters $p$ and $q$ are assumed constant for all ages.
 
-  \par Traditional parameter estimation methods - ``Maximum Likelihood''.
-  \par Neutrality testing - (Hypothesis testing), compare results against a null hypothesis for a parameter value.
+  \par Using data collected from new life insurance schemes to estimate age-based mortality rates. Manual calculations were then required to estimate $p$ and $q$ and thus the total number of deaths due to smallpox each year in different age-ranges. Bernoulli proceeded to calculate the increase in life expectancy if everyone was inoculated at birth (i.e. $p=0$) and found that, if this were the case then, life expectancy rose from 26.57 years to 29.65 years.
 
-\subsection*{Successful Applications of these Methods}\label{sec_successful_applications}
+  \par Modelling of epidemic events has come on a long way since Bernoulli's first models. Compartmental models partitions a population into disjoint compartments which represent some state of the individual (e.g. infectious or not) and then proceeds to model the movement of individuals between these compartments. \cite[]{contribution_to_the_mathematical_theory_of_epidemics} presented the first compartmental model in the context of Epidemic events. Compartmental models have proved successful at modelling real epidemic events, including Measles \cite[]{controlling_measles}, HIV-AIDS in Cuba \cite[]{hiv_with_contact_tracing} and the 2009 H1N1 (Swine-Flu) Pandemic \cite[]{swine_flu}.
+
+  \par Compartmental models have several parameters which define the movements of individuals between populations, and these parameters need estimating. Moreover, being able to estimate these parameters accurately at different points in time can lead to inferences about the effect of any non-pharmaceutical interventions (NPIs) which have been introduced. There are two approaches to such estimation and inference: frequentist, and Bayesian. The frequentist approach assumes each parameter to be a fixed quantity and thus can be estimated from the available data, whereas the Bayesian approach treats each parameter as a random variable. The Bayesian approach enables for uncertainty to be incorporated into a model and is thus much more suitable to scenarios where either little or only imperfect data is available, such as real-world epidemics.
+
+  \par When modelling using the Bayesian paradigm the quantity of interest is typically the parameter posteriors, the probability of the parameters given some observed data. The difficulty in calculating the posterior the requirement to quantify a likelihood function. In modelling problems the likelihood function is the probability of observing some data given the current parameters of the model. In reality, the likelihood function is intractable and thus likelihood-free methods are required to estimate parameter posterior.
+
+  \par A popular class of likelihood-free methods are known as Approximate Bayesian Computation methods (ABC). These methods negate the need to specify to likelihood function by instead seeking to generate samples from it instead. This is achieved by generating and comparing simulations of theorised models to observed data from the true model. This makes these methods computationally intensive and is the reason that these methods have only began to emerge at the turn of the Millennium, with the first recognised methods being presented by \cite[]{inferring_coalescence_times_from_dna_sequence_data}. This first method involved generating many-many simulations and then keeping the $n$ simulations which produced values closest to the observed data, according to some distance measure. The distribution  of parameters which were used in these $n$ simulations is then used as an estimation of the parameter posterior. This approach has since been extended upon with the introduction of popular Monte Carlo sampling methods, namely MCMC and SMC.
+
+\subsection{Objectives}\label{sec_objectives}
+
+  The objectives of this project are to:
+  \begin{itemize}
+    \item Explore and understand models for epidemic events.
+    \item Evaluate and implement several ABC methods.
+    \item Explore ABC methods which minimise the number of hyper-parameters which users need to specify.
+    \item Understand the importance of summary statistic selection in the success of ABC methods.
+    \item Discuss and assess the effect of the dimensionality of summary statistics.
+    \item Explore, evaluate and implement several methods for automating summary statistic selection for ABC methods. Including methods which generate their own summary statistics.
+    \item Evaluate the abiltiy of ABC methods to fit models to epidemic events when using the identity function, an informative, but na\"ive, summary statistic.
+    \item Evaluate the abiltiy of ABC methods to fit models to epidemic events when using summary statistics generated by automated methods.
+    \item Discuss not only the theoretical qualities of these methods, but their computational practicalities as well.
+    \item Apply the discussed methods to real-world data.
+  \end{itemize}
+
+\subsection{Structure}\label{sec_structure}
+
+  The structure of this project is as follows: In \textit{Section \ref{sec_bayesian_modelling_and_epidemic_processes}} I provide an overview of Bayesian modelling and introduce some models which are often used for modelling epidemic events. In \textit{Section \ref{sec_ABC}} I present a class of computational methods known as Approximate Bayesian Computation methods (ABC) which are used to approximate the posterior distribution of model parameters in scenarios when the likelihood is intractable. In \textit{Section \ref{sec_summary_stats}} I perform an in-depth analysis of summary statistics and present methods for automating the selection of summary statistics for ABC methods. In \textit{Section \ref{sec_abc_and_epidemic_events}} I assess the performance of the methods presented in \textit{Sections \ref{sec_ABC} \& \ref{sec_summary_stats}} on the epidemic models presented in \textit{Section \ref{sec_bayesian_modelling_and_epidemic_processes}}, including fitting epidemic models to data from the SARS-Cov-19 outbreaks in France and Senegal. In \textit{Section \ref{sec_conclusion}} I review the achievements of this project and discuss future work to build on those achievements.
+
+\subsection{Accompanying Resources}\label{sec_accompanying_resources}
+
+  A git repository containing the code used during this project can be found at \url{https://github.com/dajhutchinson/Bayesian-Modelling-of-Epidemic-Processes}. Test code is provided in Jupyter Notebooks.
 
 \newpage
 \section{Bayesian Modelling and Epidemic Processes}\label{sec_bayesian_modelling_and_epidemic_processes}
@@ -138,16 +161,16 @@
     where each component is known as
     \begin{itemize}
       \item $\prob(Y|X)$, the Posterior of $Y$ given variable $X$.
-      \item $\prob(X|Y)$, the Likelihood of $Y$ given fixed event $X$.
-      \item $\prob(X)$, the prior distribution of $X$.
-      \item $\prob(Y)$, the evidence for fixed event $Y$.
+      \item $\prob(X|Y)$, the Likelihood of $Y$ given event $X$.
+      \item $\prob(Y)$, the Prior distribution of $Y$.
+      \item $\prob(X)$, the Evidence for fixed event $X$.
     \end{itemize}
     \begin{proof}
       Bayes' rule follows from the definition of conditional distributions and joint distributions
       \everymath={\displaystyle}
       \[\begin{array}{rcl}
-        \prob(Y|X)&=&\frac{\prob(X,Y)}{\prob(Y)}\\
-        &=&\frac{\prob(Y|X)\prob(X)}{\prob(Y)}
+        \prob(Y|X)&=&\frac{\prob(X,Y)}{\prob(X)}\\
+        &=&\frac{\prob(X|Y)\prob(Y)}{\prob(X)}
       \end{array}\]
     \end{proof}
   \end{box_theorem}
@@ -2379,7 +2402,7 @@
     \item Adaptive ABC-SMC using the summary statistics generated by Semi-Automatic ABC (SA-ABC).\label{real_implementation_5}
   \end{enumerate}
 
-  \noindent In implementation \ref{real_implementation_1} the ABC-Rejection Sampling method was configured to generate 500,000 simulations and to accepted the best 0.1\% (500) according to the log-Euclidean distance measure. For implementations \ref{real_implementation_2}-\ref{real_implementation_5} Adaptive ABC-SMC was configured to run for 5,000 simulations, with a sample size of 100, using the log-Euclidean distance measure and a target acceptance rate of 90\%. Adaptive ABC-SMC was used for all these implementations as it was shown in \textit{Section \ref{sec_comparison_of_abc_methods}} to perform best in general scenarios and it minimises user influence on these implementations. For implementations \ref{real_implementation_3}-\ref{real_implementation_4} ME and 2-ME were supplied with all summary statistics specified in \textit{Table \ref{table_list_of_summary_statistics}} (except for \ref{table_list_of_summary_statistics_daily} for time-tractability) and were configured to generate 100,000 simulations and to accept the best 100 for each set of summary statistics, up to size 4.  \ref{real_implementation_3}-\ref{real_implementation_4} were both ran 50 times for each dataset. For \ref{real_implementation_5}, SA-ABC was configured to generated 1,000,000 simulations; keeping the best .1\% (1,000) to generate a set of 5,000 parameters to use for the regression calculations.
+  \noindent In implementation \ref{real_implementation_1} the ABC-Rejection Sampling method was configured to generate 500,000 simulations and to accepted the best 0.1\% (500) according to the log-Euclidean distance measure. For implementations \ref{real_implementation_2}-\ref{real_implementation_5} Adaptive ABC-SMC was configured to run for 5,000 simulations, with a sample size of 100, using the log-Euclidean distance measure and a target acceptance rate of 90\%. Adaptive ABC-SMC was used for all these implementations as it was shown in \textit{Section \ref{sec_comparison_of_abc_methods}} to perform best in general scenarios and it minimises user influence on these implementations. For implementations \ref{real_implementation_3}-\ref{real_implementation_4} ME and 2-ME were supplied with all summary statistics specified in \textit{Table \ref{table_list_of_summary_statistics}} (except for \ref{table_list_of_summary_statistics_daily} for time-tractability) and were configured to generate 100,000 simulations and to accept the best 100 for each set of summary statistics, up to size 4.  \ref{real_implementation_3}-\ref{real_implementation_4} were both run 100 times for each dataset. For \ref{real_implementation_5}, SA-ABC was configured to generated 1,000,000 simulations; keeping the best .1\% (1,000) to generate a set of 5,000 parameters to use for the regression calculations.
 
   \par For each implementation I produce plots of the 95\% confidence intervals for the sizes of the infectious and removed populations. Along with residual sum of squares error (RSSE)\footnote{Only the sizes of the infectious and removed populations at each time-step are compared, not the susceptible population. The natural logarithms of each value is used in the calculation due to the exponential nature of SIR models.} between the true data and an SIR model fitted with the predicted posterior means for $\beta$ and $\gamma$. I provide the 95\% confidence intervals for the model parameters $\beta$ and $\gamma$, and for $R_0$. \cite[]{estimated_r0_covid_19} estimated a 95\% confidence interval for the $R_0$ of Covid-19 to be [2.81,3.82].
 
@@ -2659,14 +2682,39 @@
   \par Again, each of the five implementations I have present have achieved well fitting models. Morever, the most automated implementation \ref{real_implementation_5} has achieved the best scoring model for both the France and Senegal dataset. This implementation does produce wide confidence intervals, but those can be reduced by increasing the number of simulations being performed. The results from these case studies show that there are methods available which can automate the selection of low dimensional summary statistics, and methods which can generate their own summary statistics, such that well fitting models can be produced efficiently.
 
 \newpage
-\section{Conclusion}
+\section{Conclusion}\label{sec_conclusion}
 
-  \par Selection methods work
-  \par Different methods better suited to different problems (2-ME for specific problems and SA-ABC for more general)
+  \par In this project I set out to evaluate methods for fitting models to epidemic processes in the Bayesian paradigm of statistics. This began with a discussion of Bayesian modelling and of popular models for epidemic processes, focusing on compartmental models. I discussed how compartmental models are very versatile due to their modular nature, but that in the age of ``Big Data'' their assumptions of homogeneity are no longer necessary.
 
-\subsection{Future Areas of Research}
+  \par ABC methods were then presented as an approach for estimating the parameters for said models. I presented the mathematical motivation behind them and four flavours of ABC methods. With each discussed alterations which would either improve computational efficiency, and thus the rate of convergence, or would make the methods more adaptable and thus require the user to specify future features of the algorithm each run.
 
-  % NOTE alternative to ABC (e.g. indirect inference, Gourieroux and Ronchetti, 1993)
+  \par The discussion of ABC methods showed that there were three key, user-specified features which the success of the method depended upon: summary statistics; distance measure; and, choice of acceptance kernel. I chose to take an in depth look into summary statistic selection as this feature is arguably the most important of the three just mentioned, as the use of uninformative summary statistics can cause the ABC methods to converge on demonstrably incorrect models.
+
+  \par As part of this analysis of summary statistics I discussed what features make up good summary statistics in practice; namely sufficiency and low-dimensionality. From this discuss the identity function was identified as a na\"ively optimal summary statistic due to it being sufficient but of high dimension. I presented in depth four methods for automating summary statistic selection, one of which generated its own summary statistics.
+
+  \par The crescendo of this project was the evaluation of the ABC methods to fit an SIR model and of the summary statistic selection methods to select well-performing statistics for this problem. During initial tests, using the identity function as the summary statistic, ABC-SMC was found to be the best method when supplied with the full time-series of data but its Adaptive version outperformed it during a cross-validation which assessed the more general performance of each algorithm. The clear downside to the Adaptive ABC-SMC method was its long run-times, taking 5 times as long as standard ABC-SMC and $\sim 500$ times longer than ABC-Rejection Sampling. All methods performed well, generating posteriors with significant mass placed around the true parameter values, when given sufficiently long to run.
+
+  \par The assessment of the four summary statistic selection methods found that none managed to produce summary statistics which performed as well as the identity function. However all methods, except for ASS, were able to generate summary statistics which performed similar to the identity function despite having less than a thirtieth of the number of dimensions. Notably, the method which generates its own summary statistics from scratch, SA-ABC, produced the second best set of summary statistics.
+
+  \par An assessment of the effect of dimensionality of summary statistics on the success of ABC methods to fit an SIR model found that although more dimensions always led to improved performance, there was a point where the gains became negligible. In the scenario tested this was after three dimensions, which is one more than the number of parameters in the SIR model.
+
+  \par This project concluded with an evaluation of ABC methods and summary statistic methods to fit SIR models to real-world data which was collected during the early phases of the Covid-19 breakouts in both France and Senegal. In all cases good model fits were achieved. This is despite the very simple SIR model being used, which did not account for changes in parameter values over time nor for the under-reporting of cases. For both datasets the best fitting models were produced by an implementation which used SA-ABC to generate summary statistics and Adaptive ABC-SMC to estimate parameter posteriors. These implementations also produced confidence intervals for $R_0$ which most closely matched those from more sophisticated research of \cite[]{estimated_r0_covid_19}. This implementation was the one which required the fewest user specifications to run and thus this result is promising for the possible automation of algorithm specification.
+
+\subsection{Future Work}
+
+  \par To close this project I will mention a few areas for future work which this project has thrown up.
+
+\subsubsection*{Optimisation of Adaptive ABC-SMC}
+
+  \par This project has shown Adaptive ABC-SMC to be a powerful ABC method despite being one of the easiest to initialise. This method does still have parameters which need to be initialised, namely the target acceptance rate which is used to determine the bandwidth of the acceptance kernel after each iteration. Discovering a practically optimal value for this acceptance rate would be an interesting area to study as it would need to trade-off theoretical and computational results. As a significant proportion of the computational complexity of this algorithm occurs between iterations, when calculating new perturbance and acceptance kernels, as optimal acceptance rate would minimise the mean time per simulation whilst also minimising the acceptance kernel being used (generally achieved by completing more iterations). As \cite[]{optimal_scaling_for_various_metropolis_hastings_algorithms} showed 23.4\% to be an optimal acceptance rate for MCMC mixing, a similar result for SMC would be useful. An evaluation of the specification of the perturbance kernels would likely need to be performed in tandem with that of the target acceptance rate.
+
+\subsubsection*{Utilise the Entropy Value}
+
+  \par The entropy methods presented in \cite[]{on_optimal_selection_of_summary_stats_for_ABC} only return the set of summary statistics which achieve the lowest entropy and MRSSE values respectively. No consideration is made for how much the best scoring set outscores the next best set, or any other set for that matter, and in practice it was found that although one set of statistics did get returned notably more often than any other, several different sets were returned. This ambiguity and variability is reduced as more simulations are performed, but I believe there are more efficient ways to achieve this. Either, after the intitial ranking has been produced, generate more simulations and re-evaluate the best $n$; or, produce a mixtures model where sets of statistics are used with frequencies defined by their relative entropy or MRSSE values.
+
+\subsubsection*{More Complex Models}
+
+  \par I only assessed the discussed methods on the standard SIR model. This showed promising results but these are naturally limited in their scope. ABC methods, especially ABC-SMC, have been shown to run successfully on significantly more complex models (such as in \cite[]{adaptive_abc_for_complex_models} which successfully modelled the ``SimVillages'' model \cite[]{common_framework_for_the_microsimulation_model} which models the lives of 3,000 villagers). However the same analysis has not been performed on the summary statistic selection methods discussed in this project. Such an assessment would be interesting and I believe fruitful for the two entropy algorithms and SA-ABC as they rely on the same principles as ABC methods and thus can be expected to perform well in scenarios where ABC methods perform well.
 
 % bibliography
 \newpage
