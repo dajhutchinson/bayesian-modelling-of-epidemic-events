@@ -66,17 +66,57 @@
 
 \begin{document}
 
-\title{Bayesian Modelling of Epidemic Processes}
-\author{D. Hutchinson}
-\date{\today}
-\clearpage\maketitle
+% \title{Bayesian Modelling of Epidemic Processes}
+% \author{D. Hutchinson}
+% \date{\today}
+% \clearpage\maketitle
+% \thispagestyle{empty}
+
+\makeatletter
+\newcommand{\smallsym}[2]{#1{\mathpalette\make@small@sym{#2}}}
+\newcommand{\make@small@sym}[2]{%
+  \vcenter{\hbox{$\m@th\downgrade@style#1#2$}}%
+}
+\newcommand{\downgrade@style}[1]{%
+  \ifx#1\displaystyle\scriptstyle\else
+    \ifx#1\textstyle\scriptstyle\else
+      \scriptscriptstyle
+  \fi\fi
+}
+\makeatother
+
 \thispagestyle{empty}
+
+\vspace*{\fill}
+\begin{center}
+  \includegraphics[scale=1]{logo_uob_colour.PNG}\\
+  \vspace*{1.0cm}
+  DEPARTMENT OF MATHEMATICS\\
+  \vspace*{2.0cm}
+  {\LARGE Bayesian Modelling of Epidemic Processes} \\
+  \vspace*{1.0cm}
+  {\Large Dominic Hutchinson}\\
+  {\Large 170 1111}\\
+
+  \vspace*{1.0cm}
+  \rule{0.5\textwidth}{0.5pt}
+  \vspace*{1.0cm}
+
+  A dissertation submitted to the University of Bristol in accordance with the requirements of the degree of Master of Engineering in the Faculty of Engineering.
+
+  \vspace*{1.0cm}
+  \rule{0.5\textwidth}{0.5pt}
+  \vspace*{1.0cm}
+
+  May 14, 2021
+\end{center}
+\vspace*{\fill}
 
 \newpage
 \setcounter{page}{1}
 \pagenumbering{Roman}
 
-\section*{Declaration}\label{sec_declaration}
+\section*{Acknowledgement of Sources}\label{sec_acknowledgement_of_sources}
 % \newpage
 
 % \section*{Acknowledgements}\label{sec_accompanying_resources}
@@ -88,11 +128,11 @@
   \noindent Approximate Bayesian Computation (ABC) methods are a family of likelihood-free methods for estimating the posterior of model parameters. These methods have many features which users need to specify and on whom the success of these methods rest. In this project I explore methods for automating the selection of one of these features: summary statistics. I provide an analysis of what creates a desirable summary statistics and discuss methods to automate their selection. Two types of methods are discussed: those which choose an optimal set of statistics from a larger set of handcrafted statistics; and, those which generate their own summary statistics. I implement these methods and evaluate their ability to fit SIR models to data from the early stages of the SARS-CoV-19 (Covid-19) outbreaks in both France and Senegal, with results showing that these selection methods are able to select summary statistics which are able to produce better fitting models than the nai\"vely optimal identity function.
 
 \newpage
-\pagenumbering{arabic}
-\setcounter{page}{1}
 \tableofcontents
 
 \newpage
+\pagenumbering{arabic}
+\setcounter{page}{1}
 \section{Introduction}\label{sec_introduction}
 
 \subsection{Motivation}\label{sec_motivation}
