@@ -1,9 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import stats
-from Models import Model
 
-def plot_accepted_observations(ax:plt.Axes,x_obs:int,y_obs:[[float]],accepted_observations:[[float]],predicted_model:Model,dim=0) -> plt.Axes:
+def plot_accepted_observations(ax:plt.Axes,x_obs:int,y_obs:[[float]],accepted_observations:[[float]],predicted_model:"Model",dim=0) -> plt.Axes:
     """
     DESCRIPTION
     plot observations from truth `y_obs` and observations from accepted parameter sets.
@@ -158,3 +157,50 @@ def plot_smc_posterior(ax:plt.Axes,name:str,parameter_values:[float],weights:[fl
     if (dim==0): ax.legend()
 
     return ax
+
+def plot_sir_model(ax:plt.Axes, model:"SIRModel",include_susceptible=True):
+
+    ax.margins(0)
+
+    xs=model.x_obs
+    ys=model.observe()
+
+    y_min=0,
+    if (include_susceptible): y_max=np.ceil(model.population_size/1000)*1000
+    else:
+        y_max=max([max(y[1:]) for y in ys])
+        mag=np.floor(np.log10(y_max))
+        y_max=(10**mag)*np.ceil(y_max/(10**mag))
+
+    x_min=min(xs,key=lambda x:x[0])[0]
+    x_max=max(xs,key=lambda x:x[0])[0]
+
+    # S
+    if (include_susceptible):
+        i=0
+        y_obs=[y[i] for y in ys]
+        ax.scatter(xs,y_obs,c="green",label="Susceptible")
+
+    # I
+    i=1
+    y_obs=[y[i] for y in ys]
+    ax.scatter(xs,y_obs,c="blue",label="Infectious")
+
+    # R
+    i=2
+    y_obs=[y[i] for y in ys]
+    ax.scatter(xs,y_obs,c="red",label="Removed")
+
+    ax.set_title("Realisation of Population Sizes for Standard SIR Model",fontsize=20)
+
+    ax.set_xlabel("Time-Period",fontsize=16)
+    ax.set_ylabel("Population Size",fontsize=16)
+
+    ax.set_xticks(list(range(x_min,x_max,7))+[x_max])
+    ax.set_yticks(np.linspace(0, y_max, 5))
+    ax.set_yticklabels(["{:,.0f}".format(x) for x in np.linspace(0, y_max, 5)])
+
+    ax.legend()
+    ax.grid()
+
+    return

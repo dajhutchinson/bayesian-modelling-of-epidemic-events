@@ -3,7 +3,7 @@ import numpy as np
 
 import ABC
 import ABC_Cross_Validation
-from Models import LinearModel,ExponentialModel,SIRModel,GaussianMixtureModel_two
+from Models import LinearModel,ExponentialModel,SIRModel,GaussianMixtureModel_two,FranceRonaData,SenegalRonaData
 
 lm=LinearModel(  # 1+10x
     n_params=2,
@@ -36,6 +36,10 @@ gmm=GaussianMixtureModel_two(
     n_obs=50,
     sd=(1,1))
 gmm_priors=[stats.norm(loc=0,scale=10),stats.norm(loc=0,scale=10),stats.beta(1,1)] # from https://www.tandfonline.com/doi/pdf/10.1080/00949655.2020.1843169
+
+# sir_model.plot_obs()
+
+SenegalRonaData().plot_obs(include_susceptible=False)
 
 """
     SEMI-AUTO ABC
@@ -397,9 +401,9 @@ gmm_priors=[stats.norm(loc=0,scale=10),stats.norm(loc=0,scale=10),stats.beta(1,1
 # print("Fitted Model - {}\n".format(fitted_model))
 
 # SIR Model
-fitted_model,_=ABC.adaptive_abc_smc(n_obs=30,y_obs=sir_model.observe(),fitting_model=sir_model.copy([1,1,1,1]),priors=sir_smc_priors,
-    max_steps=100,sample_size=100,max_simulations=4307,
-    acceptance_kernel=ABC.uniform_kernel,alpha=.9)
-
-print("True Model - {}".format(sir_model))
-print("Fitted Model - {}\n".format(fitted_model))
+# fitted_model,_=ABC.adaptive_abc_smc(n_obs=30,y_obs=sir_model.observe(),fitting_model=sir_model.copy([1,1,1,1]),priors=sir_smc_priors,
+#     max_steps=100,sample_size=100,max_simulations=4307,
+#     acceptance_kernel=ABC.uniform_kernel,alpha=.9)
+#
+# print("True Model - {}".format(sir_model))
+# print("Fitted Model - {}\n".format(fitted_model))

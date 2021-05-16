@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import stats
+import Plotting
 
 class Model():
 
@@ -483,6 +484,16 @@ class SIRModel(Model):
 
         new_model=SIRModel(new_params,self.n_obs,self.x_obs)
         return new_model
+
+    def plot_obs(self,constant_scale=False,include_susceptible=True):
+
+        fig=plt.figure()
+        ax=fig.add_subplot(1,1,1)
+
+        ax=Plotting.plot_sir_model(ax,self,include_susceptible=include_susceptible)
+
+        plt.show()
+
 
     def __str__(self) -> str:
         printing_str="Population Size={:,.1f}\n".format(self.population_size)
@@ -1039,7 +1050,7 @@ class GaussianMixtureModel_two(Model):
 
         return printing_str
 
-class FranceRonaData(Model):
+class FranceRonaData(SIRModel):
 
     def __init__(self):
         """
@@ -1059,6 +1070,8 @@ class FranceRonaData(Model):
 
         self.noise=0 # variance of additive gaussian noise (default=0)
         self.param_labels=None # names for each parameter (used for plotting so optional)
+
+        self.population_size=65273511
 
     def update_params(self,new_params:[float]):
         """
@@ -1191,7 +1204,7 @@ class FranceRonaData_IR(Model):
         """
         return FranceRonaData
 
-class SenegalRonaData(Model):
+class SenegalRonaData(SIRModel):
 
     def __init__(self):
         """
@@ -1211,6 +1224,8 @@ class SenegalRonaData(Model):
 
         self.noise=0 # variance of additive gaussian noise (default=0)
         self.param_labels=None # names for each parameter (used for plotting so optional)
+
+        self.population_size=16743927
 
     def update_params(self,new_params:[float]):
         """
