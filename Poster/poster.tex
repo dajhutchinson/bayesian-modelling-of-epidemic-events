@@ -38,13 +38,16 @@
                       year={2021}
                ]{poster}
 
-\usepackage{algcompatible,graphicx}
-\usepackage[ruled, vlined]{algorithm2e}
-\SetAlFnt{\small}
+\usepackage{algcompatible,graphicx,natbib}
+\usepackage[ruled,vlined,linesnumbered]{algorithm2e}
 
+\SetAlFnt{\small}
 \SetAlCapFnt{\small}
 \SetAlCapNameFnt{\small}
+
 \graphicspath{ {../img/} }
+
+\setcitestyle{numbers,open={[},close={]}}
 
 \begin{document}
 
@@ -55,10 +58,13 @@
   \vfill
 
   \begin{columns}[t]
+
     \begin{column}{0.900\linewidth}
       \begin{block}{\Large 0.}
+        \cite[]{ABC_for_infectious_disease_modelling}
       \end{block}
     \end{column}
+
   \end{columns}
 
   \vfill
@@ -87,7 +93,13 @@
     \end{column}
 
     \begin{column}{0.422\linewidth}
-      \begin{block}{\Large 4.}
+      \begin{block}{\Large References}
+        {\footnotesize
+        % \bibliographystyle{amsalpha}
+        % \bibliographystyle{../Report/royal.bst}
+        \bibliographystyle{ksfh_nat}
+        \bibliography{../Report/references.bib}
+        }
       \end{block}
     \end{column}
 

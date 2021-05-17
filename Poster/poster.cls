@@ -58,7 +58,7 @@
 
 % configure hyperref
 
-\hypersetup{colorlinks=true,bookmarks=false,urlcolor=red}
+\hypersetup{colorlinks=false,bookmarks=false,urlcolor=black}
 
 % -----------------------------------------------------------------------------
 
@@ -114,6 +114,7 @@
 
 % configure beamer to match requirements of a poster rather than slides
 \setbeamercolor{headline}{bg=uobred,fg=white}
+\setbeamercolor{block title}{bg=uobred,fg=white}
 \setbeamercolor{footline}{bg=white,fg=black}
 
 \setbeamersize{text margin left=0.0cm}
