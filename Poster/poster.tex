@@ -38,13 +38,15 @@
                       year={2021}
                ]{poster}
 
-\usepackage{enumitem,graphicx,natbib}
+\usepackage{enumitem,graphicx,natbib,ragged2e}
 \usepackage[ruled,vlined]{algorithm2e}
 \usepackage[font=small,labelfont=bf]{caption}
 
 \SetAlFnt{\footnotesize}
 \SetAlCapFnt{\footnotesize}
 \SetAlCapNameFnt{\footnotesize}
+
+\addtobeamertemplate{block begin}{}{\justifying}
 
 \graphicspath{ {../img/} }
 
@@ -81,7 +83,7 @@
           \pi_{ABC}(\theta,s|s_{obs})=K_\varepsilon(\|s-s_{obs}\|)\mathbb{P}(s|\theta)\pi_0(\theta)
         \end{equation}
         where $K_\varepsilon$ is an acceptance kernel with bandwidth $\varepsilon$, $\pi_0$ are the priors for the parameters, $s:=s(x)$ is summary statistic values of simulated data $x$ and $s_{obs}:=s(x_{obs})$ are the summary statistic values of the observed data $x_{obs}$. These are all parameters of the ABC methods.
-        \par There are several flavours of ABC methods, namely: ABC-Rejection Sampling \cite[]{inferring_coalescence_times_from_dna_sequence_data}; ABC-MCMC \cite[]{mcmc_wo_likelihood}; and, ABC-SMC \cite[]{SMC_wo_likelihood}. A general schema for ABC methods is provided in \textbf{Algorithm 1}.
+        \par There are several flavours of ABC methods, namely: ABC-Rejection Sampling \cite[]{inferring_coalescence_times_from_dna_sequence_data}; ABC-MCMC \cite[]{mcmc_wo_likelihood}; and, ABC-SMC \cite[]{SMC_wo_likelihood}. A general schema for ABC methods is provided in \text{\textbf{Algorithm 1}}.
 
       \end{block}
 
@@ -109,7 +111,7 @@
           \mathbb{P}(X|s(X))=\mathbb{P}(X|s(X),\theta)
         \end{equation}
         A statistic $s(\cdot)$ of a model $X$ with model parameters $\theta$ is sufficient for parameters $\theta$ if it captures all the information which a sample of the model carries about said parameter (\ref{eqn_sufficient_statistic}). The identity function is a sufficient statistic for all models, but has high dimensions. In practice low-dimensional sufficient statistics are rare, and do not exist for non-Exponential family models \cite[]{pkd_theorem_pitman_part}.
-        \par The ideal summary statistic is sufficient, so it retains maximum information, and of low-dimensions, so it is efficient to process and to avoid the ``Curse of Dimensionality''.
+        \par The ideal summary statistic is sufficient, so it retains maximum information, and of low-dimensions, so it is efficient to process and to avoid the ``Curse of Dimensionality'' which makes distinguishing between pairs of high-dimensional vectors near-impossible.
 
       \end{block}
 
