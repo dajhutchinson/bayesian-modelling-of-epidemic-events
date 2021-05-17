@@ -1,0 +1,102 @@
+% The document class supplies options to control rendering of some standard
+% features in the result.  The goal is for uniform style, so some attention
+% to detail is *vital* with all fields.  Each field (i.e., text inside the
+% curly braces below, so the MEng text inside {MEng} for instance) should
+% take into account the following:
+%
+% - author name       should be formatted as "FirstName LastName"
+%   (not "Initial LastName" for example),
+% - supervisor name   should be formatted as "Title FirstName LastName"
+%   (where Title is "Dr." or "Prof." for example),
+% - degree programme  should be "BSc", "MEng", "MSci", "MSc" or "PhD",
+% - dissertation title should be correctly capitalised (plus you can have
+%   an optional sub-title if appropriate, or leave this field blank),
+% - dissertation type should be formatted as one of the following:
+%   * for the MEng degree programme either "enterprise" or "research" to
+%     reflect the stream,
+%   * for the MSc  degree programme "$X/Y/Z$" for a project deemed to be
+%     X%, Y% and Z% of type I, II and III.
+% - year              should be formatted as a 4-digit year of submission
+%   (so 2014 rather than the accademic year, say 2013/14 say).
+%
+% Note there is a *strict* requirement for the poster to be in portrait
+% format so that we display them on the poster boards available.
+
+\documentclass[ % the name of the author
+                  author={Dominic Hutchinson},
+                % the name of the supervisor
+                supervisor={Dr. Daniel Lawson \& Dr. Sam Tickle},
+                % the degree programme
+                    degree={MEng Maths  and Computer Science},
+                % the dissertation    title (which cannot be blank)
+                     title={Bayesian Modelling of Epidemic Events},
+                % the dissertation subtitle (which can    be blank)
+                  subtitle={Summary Statistic Selection for Approximate Bayesian Computation Methods},
+                % the dissertation     type
+                      type={},
+                % the year of submission
+                      year={2021}
+               ]{poster}
+
+\usepackage{algcompatible,graphicx}
+\usepackage[ruled, vlined]{algorithm2e}
+\SetAlFnt{\small}
+
+\SetAlCapFnt{\small}
+\SetAlCapNameFnt{\small}
+\graphicspath{ {../img/} }
+
+\begin{document}
+
+% -----------------------------------------------------------------------------
+
+\begin{frame}{}
+
+  \vfill
+
+  \begin{columns}[t]
+    \begin{column}{0.900\linewidth}
+      \begin{block}{\Large 0.}
+      \end{block}
+    \end{column}
+  \end{columns}
+
+  \vfill
+
+  \begin{columns}[t]
+
+    \begin{column}{0.422\linewidth}
+      \begin{block}{\Large 1.}
+      \end{block}
+    \end{column}
+
+    \begin{column}{0.422\linewidth}
+      \begin{block}{\Large 2.}
+      \end{block}
+    \end{column}
+
+  \end{columns}
+
+  \vfill
+
+  \begin{columns}[t]
+
+    \begin{column}{0.422\linewidth}
+      \begin{block}{\Large 3.}
+      \end{block}
+    \end{column}
+
+    \begin{column}{0.422\linewidth}
+      \begin{block}{\Large 4.}
+      \end{block}
+    \end{column}
+
+  \end{columns}
+
+  \vfill
+
+\end{frame}
+
+% -----------------------------------------------------------------------------
+
+\end{document}
