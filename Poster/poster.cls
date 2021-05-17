@@ -98,15 +98,21 @@
   \leavevmode
   \begin{beamercolorbox}[wd=\paperwidth]{footline}
   \begin{columns}[c]
-  \begin{column}{.45\paperwidth}
-  \begin{center}
-  \includegraphics[scale=2]{logo_uob_colour.png}
-  \end{center}
-  \end{column}
-  \begin{column}{.45\paperwidth}
-  \begin{center}
-  \end{center}
-  \end{column}
+    \begin{column}{.25\paperwidth}
+      \begin{center}
+      \includegraphics[scale=2]{logo_uob_colour.png}
+      \end{center}
+    \end{column}
+
+    \begin{column}{.75\paperwidth}
+      {\footnotesize \textbf{References}\newline
+      % \bibliographystyle{amsalpha}
+      % \bibliographystyle{../Report/royal.bst}
+      \bibliographystyle{ksfh_nat}
+      \bibliography{../Report/references.bib}
+      }
+    \end{column}
+
   \end{columns}
   \end{beamercolorbox}
   \vspace{2cm}
