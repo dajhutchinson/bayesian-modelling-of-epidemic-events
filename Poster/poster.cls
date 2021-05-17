@@ -77,17 +77,17 @@
   \leavevmode
   \begin{beamercolorbox}[wd=\paperwidth]{headline}
   \begin{columns}[c]
-  \begin{column}{.90\paperwidth}
-  \begin{center}
-  \vspace{4ex}
-  \raggedright
-  {\huge  {\poster@title@major}}                                                              \\ [4ex]
-  {\Large {\poster@title@minor}}                                                              \\ [4ex]
-  {\large Student: {\poster@author}, Supervisors: {\poster@supervisor}, Year: {\poster@year}} \\ [4ex]
-  {\large University of Bristol, Department of Mathematics}
-  \vspace{4ex}
-  \end{center}
-  \end{column}
+    \begin{column}{.90\paperwidth}
+      \begin{center}
+        \vspace{1ex}
+        \raggedright
+        {\huge  {\poster@title@major}}                                             \\ [4ex]
+        {\large {\poster@title@minor}}                                             \\ [4ex]
+        {\large Student: {\poster@author}, Supervisors: {\poster@supervisor}}      \\ [4ex]
+        {\large University of Bristol, Department of Mathematics, Year: {\poster@year}, Credits: 40, Level: 7/M}
+        \vspace{1ex}
+      \end{center}
+    \end{column}
   \end{columns}
   \end{beamercolorbox}
 }
@@ -105,8 +105,7 @@
     \end{column}
 
     \begin{column}{.75\paperwidth}
-      {\footnotesize \textbf{References}\newline
-      % \bibliographystyle{amsalpha}
+      {\footnotesize \textbf{References}
       % \bibliographystyle{../Report/royal.bst}
       \bibliographystyle{ksfh_nat}
       \bibliography{../Report/references.bib}
@@ -115,7 +114,7 @@
 
   \end{columns}
   \end{beamercolorbox}
-  \vspace{2cm}
+  \vspace{.5cm}
 }
 
 % configure beamer to match requirements of a poster rather than slides

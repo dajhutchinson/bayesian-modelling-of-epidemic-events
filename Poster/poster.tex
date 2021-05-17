@@ -27,7 +27,7 @@
                 % the name of the supervisor
                 supervisor={Dr. Daniel Lawson \& Dr. Sam Tickle},
                 % the degree programme
-                    degree={MEng Maths  and Computer Science},
+                    degree={MEng Maths and Computer Science},
                 % the dissertation    title (which cannot be blank)
                      title={Bayesian Modelling of Epidemic Events},
                 % the dissertation subtitle (which can    be blank)
@@ -38,16 +38,19 @@
                       year={2021}
                ]{poster}
 
-\usepackage{algcompatible,graphicx,natbib}
-\usepackage[ruled,vlined,linesnumbered]{algorithm2e}
+\usepackage{enumitem,graphicx,natbib}
+\usepackage[ruled,vlined]{algorithm2e}
+\usepackage[font=small,labelfont=bf]{caption}
 
-\SetAlFnt{\small}
-\SetAlCapFnt{\small}
-\SetAlCapNameFnt{\small}
+\SetAlFnt{\footnotesize}
+\SetAlCapFnt{\footnotesize}
+\SetAlCapNameFnt{\footnotesize}
 
 \graphicspath{ {../img/} }
 
-\setcitestyle{numbers,open={[},close={]}}
+\setlength\parindent{5ex}
+
+% \setcitestyle{numbers,open={[},close={]}}
 
 \begin{document}
 
@@ -59,42 +62,130 @@
 
   \begin{columns}[t]
 
-    \begin{column}{0.900\linewidth}
-      \begin{block}{\Large 1. Approximate Bayesian Computation}
-        \cite[]{ABC_for_infectious_disease_modelling}
+    \begin{column}{0.475\linewidth}
+
+      \begin{block}{\Large 1. Motivation}
+
+        Many Bayesian inference questions for a model $X$ with parameters $\theta$ are centred around calculating the posterior of the parameters given a realisation of the data. That is, the probability distribution for the value of the parameters, given a particular realisation of the mathematical model. Bayes' Rule states the posterior as $\prob(\theta|X)$ (\ref{eqn_bayes_rule}).
+        \begin{equation}\label{eqn_bayes_rule}
+          \mathbb{P}(\theta|X)=\frac{\mathbb{P}(X|\theta)\mathbb{P}(\theta)}{\mathbb{P}(X)}\propto\mathbb{P}(X|\theta)\mathbb{P}(\theta)
+        \end{equation}
+        The likelihood function $\mathbb{P}(X|\theta)$ is the probability of observing a certain set of data under a certain configuration of the model. Direct computation of (\ref{eqn_bayes_rule}) is intractable in real world scenarios as the likelihood function is intractable. This motivates the need for methods which can estimate the parameter posteriors in scenarios where the likelihood function is unavailable.
+
       \end{block}
+
+      \begin{block}{\Large 2. Approximate Bayesian Computation}
+
+        Approximate Bayesian Computation (ABC) methods, first presented in \cite[]{inferring_coalescence_times_from_dna_sequence_data}, are a family of computational methods which can be used to approximate posteriors for the parameters of model where the likelihood is intractable. This is achieved by generating simulations from joint distribution (\ref{eqn_abc_joint}) which can be used as simulations from the likelihood, rather than evaluating it explicitly.
+        \begin{equation}\label{eqn_abc_joint}
+          \pi_{ABC}(\theta,s|s_{obs})=K_\varepsilon(\|s-s_{obs}\|)\mathbb{P}(s|\theta)\pi_0(\theta)
+        \end{equation}
+        where $K_\varepsilon$ is an acceptance kernel with bandwidth $\varepsilon$, $\pi_0$ are the priors for the parameters, $s:=s(x)$ is summary statistic values of simulated data $x$ and $s_{obs}:=s(x_{obs})$ are the summary statistic values of the observed data $x_{obs}$. These are all parameters of the ABC methods.
+        \par There are several flavours of ABC methods, namely: ABC-Rejection Sampling \cite[]{inferring_coalescence_times_from_dna_sequence_data}; ABC-MCMC \cite[]{mcmc_wo_likelihood}; and, ABC-SMC \cite[]{SMC_wo_likelihood}. A general schema for ABC methods is provided in \textbf{Algorithm 1}.
+
+      \end{block}
+
+      \begin{block}{\footnotesize \textbf{Algorithm 1} - General ABC Schema }
+        {\footnotesize
+          \par\textbf{Require:} Observed values $x_{obs}$; Summary statistics $s(\cdot)$; Priors $\pi_0(\cdot)$; Theorised model $f(X|\cdot)$; Acceptance Kernel $K_\varepsilon(\cdot)$; Distance Measure $\|\cdot\|$.
+          \begin{enumerate}[label=\arabic*,font=\footnotesize]
+            \item Calculate summary statistic values $s_{obs}=s(x_{obs})$.
+            \item Until stopping condition reached:
+            \begin{enumerate}[label=\Roman*,font=\footnotesize]
+              \item Sample a set of parameters $\tilde\theta$.
+              \item Run the theorised model with sampled parameter $\tilde{x}=f_{\tilde\theta}(X|\tilde\theta)$.
+              \item Calculate summary statistic values $\tilde{s}=s(\tilde{x})$.
+              \item Accepted parameters $\tilde\theta$ with probability $K_\varepsilon(\|\tilde{s}-s_{obs}\|)$.
+            \end{enumerate}
+            \item Return all accepted parameter sets $\hat\Theta$.
+          \end{enumerate}
+        }
+      \end{block}
+
+      \begin{block}{\Large 3. Summary Statistics}
+
+        The success of ABC methods depends mainly on three user choices: summary statistics; distance measure; and, acceptance kernel. Of these, summary statistic selection is arguably the most important as the other two mainly effect the method's rate of convergence. Whereas, choosing summary statistics which are uninformative while mean the method cannot converge on the true posterior.
+        \begin{equation}\label{eqn_sufficient_statistic}
+          \mathbb{P}(X|s(X))=\mathbb{P}(X|s(X),\theta)
+        \end{equation}
+        A statistic $s(\cdot)$ of a model $X$ with model parameters $\theta$ is sufficient for parameters $\theta$ if it captures all the information which a sample of the model carries about said parameter (\ref{eqn_sufficient_statistic}). The identity function is a sufficient statistic for all models, but has high dimensions. In practice low-dimensional sufficient statistics are rare, and do not exist for non-Exponential family models \cite[]{pkd_theorem_pitman_part}.
+        \par The ideal summary statistic is sufficient, so it retains maximum information, and of low-dimensions, so it is efficient to process and to avoid the ``Curse of Dimensionality''.
+
+      \end{block}
+
     \end{column}
 
-  \end{columns}
+    \begin{column}{0.475\linewidth}
 
-  \vfill
-
-  \begin{columns}[t]
-
-    \begin{column}{0.422\linewidth}
-      \begin{block}{\Large 2. Summary Statistics}
+      \begin{block}{\Large 4. Minimising Entropy Approach}
+        \cite[]{on_optimal_selection_of_summary_stats_for_ABC} present two algorithms which seek to select an optimal subset of summary statistics for a large set of hand-crafted summary statistics. The first, given in \textbf{Algorithm 2}, estimates the entropy of every subset of statistics using the $k^{th}$-nearest neighbour estimate of entropy. The subset with the lowest estimated entropy is returned as the recommended set of statistics as lower entropy values implies the distribution holds a greater amount of information.
+        \par The second algorithm extends the first by using the set of statistics returned by \textbf{Algorithm 2} to then generate a set of parameters $\hat\Theta_{ME}$ which are assumed to come from the true model. Each subset of statistics is evaluated again, this time calculating the MRSSE between the set of parameters accepted a given subset $\Theta_{acc}$ and $\hat\Theta_{ME}$.
       \end{block}
-    \end{column}
 
-    \begin{column}{0.422\linewidth}
-      \begin{block}{\Large 3. Minimising Entropy Approach}
+      \begin{block}{\footnotesize \textbf{Algorithm 2} - Minimum Entropy Summary Statistic Selection}
+        {\footnotesize
+          Adapted from \cite[]{on_optimal_selection_of_summary_stats_for_ABC}.
+          \par
+          \begin{algorithm}[H]\label{alg_me}
+            \SetKwInOut{Require}{require}
+            \Require{Observations values $x_{obs}$; Set of Summary Statistics $S$; Number of Simulations $m$; Priors $\pi_0(\cdot)$; Theorised model $f(X|\cdot)$; Mapping $f(\cdot)$; Distance Measure $\|\cdot\|$.}
+            \For{$S'\in 2^{S}$}{\label{alg_me_sss_for_loop}
+              $\Theta\leftarrow$Parameter sets accepted from ABC-Rejection Sampling using $S'$\label{alg_me_rejection_sampling}.\\
+              $\hat{H}_{S'}\leftarrow\hat{H}(\Theta)$
+            }
+            $S_{ME}^*\leftarrow\text{argmin}_{S'\in 2^S}\hat{H}_{S'}$\\
+            \Return{$S_{ME}^*$}
+          \end{algorithm}
+        }
       \end{block}
-    \end{column}
 
-  \end{columns}
-
-  \vfill
-
-  \begin{columns}[t]
-
-    \begin{column}{0.422\linewidth}
-      \begin{block}{\Large 4. Semi-Automatic ABC}
+      \begin{block}{\Large 5. Semi-Automatic ABC}
+        \cite[]{constructing_summary_statistics_for_approximate_bayesian_computation_semi_automatic_ABC} presents an algorithm which removes the need for the user to specify a set of hand-crafted summary statistics and rather using regression to generate its own summary statistics. A pilot run of ABC-Rejection Sampling is run to acquire a set of accepted parameters $\hat\Theta$ and their associated observations $X_{\hat\Theta}$. Regression is then performed between these two sets of values to generate summary statistics. \textbf{Algorithm 3} provides a specification of this algorithm which uses linear regression.
       \end{block}
-    \end{column}
 
-    \begin{column}{0.422\linewidth}
-      \begin{block}{\Large 5. Results}
+      \begin{block}{\footnotesize \textbf{Algorithm 3} - Semi-Automatic ABC}
+        {\footnotesize
+          Adapted from \cite[]{constructing_summary_statistics_for_approximate_bayesian_computation_semi_automatic_ABC}.
+          \par
+          \begin{algorithm}[H]\label{alg_semi_auto}
+            \SetKwInOut{Require}{require}
+            \Require{Observations values $x_{obs}$; Set of Summary Statistics $S$; Number of Simulations $m$; Priors $\pi_0(\cdot)$; Theorised model $f(X|\cdot)$; Mapping $f(\cdot)$; Distance Measure $\|\cdot\|$.}
+            $f_\theta\leftarrow$Posterior from pilot run of an ABC-method using $x_{obs}$ and $S$\label{alg_semi_auto_abc_ls_pilot_run}\\
+            $\hat\Theta\leftarrow$ $m$ simulations from $f_\theta$\label{alg_semi_auto_abc_ls_generate_1}\\
+            $X_{\hat\theta}\leftarrow$ $X\left(\hat\theta\right)$ for each $\hat\theta\in\hat\Theta$\label{alg_semi_auto_abc_ls_generate_2};  $\hat{X}\leftarrow\{X_{\hat\theta_1},\dots,X_{\hat\theta_m}\}$\\
+            $F\leftarrow f(\hat{X})$; $\tilde{F}\leftarrow F$ with a preceding column of 1s\\
+            \For{$i=1,\dots,\rho$}{
+              $A_i\leftarrow i^{th}$ element of each set in $\hat\Theta$\\
+              $(\alpha^{(i)},\pmb\beta^{(i)})\leftarrow(\tilde{F}^T\tilde{F}^{-1})\tilde{F}^TA_i$\\
+              $s_i(\mathbf{x}):=\pmb\beta^{(i)}\mathbf{x}$
+            }
+            \Return{$\{s_1,\dots,s_\rho\}$}
+          \end{algorithm}
+        }
       \end{block}
+
+      \begin{block}{\Large 6. Results}
+        {\footnotesize
+          \begin{table}
+            \begin{tabular}{|l|l|l|l|}
+              \hline
+              \textbf{Algorithm}&\textbf{Statistics}&\textbf{Dimensions}&\textbf{ABC-SMC MSE}\\
+              \hline \hline
+              Control&Identity Function&90&121,777\\\hline
+              Joyce-Marjoram&[Final Susceptible Population]&1&101,730,336\\\hline
+              Minimum Entropy&[Mean Infectious Population,&2&1,131,712\\
+              &Mean Removed Population]&&\\\hline
+              2-Step ME&[Peak Infectious Population Size,&3&228,150\\
+              &Mean Infectious Population,&&\\
+              &Mean Removed Population]&&\\\hline
+              Semi-Automatic ABC&N/A&2&643,255\\\hline
+            \end{tabular}
+            \caption{{\footnotesize Mean Square Error of models fitted using estimated posterior means from Adaptive ABC-SMC running for 5,000 simulations and target acceptance rate $\alpha=0.9$ when using the recommended summary statistics from each algorithm on a standard SIR model over 30 time-periods with population size 100,000 and parameters $\beta=1$ \& $\gamma=1$.}}
+          \end{table}
+        }
+        None of the selection algorithms produce summary statistics which perform as well as the identity function. However, 2-Step Minimum Entropy and Semi-Automatic ABC produce statistics which are not significantly worse despite having 3 or 2 dimensions, respectively.
+      \end{block}
+
     \end{column}
 
   \end{columns}
